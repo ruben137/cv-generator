@@ -100,6 +100,7 @@ export default function Home() {
     mode: "onChange",
   });
   const data = useWatch({ control }) as CvData;
+  const skills = useFieldArray({ control, name: "skills" });
   const languages = useFieldArray({ control, name: "languages" });
   const experiences = useFieldArray({ control, name: "experiences" });
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
@@ -153,10 +154,10 @@ export default function Home() {
   };
 
   const hasContact = [data.phone, data.email, data.portfolio, data.location].some(Boolean);
-  const skillItems = data.skills.split(",").map((skill) => skill.trim()).filter(Boolean);
+  const skillItems = data.skills.map((skill) => skill.name.trim()).filter(Boolean);
   const used = data.experiences.reduce(
     (total, item) => total + item.bullets.join("").length + item.company.length + item.role.length,
-    data.summary.length + data.skills.length,
+    data.summary.length + data.skills.reduce((total, skill) => total + skill.name.length, 0),
   );
   const spaceStatus = used > 1750 ? "high" : used > 1200 ? "medium" : "optimal";
   const localizedStatus =
@@ -337,15 +338,37 @@ export default function Home() {
                     helperText={<Counter value={data.summary} max={600} />}
                     {...register("summary")}
                   />
-                  <TextField
-                    label={t("skills")}
-                    multiline
-                    minRows={2}
-                    placeholder={t("skillsPlaceholder")}
-                    inputProps={{ maxLength: 350 }}
-                    helperText={<><Counter value={data.skills} max={350} /> · {t("separateWithCommas")}</>}
-                    {...register("skills")}
-                  />
+                  <Box>
+                    <Typography fontWeight={700} mb={1}>{t("skills")} ({skills.fields.length}/12)</Typography>
+                    <Stack spacing={1}>
+                      {skills.fields.map((field, index) => (
+                        <Stack direction="row" spacing={1} alignItems="flex-start" key={field.id}>
+                          <TextField
+                            label={t("skillNumber", { number: index + 1 })}
+                            placeholder={t("skillsPlaceholder")}
+                            inputProps={{ maxLength: 50 }}
+                            helperText={<Counter value={data.skills[index]?.name} max={50} />}
+                            {...register(`skills.${index}.name`)}
+                          />
+                          <IconButton
+                            aria-label={t("removeSkill", { number: index + 1 })}
+                            onClick={() => skills.remove(index)}
+                            sx={{ width: 40, height: 40, flex: "0 0 40px", mt: 0.5 }}
+                          >
+                            <DeleteOutlineRounded />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                      <Button
+                        startIcon={<AddRounded />}
+                        disabled={skills.fields.length >= 12}
+                        onClick={() => skills.append({ name: "" })}
+                        sx={{ alignSelf: "flex-start" }}
+                      >
+                        {t("addSkill")}
+                      </Button>
+                    </Stack>
+                  </Box>
                 </Stack>
               </AccordionDetails>
             </Accordion>

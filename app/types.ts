@@ -12,6 +12,10 @@ export type Language = {
   level: string;
 };
 
+export type Skill = {
+  name: string;
+};
+
 export type CvData = {
   primaryColor: string;
   accentColor: string;
@@ -22,7 +26,7 @@ export type CvData = {
   portfolio: string;
   location: string;
   summary: string;
-  skills: string;
+  skills: Skill[];
   photo?: string;
   languages: Language[];
   experiences: Experience[];
@@ -45,7 +49,13 @@ export function getInitialCv(locale: string): CvData {
       location: "City, Country",
       summary:
         "Professional with experience collaborating on projects and solving problems in an organized way. Interested in delivering clear results, learning continuously, and working as part of a team.",
-      skills: "Communication, Teamwork, Organization, Problem solving, Adaptability",
+      skills: [
+        { name: "Communication" },
+        { name: "Teamwork" },
+        { name: "Organization" },
+        { name: "Problem solving" },
+        { name: "Adaptability" },
+      ],
       languages: [
         { name: "Primary language", level: "Native" },
         { name: "Second language", level: "Intermediate" },
@@ -88,7 +98,13 @@ export function getInitialCv(locale: string): CvData {
     location: "Ciudad, País",
     summary:
       "Profesional con experiencia colaborando en proyectos y resolviendo problemas de forma organizada. Me interesa aportar resultados claros, aprender continuamente y trabajar en equipo.",
-    skills: "Comunicación, Trabajo en equipo, Organización, Resolución de problemas, Adaptabilidad",
+    skills: [
+      { name: "Comunicación" },
+      { name: "Trabajo en equipo" },
+      { name: "Organización" },
+      { name: "Resolución de problemas" },
+      { name: "Adaptabilidad" },
+    ],
     languages: [
       { name: "Idioma principal", level: "Nativo" },
       { name: "Segundo idioma", level: "Intermedio" },

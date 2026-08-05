@@ -244,11 +244,10 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
         );
     });
   }
-  if (safe(data.skills)) {
+  if (data.skills.some((skill) => safe(skill.name))) {
     right.push(heading(labels.skills));
     data.skills
-      .split(",")
-      .map((skill) => skill.trim())
+      .map((skill) => skill.name.trim())
       .filter(Boolean)
       .forEach((skill) =>
         right.push(
@@ -490,11 +489,10 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
       rightY -= 8;
     });
   }
-  if (safe(data.skills) && rightY > 55) {
+  if (data.skills.some((skill) => safe(skill.name)) && rightY > 55) {
     rightY = heading(labels.skills, 226, rightY, 345);
     data.skills
-      .split(",")
-      .map((skill) => skill.trim())
+      .map((skill) => skill.name.trim())
       .filter(Boolean)
       .slice(0, 12)
       .forEach((skill) => {
