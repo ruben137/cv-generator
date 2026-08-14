@@ -16,6 +16,20 @@ export type Skill = {
   name: string;
 };
 
+export type Education = {
+  institution: string;
+  degree: string;
+  location: string;
+  start: string;
+  end: string;
+};
+
+export type Certification = {
+  name: string;
+  issuer: string;
+  date: string;
+};
+
 export type CvData = {
   primaryColor: string;
   accentColor: string;
@@ -30,6 +44,8 @@ export type CvData = {
   photo?: string;
   languages: Language[];
   experiences: Experience[];
+  education: Education[];
+  certifications: Certification[];
 };
 
 const baseCv: Pick<CvData, "primaryColor" | "accentColor"> = {
@@ -85,6 +101,18 @@ export function getInitialCv(locale: string): CvData {
           ],
         },
       ],
+      education: [
+        {
+          institution: "Example University",
+          degree: "Bachelor's degree",
+          location: "City, Country",
+          start: "2016",
+          end: "2020",
+        },
+      ],
+      certifications: [
+        { name: "Professional Certification", issuer: "Example Institute", date: "2024" },
+      ],
     };
   }
 
@@ -133,6 +161,18 @@ export function getInitialCv(locale: string): CvData {
           "Documentación de avances y comunicación de resultados.",
         ],
       },
+    ],
+    education: [
+      {
+        institution: "Universidad Ejemplo",
+        degree: "Título universitario",
+        location: "Ciudad, País",
+        start: "2016",
+        end: "2020",
+      },
+    ],
+    certifications: [
+      { name: "Certificación profesional", issuer: "Institución Ejemplo", date: "2024" },
     ],
   };
 }

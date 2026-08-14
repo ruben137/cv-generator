@@ -60,6 +60,20 @@
     "achievements": "Achievements and responsibilities · up to 4 bullets",
     "bullet": "Bullet {number}",
     "addExperience": "Add experience",
+    "education": "Education",
+    "educationNumber": "Education {number}",
+    "removeEducation": "Remove education {number}",
+    "institution": "Educational institution",
+    "degree": "Degree or program",
+    "studyLocation": "Location",
+    "addEducation": "Add education",
+    "certifications": "Certifications",
+    "certificationNumber": "Certification {number}",
+    "removeCertification": "Remove certification {number}",
+    "certificationName": "Certification name",
+    "issuer": "Issuing organization",
+    "certificationDate": "Issue date",
+    "addCertification": "Add certification",
     "privacyNotice": "We don't use accounts, databases, or personal data storage. Closing or refreshing this tab will discard your changes.",
     "preview": "Preview",
     "a4OnePage": "A4 format · one page",
@@ -79,6 +93,8 @@
     "cvExperience": "Experience",
     "cvSkills": "Skills",
     "cvContact": "Contact",
-    "cvLanguages": "Languages"
+    "cvLanguages": "Languages",
+    "cvEducation": "Education",
+    "cvCertifications": "Certifications"
   }
 }

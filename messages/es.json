@@ -60,6 +60,20 @@
     "achievements": "Logros y responsabilidades · máximo 4 viñetas",
     "bullet": "Viñeta {number}",
     "addExperience": "Añadir experiencia",
+    "education": "Formación académica",
+    "educationNumber": "Formación {number}",
+    "removeEducation": "Eliminar formación {number}",
+    "institution": "Institución educativa",
+    "degree": "Título o programa",
+    "studyLocation": "Ubicación",
+    "addEducation": "Añadir formación",
+    "certifications": "Certificaciones",
+    "certificationNumber": "Certificación {number}",
+    "removeCertification": "Eliminar certificación {number}",
+    "certificationName": "Nombre de la certificación",
+    "issuer": "Institución emisora",
+    "certificationDate": "Fecha de emisión",
+    "addCertification": "Añadir certificación",
     "privacyNotice": "No usamos cuentas, base de datos ni almacenamiento de datos personales. Al cerrar o recargar esta pestaña perderás los cambios.",
     "preview": "Vista previa",
     "a4OnePage": "Formato A4 · una página",
@@ -79,6 +93,8 @@
     "cvExperience": "Experiencia",
     "cvSkills": "Habilidades",
     "cvContact": "Contacto",
-    "cvLanguages": "Idiomas"
+    "cvLanguages": "Idiomas",
+    "cvEducation": "Formación académica",
+    "cvCertifications": "Certificaciones"
   }
 }

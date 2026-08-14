@@ -103,6 +103,8 @@ export default function Home() {
   const skills = useFieldArray({ control, name: "skills" });
   const languages = useFieldArray({ control, name: "languages" });
   const experiences = useFieldArray({ control, name: "experiences" });
+  const education = useFieldArray({ control, name: "education" });
+  const certifications = useFieldArray({ control, name: "certifications" });
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeSuccess, setNoticeSuccess] = useState(false);
@@ -112,6 +114,8 @@ export default function Home() {
     skills: t("cvSkills"),
     contact: t("cvContact"),
     languages: t("cvLanguages"),
+    education: t("cvEducation"),
+    certifications: t("cvCertifications"),
     location: t("location"),
     phone: t("phone"),
     email: t("email"),
@@ -157,7 +161,10 @@ export default function Home() {
   const skillItems = data.skills.map((skill) => skill.name.trim()).filter(Boolean);
   const used = data.experiences.reduce(
     (total, item) => total + item.bullets.join("").length + item.company.length + item.role.length,
-    data.summary.length + data.skills.reduce((total, skill) => total + skill.name.length, 0),
+    data.summary.length +
+      data.skills.reduce((total, skill) => total + skill.name.length, 0) +
+      data.education.reduce((total, item) => total + item.institution.length + item.degree.length, 0) +
+      data.certifications.reduce((total, item) => total + item.name.length + item.issuer.length, 0),
   );
   const spaceStatus = used > 1750 ? "high" : used > 1200 ? "medium" : "optimal";
   const localizedStatus =
@@ -459,6 +466,76 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
+            <Accordion sx={sectionSx}>
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t("education")} ({education.fields.length}/3)</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  {education.fields.map((field, index) => (
+                    <Box className="experience-form" key={field.id}>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                        <Typography fontWeight={750}>{t("educationNumber", { number: index + 1 })}</Typography>
+                        <IconButton aria-label={t("removeEducation", { number: index + 1 })} onClick={() => education.remove(index)}>
+                          <DeleteOutlineRounded />
+                        </IconButton>
+                      </Stack>
+                      <Box className="form-grid">
+                        <TextField label={t("institution")} inputProps={{ maxLength: 70 }} {...register(`education.${index}.institution`)} />
+                        <TextField label={t("degree")} inputProps={{ maxLength: 80 }} {...register(`education.${index}.degree`)} />
+                        <TextField label={t("studyLocation")} inputProps={{ maxLength: 70 }} {...register(`education.${index}.location`)} />
+                        <Stack direction="row" spacing={1}>
+                          <TextField label={t("from")} inputProps={{ maxLength: 20 }} {...register(`education.${index}.start`)} />
+                          <TextField label={t("to")} inputProps={{ maxLength: 20 }} {...register(`education.${index}.end`)} />
+                        </Stack>
+                      </Box>
+                    </Box>
+                  ))}
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddRounded />}
+                    disabled={education.fields.length >= 3}
+                    onClick={() => education.append({ institution: "", degree: "", location: "", start: "", end: "" })}
+                  >
+                    {t("addEducation")}
+                  </Button>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion sx={sectionSx}>
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t("certifications")} ({certifications.fields.length}/4)</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  {certifications.fields.map((field, index) => (
+                    <Box className="experience-form" key={field.id}>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                        <Typography fontWeight={750}>{t("certificationNumber", { number: index + 1 })}</Typography>
+                        <IconButton aria-label={t("removeCertification", { number: index + 1 })} onClick={() => certifications.remove(index)}>
+                          <DeleteOutlineRounded />
+                        </IconButton>
+                      </Stack>
+                      <Box className="form-grid">
+                        <TextField label={t("certificationName")} inputProps={{ maxLength: 80 }} {...register(`certifications.${index}.name`)} />
+                        <TextField label={t("issuer")} inputProps={{ maxLength: 70 }} {...register(`certifications.${index}.issuer`)} />
+                        <TextField label={t("certificationDate")} inputProps={{ maxLength: 20 }} {...register(`certifications.${index}.date`)} />
+                      </Box>
+                    </Box>
+                  ))}
+                  <Button
+                    variant="outlined"
+                    startIcon={<AddRounded />}
+                    disabled={certifications.fields.length >= 4}
+                    onClick={() => certifications.append({ name: "", issuer: "", date: "" })}
+                  >
+                    {t("addCertification")}
+                  </Button>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+
             <Alert icon={<LockOutlined />} severity="info" sx={{ mt: 2 }}>
               {t("privacyNotice")}
             </Alert>
@@ -516,6 +593,30 @@ export default function Home() {
                             {[experience.location, [experience.start, experience.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}
                           </p>
                           <ul>{experience.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul>
+                        </div>
+                      ))}
+                    </section>
+                  )}
+                  {data.education.some((item) => item.institution || item.degree) && (
+                    <section>
+                      <h3>{t("cvEducation")}</h3>
+                      {data.education.filter((item) => item.institution || item.degree).map((item, index) => (
+                        <div className="cv-experience" key={`${item.institution}-${index}`}>
+                          <h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4>
+                          <p className="cv-meta">
+                            {[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      ))}
+                    </section>
+                  )}
+                  {data.certifications.some((item) => item.name || item.issuer) && (
+                    <section>
+                      <h3>{t("cvCertifications")}</h3>
+                      {data.certifications.filter((item) => item.name || item.issuer).map((item, index) => (
+                        <div className="cv-experience" key={`${item.name}-${index}`}>
+                          <h4>{item.name}</h4>
+                          <p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p>
                         </div>
                       ))}
                     </section>

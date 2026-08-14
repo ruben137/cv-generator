@@ -8,6 +8,8 @@ export type ExportLabels = {
   skills: string;
   contact: string;
   languages: string;
+  education: string;
+  certifications: string;
   location: string;
   phone: string;
   email: string;
@@ -242,6 +244,53 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
             }),
           ),
         );
+    });
+  }
+  if (data.education.some((item) => safe(item.institution) || safe(item.degree))) {
+    right.push(heading(labels.education));
+    data.education.forEach((item) => {
+      if (!safe(item.institution) && !safe(item.degree)) return;
+      right.push(
+        new Paragraph({
+          spacing: { before: 55, after: 25 },
+          children: [
+            new TextRun({ text: safe(item.institution), bold: true, size: 20 }),
+            new TextRun({ text: item.institution && item.degree ? ` — ${safe(item.degree)}` : safe(item.degree), italics: true, size: 20 }),
+          ],
+        }),
+        new Paragraph({
+          spacing: { after: 50 },
+          children: [
+            new TextRun({
+              text: [safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")]
+                .filter(Boolean)
+                .join(" · "),
+              italics: true,
+              size: 18,
+            }),
+          ],
+        }),
+      );
+    });
+  }
+  if (data.certifications.some((item) => safe(item.name) || safe(item.issuer))) {
+    right.push(heading(labels.certifications));
+    data.certifications.forEach((item) => {
+      if (!safe(item.name) && !safe(item.issuer)) return;
+      right.push(
+        new Paragraph({
+          spacing: { before: 45, after: 45 },
+          children: [
+            new TextRun({ text: safe(item.name), bold: true, size: 19 }),
+            new TextRun({
+              text: [safe(item.issuer), safe(item.date)].filter(Boolean).length
+                ? ` — ${[safe(item.issuer), safe(item.date)].filter(Boolean).join(" · ")}`
+                : "",
+              size: 18,
+            }),
+          ],
+        }),
+      );
     });
   }
   if (data.skills.some((skill) => safe(skill.name))) {
@@ -487,6 +536,51 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
           rightY = textBlock(bullet, 241, rightY, 330, 8.6, 11, regular, 3);
         });
       rightY -= 8;
+    });
+  }
+  const education = data.education.filter((item) => safe(item.institution) || safe(item.degree));
+  if (education.length && rightY > 80) {
+    rightY = heading(labels.education, 226, rightY, 345);
+    education.forEach((item) => {
+      rightY = textBlock(
+        [safe(item.institution), safe(item.degree)].filter(Boolean).join(" — "),
+        226,
+        rightY,
+        345,
+        9.2,
+        11,
+        bold,
+        2,
+      );
+      rightY = textBlock(
+        [safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")]
+          .filter(Boolean)
+          .join(" · "),
+        226,
+        rightY - 2,
+        345,
+        8.3,
+        10,
+        italic,
+        2,
+      ) - 6;
+    });
+  }
+  const certifications = data.certifications.filter((item) => safe(item.name) || safe(item.issuer));
+  if (certifications.length && rightY > 80) {
+    rightY = heading(labels.certifications, 226, rightY, 345);
+    certifications.forEach((item) => {
+      rightY = textBlock(safe(item.name), 226, rightY, 345, 9, 11, bold, 2);
+      rightY = textBlock(
+        [safe(item.issuer), safe(item.date)].filter(Boolean).join(" · "),
+        226,
+        rightY - 1,
+        345,
+        8.3,
+        10,
+        italic,
+        2,
+      ) - 5;
     });
   }
   if (data.skills.some((skill) => safe(skill.name)) && rightY > 55) {
