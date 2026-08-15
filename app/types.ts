@@ -30,7 +30,20 @@ export type Certification = {
   date: string;
 };
 
+export const mainSectionIds = ["summary", "experience", "education", "certifications", "skills"] as const;
+export type MainSectionId = (typeof mainSectionIds)[number];
+
+export function normalizeSectionOrder(order?: MainSectionId[]): MainSectionId[] {
+  const valid = (order ?? []).filter(
+    (item, index, items): item is MainSectionId => mainSectionIds.includes(item) && items.indexOf(item) === index,
+  );
+  return [...valid, ...mainSectionIds.filter((item) => !valid.includes(item))];
+}
+
 export type CvData = {
+  template: "classic" | "modern" | "minimal" | "right" | "compact" | "contrast";
+  fontFamily: "sans" | "serif" | "humanist";
+  photoShape: "square" | "round";
   primaryColor: string;
   accentColor: string;
   name: string;
@@ -46,11 +59,16 @@ export type CvData = {
   experiences: Experience[];
   education: Education[];
   certifications: Certification[];
+  sectionOrder: MainSectionId[];
 };
 
-const baseCv: Pick<CvData, "primaryColor" | "accentColor"> = {
+const baseCv: Pick<CvData, "template" | "fontFamily" | "photoShape" | "primaryColor" | "accentColor" | "sectionOrder"> = {
+  template: "classic",
+  fontFamily: "sans",
+  photoShape: "square",
   primaryColor: "#173B63",
   accentColor: "#3C6596",
+  sectionOrder: [...mainSectionIds],
 };
 
 export function getInitialCv(locale: string): CvData {

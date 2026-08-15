@@ -1,6 +1,6 @@
 "use client";
 
-import type { CvData } from "./types";
+import { normalizeSectionOrder, type CvData, type MainSectionId } from "./types";
 
 export type ExportLabels = {
   summary: string;
@@ -57,7 +57,7 @@ async function dataUrlBytes(dataUrl: string) {
   return new Uint8Array(await (await fetch(dataUrl)).arrayBuffer());
 }
 
-async function cropPhoto(dataUrl: string) {
+async function cropPhoto(dataUrl: string, shape: CvData["photoShape"]) {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const element = new Image();
     element.onload = () => resolve(element);
@@ -66,9 +66,18 @@ async function cropPhoto(dataUrl: string) {
   });
   const canvas = document.createElement("canvas");
   canvas.width = 700;
-  canvas.height = 800;
+  canvas.height = shape === "round" ? 700 : 800;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("No se pudo procesar la foto");
+  if (shape !== "round") {
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  if (shape === "round") {
+    context.beginPath();
+    context.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2);
+    context.clip();
+  }
   const sourceRatio = image.naturalWidth / image.naturalHeight;
   const targetRatio = canvas.width / canvas.height;
   let sourceWidth = image.naturalWidth;
@@ -93,12 +102,11 @@ async function cropPhoto(dataUrl: string) {
     canvas.width,
     canvas.height,
   );
-  return canvas.toDataURL("image/jpeg", 0.9);
+  return canvas.toDataURL(shape === "round" ? "image/png" : "image/jpeg", 0.9);
 }
 
 export async function exportDocx(data: CvData, labels: ExportLabels) {
   const {
-    AlignmentType,
     BorderStyle,
     Document,
     HeadingLevel,
@@ -115,13 +123,21 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   } = await import("docx");
   const primary = docxColor(data.primaryColor, "173B63");
   const accent = docxColor(data.accentColor, "3C6596");
+  const docxFont = data.fontFamily === "serif" ? "Georgia" : data.fontFamily === "humanist" ? "Calibri" : "Arial";
+  const isModern = data.template === "modern";
+  const isMinimal = data.template === "minimal";
+  const isRight = data.template === "right";
+  const isContrast = data.template === "contrast";
+  const sidebarTextColor = isContrast ? "FFFFFF" : undefined;
+  const sidebarPercent = data.template === "compact" ? 28 : 32;
+  const mainPercent = 100 - sidebarPercent;
 
-  const heading = (text: string) =>
+  const heading = (text: string, textColor = primary, borderColor = primary) =>
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 220, after: 80 },
-      border: { bottom: { color: primary, size: 8, style: BorderStyle.SINGLE } },
-      children: [new TextRun({ text, bold: true, color: primary, size: 27 })],
+      border: { bottom: { color: borderColor, size: 8, style: BorderStyle.SINGLE } },
+      children: [new TextRun({ text, bold: true, color: textColor, size: 27 })],
     });
 
   const left: InstanceType<typeof Paragraph>[] = [
@@ -131,27 +147,27 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
         new TextRun({
           text: safe(data.name).toUpperCase() || "TU NOMBRE",
           bold: true,
-          color: primary,
+          color: isContrast ? "FFFFFF" : primary,
           size: 34,
         }),
       ],
     }),
     new Paragraph({
       spacing: { after: 200 },
-      children: [new TextRun({ text: safe(data.headline), color: primary, size: 20 })],
+      children: [new TextRun({ text: safe(data.headline), color: isContrast ? "FFFFFF" : primary, size: 20 })],
     }),
   ];
 
   if (data.photo) {
-    const image = await dataUrlBytes(await cropPhoto(data.photo));
+    const image = await dataUrlBytes(await cropPhoto(data.photo, data.photoShape));
     left.push(
       new Paragraph({
         spacing: { after: 220 },
         children: [
           new ImageRun({
             data: image,
-            transformation: { width: 154, height: 176 },
-            type: "jpg",
+            transformation: { width: 154, height: data.photoShape === "round" ? 154 : 176 },
+            type: data.photoShape === "round" ? "png" : "jpg",
           }),
         ],
       }),
@@ -166,14 +182,14 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   ].filter(([, value]) => safe(value));
 
   if (contacts.length) {
-    left.push(heading(labels.contact));
+    left.push(heading(labels.contact, isContrast ? "FFFFFF" : primary, isContrast ? accent : primary));
     contacts.forEach(([label, value]) => {
       const children = [
-        new TextRun({ text: `${label}: `, bold: true, size: 18 }),
+        new TextRun({ text: `${label}: `, bold: true, size: 18, color: sidebarTextColor }),
         new TextRun({
           text: safe(value),
           size: 18,
-          color: label === labels.portfolio ? "0563C1" : undefined,
+          color: isContrast ? "FFFFFF" : label === labels.portfolio ? "0563C1" : undefined,
           underline: label === labels.portfolio ? {} : undefined,
         }),
       ];
@@ -182,7 +198,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
 
   if (data.languages.some((item) => safe(item.name))) {
-    left.push(heading(labels.languages));
+    left.push(heading(labels.languages, isContrast ? "FFFFFF" : primary, isContrast ? accent : primary));
     data.languages
       .filter((item) => safe(item.name))
       .forEach((item) =>
@@ -190,15 +206,18 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
           new Paragraph({
             spacing: { after: 55 },
             children: [
-              new TextRun({ text: `${item.name}: `, bold: true, size: 18 }),
-              new TextRun({ text: item.level, size: 18 }),
+              new TextRun({ text: `${item.name}: `, bold: true, size: 18, color: sidebarTextColor }),
+              new TextRun({ text: item.level, size: 18, color: sidebarTextColor }),
             ],
           }),
         ),
       );
   }
 
-  const right: InstanceType<typeof Paragraph>[] = [];
+  const sectionParagraphs = Object.fromEntries(
+    normalizeSectionOrder(data.sectionOrder).map((section) => [section, [] as InstanceType<typeof Paragraph>[]]),
+  ) as Record<MainSectionId, InstanceType<typeof Paragraph>[]>;
+  let right = sectionParagraphs.summary;
   if (safe(data.summary)) {
     right.push(
       heading(labels.summary),
@@ -208,6 +227,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
       }),
     );
   }
+  right = sectionParagraphs.experience;
   if (data.experiences.some((item) => safe(item.company) || safe(item.role))) {
     right.push(heading(labels.experience));
     data.experiences.forEach((experience) => {
@@ -246,6 +266,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
         );
     });
   }
+  right = sectionParagraphs.education;
   if (data.education.some((item) => safe(item.institution) || safe(item.degree))) {
     right.push(heading(labels.education));
     data.education.forEach((item) => {
@@ -273,6 +294,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
       );
     });
   }
+  right = sectionParagraphs.certifications;
   if (data.certifications.some((item) => safe(item.name) || safe(item.issuer))) {
     right.push(heading(labels.certifications));
     data.certifications.forEach((item) => {
@@ -293,6 +315,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
       );
     });
   }
+  right = sectionParagraphs.skills;
   if (data.skills.some((skill) => safe(skill.name))) {
     right.push(heading(labels.skills));
     data.skills
@@ -308,11 +331,49 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
         ),
       );
   }
+  const orderedRight = normalizeSectionOrder(data.sectionOrder).flatMap((section) => sectionParagraphs[section]);
 
   const cellMargins = { top: 180, bottom: 180, left: 180, right: 180 };
+  const topSidebarCell = new TableCell({
+    width: { size: sidebarPercent, type: WidthType.PERCENTAGE },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    shading: isMinimal ? undefined : { fill: accent, type: ShadingType.CLEAR },
+    children: [new Paragraph("")],
+  });
+  const topMainCell = new TableCell({
+    width: { size: mainPercent, type: WidthType.PERCENTAGE },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    shading: isModern ? { fill: accent, type: ShadingType.CLEAR } : undefined,
+    children: [new Paragraph("")],
+  });
+  const bodySidebarCell = new TableCell({
+    width: { size: sidebarPercent, type: WidthType.PERCENTAGE },
+    margins: cellMargins,
+    shading: isMinimal ? undefined : { fill: isContrast ? primary : isModern ? "F5F7F9" : "F1F3F5", type: ShadingType.CLEAR },
+    children: left,
+  });
+  const bodyMainCell = new TableCell({
+    width: { size: mainPercent, type: WidthType.PERCENTAGE },
+    margins: { ...cellMargins, left: 260 },
+    children: orderedRight.length ? orderedRight : [new Paragraph("")],
+  });
+  const bottomSidebarCell = new TableCell({
+    width: { size: sidebarPercent, type: WidthType.PERCENTAGE },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    shading: isModern ? { fill: primary, type: ShadingType.CLEAR } : undefined,
+    children: [new Paragraph("")],
+  });
+  const bottomMainCell = new TableCell({
+    width: { size: mainPercent, type: WidthType.PERCENTAGE },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    shading: isMinimal ? undefined : { fill: isContrast ? accent : primary, type: ShadingType.CLEAR },
+    children: [new Paragraph("")],
+  });
   const table = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    columnWidths: [3200, 6800],
+    columnWidths: isRight
+      ? [mainPercent * 100, sidebarPercent * 100]
+      : [sidebarPercent * 100, mainPercent * 100],
     borders: {
       top: { style: BorderStyle.NONE },
       bottom: { style: BorderStyle.NONE },
@@ -323,59 +384,23 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
     },
     rows: [
       new TableRow({
-        height: { value: 500, rule: HeightRule.EXACT },
-        children: [
-          new TableCell({
-            width: { size: 32, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            shading: { fill: accent, type: ShadingType.CLEAR },
-            children: [new Paragraph("")],
-          }),
-          new TableCell({
-            width: { size: 68, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: [new Paragraph("")],
-          }),
-        ],
+        height: { value: isMinimal ? 40 : isModern ? 180 : 500, rule: HeightRule.EXACT },
+        children: isRight ? [topMainCell, topSidebarCell] : [topSidebarCell, topMainCell],
       }),
       new TableRow({
         height: { value: 14500, rule: HeightRule.ATLEAST },
-        children: [
-          new TableCell({
-            width: { size: 32, type: WidthType.PERCENTAGE },
-            margins: cellMargins,
-            shading: { fill: "F1F3F5", type: ShadingType.CLEAR },
-            children: left,
-          }),
-          new TableCell({
-            width: { size: 68, type: WidthType.PERCENTAGE },
-            margins: { ...cellMargins, left: 260 },
-            children: right.length ? right : [new Paragraph("")],
-          }),
-        ],
+        children: isRight ? [bodyMainCell, bodySidebarCell] : [bodySidebarCell, bodyMainCell],
       }),
       new TableRow({
-        height: { value: 300, rule: HeightRule.EXACT },
-        children: [
-          new TableCell({
-            width: { size: 32, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            children: [new Paragraph("")],
-          }),
-          new TableCell({
-            width: { size: 68, type: WidthType.PERCENTAGE },
-            margins: { top: 0, bottom: 0, left: 0, right: 0 },
-            shading: { fill: primary, type: ShadingType.CLEAR },
-            children: [new Paragraph("")],
-          }),
-        ],
+        height: { value: isMinimal ? 40 : isModern ? 160 : 300, rule: HeightRule.EXACT },
+        children: isRight ? [bottomMainCell, bottomSidebarCell] : [bottomSidebarCell, bottomMainCell],
       }),
     ],
   });
 
   const doc = new Document({
     styles: {
-      default: { document: { run: { font: "Arial", size: 18 } } },
+      default: { document: { run: { font: docxFont, size: 18 } } },
       paragraphStyles: [
         {
           id: "Heading2",
@@ -383,7 +408,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
           basedOn: "Normal",
           next: "Normal",
           quickFormat: true,
-          run: { font: "Arial", bold: true, color: primary },
+          run: { font: docxFont, bold: true, color: primary },
         },
       ],
     },
@@ -407,17 +432,40 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]);
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+  const pdfFonts = data.fontFamily === "serif"
+    ? [StandardFonts.TimesRoman, StandardFonts.TimesRomanBold, StandardFonts.TimesRomanItalic]
+    : [StandardFonts.Helvetica, StandardFonts.HelveticaBold, StandardFonts.HelveticaOblique];
+  const regular = await pdf.embedFont(pdfFonts[0]);
+  const bold = await pdf.embedFont(pdfFonts[1]);
+  const italic = await pdf.embedFont(pdfFonts[2]);
   const color = pdfColor(data.primaryColor, [23 / 255, 59 / 255, 99 / 255], rgb) as ReturnType<typeof rgb>;
   const accent = pdfColor(data.accentColor, [60 / 255, 101 / 255, 150 / 255], rgb) as ReturnType<typeof rgb>;
   const dark = rgb(24 / 255, 30 / 255, 38 / 255);
   const muted = rgb(0.94, 0.95, 0.96);
+  const white = rgb(1, 1, 1);
+  const isContrastPdf = data.template === "contrast";
+  const sidebarInk = isContrastPdf ? white : dark;
+  const pageWidth = 595.28;
+  const sidebarWidth = data.template === "compact" ? 167 : 202;
+  const mainWidth = pageWidth - sidebarWidth;
+  const isRight = data.template === "right";
+  const sidebarX = isRight ? mainWidth : 0;
+  const mainX = isRight ? 0 : sidebarWidth;
+  const sidebarContentX = sidebarX + 20;
+  const sidebarContentWidth = sidebarWidth - 40;
+  const mainContentX = mainX + 24;
+  const mainContentWidth = mainWidth - 48;
+  const bulletX = mainContentX + 5;
+  const bulletTextX = mainContentX + 15;
+  const columnBoundary = isRight ? mainWidth : sidebarWidth;
 
-  page.drawRectangle({ x: 0, y: 0, width: 202, height: 841.89, color: muted });
-  page.drawRectangle({ x: 0, y: 812, width: 202, height: 30, color: accent });
-  page.drawRectangle({ x: 202, y: 0, width: 393, height: 18, color });
+  if (data.template !== "minimal") {
+    page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: isContrastPdf ? color : muted });
+    page.drawRectangle({ x: data.template === "modern" ? 0 : sidebarX, y: data.template === "modern" ? 831 : 812, width: data.template === "modern" ? pageWidth : sidebarWidth, height: data.template === "modern" ? 11 : 30, color: accent });
+    page.drawRectangle({ x: data.template === "modern" ? 0 : mainX, y: 0, width: data.template === "modern" ? pageWidth : mainWidth, height: data.template === "modern" ? 10 : 18, color: isContrastPdf ? accent : color });
+  } else {
+    page.drawLine({ start: { x: columnBoundary, y: 26 }, end: { x: columnBoundary, y: 816 }, thickness: 0.6, color: muted });
+  }
 
   const wrap = (text: string, font: typeof regular, size: number, width: number) => {
     const lines: string[] = [];
@@ -442,34 +490,35 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
     lineHeight = 12,
     font = regular,
     maxLines = 20,
+    textColor = dark,
   ) => {
     const lines = wrap(text, font, size, width).slice(0, maxLines);
     lines.forEach((line, index) =>
-      page.drawText(line, { x, y: y - index * lineHeight, size, font, color: dark }),
+      page.drawText(line, { x, y: y - index * lineHeight, size, font, color: textColor }),
     );
     return y - lines.length * lineHeight;
   };
-  const heading = (text: string, x: number, y: number, width: number) => {
-    page.drawText(text, { x, y, size: 16, font: bold, color });
-    page.drawLine({ start: { x, y: y - 5 }, end: { x: x + width, y: y - 5 }, thickness: 0.7, color });
+  const heading = (text: string, x: number, y: number, width: number, textColor = color, lineColor = color) => {
+    page.drawText(text, { x, y, size: 16, font: bold, color: textColor });
+    page.drawLine({ start: { x, y: y - 5 }, end: { x: x + width, y: y - 5 }, thickness: 0.7, color: lineColor });
     return y - 22;
   };
 
   let leftY = 775;
-  wrap(safe(data.name).toUpperCase() || "TU NOMBRE", bold, 20, 164)
+  wrap(safe(data.name).toUpperCase() || "TU NOMBRE", bold, 20, sidebarContentWidth + 2)
     .slice(0, 2)
-    .forEach((line, index) => page.drawText(line, { x: 20, y: leftY - index * 24, size: 20, font: bold, color }));
+    .forEach((line, index) => page.drawText(line, { x: sidebarContentX, y: leftY - index * 24, size: 20, font: bold, color: isContrastPdf ? white : color }));
   leftY -= safe(data.name).length > 16 ? 58 : 34;
   if (safe(data.headline)) {
-    leftY = textBlock(data.headline, 20, leftY, 164, 9, 11, bold, 2) - 7;
+    leftY = textBlock(data.headline, sidebarContentX, leftY, sidebarContentWidth + 2, 9, 11, bold, 2, sidebarInk) - 7;
   }
   if (data.photo) {
     try {
-      const bytes = await dataUrlBytes(await cropPhoto(data.photo));
-      const image = await pdf.embedJpg(bytes);
-      const targetW = 147;
-      const targetH = 168;
-      page.drawImage(image, { x: 20, y: leftY - targetH, width: targetW, height: targetH });
+      const bytes = await dataUrlBytes(await cropPhoto(data.photo, data.photoShape));
+      const image = data.photoShape === "round" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+      const targetW = sidebarContentWidth - 15;
+      const targetH = data.photoShape === "round" ? targetW : targetW * 8 / 7;
+      page.drawImage(image, { x: sidebarContentX, y: leftY - targetH, width: targetW, height: targetH });
       leftY -= targetH + 22;
     } catch {
       // The CV still exports if an unsupported image slips through.
@@ -483,117 +532,76 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
     [labels.portfolio, data.portfolio],
   ].filter(([, value]) => safe(value));
   if (contacts.length) {
-    leftY = heading(labels.contact, 20, leftY, 162);
+    leftY = heading(labels.contact, sidebarContentX, leftY, sidebarContentWidth, isContrastPdf ? white : color, isContrastPdf ? accent : color);
     contacts.forEach(([label, value]) => {
-      page.drawText(`${label}:`, { x: 20, y: leftY, size: 8.5, font: bold, color: dark });
-      leftY = textBlock(value, 20, leftY - 12, 162, 8.2, 10, regular, 2) - 7;
+      page.drawText(`${label}:`, { x: sidebarContentX, y: leftY, size: 8.5, font: bold, color: sidebarInk });
+      leftY = textBlock(value, sidebarContentX, leftY - 12, sidebarContentWidth, 8.2, 10, regular, 2, sidebarInk) - 7;
     });
   }
   const languages = data.languages.filter((item) => safe(item.name));
   if (languages.length) {
-    leftY = heading(labels.languages, 20, leftY - 3, 162);
+    leftY = heading(labels.languages, sidebarContentX, leftY - 3, sidebarContentWidth, isContrastPdf ? white : color, isContrastPdf ? accent : color);
     languages.forEach((item) => {
-      page.drawText(`${item.name}:`, { x: 20, y: leftY, size: 8.5, font: bold, color: dark });
-      leftY = textBlock(item.level, 20, leftY - 11, 162, 8.2, 10, regular, 2) - 5;
+      page.drawText(`${item.name}:`, { x: sidebarContentX, y: leftY, size: 8.5, font: bold, color: sidebarInk });
+      leftY = textBlock(item.level, sidebarContentX, leftY - 11, sidebarContentWidth, 8.2, 10, regular, 2, sidebarInk) - 5;
     });
   }
 
   let rightY = 775;
-  if (safe(data.summary)) {
-    rightY = heading(labels.summary, 226, rightY, 345);
-    rightY = textBlock(data.summary, 226, rightY, 345, 9.5, 13, regular, 7) - 6;
-  }
+  let drawnMainSections = 0;
+  const mainHeading = (label: string) => {
+    if (drawnMainSections > 0) rightY -= 12;
+    drawnMainSections += 1;
+    return heading(label, mainContentX, rightY, mainContentWidth);
+  };
   const experiences = data.experiences.filter((item) => safe(item.company) || safe(item.role));
-  if (experiences.length) {
-    rightY = heading(labels.experience, 226, rightY, 345);
-    experiences.forEach((item) => {
-      rightY = textBlock(
-        [safe(item.company), safe(item.role)].filter(Boolean).join(" — "),
-        226,
-        rightY,
-        345,
-        9.5,
-        12,
-        bold,
-        2,
-      );
-      rightY = textBlock(
-        [safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")]
-          .filter(Boolean)
-          .join(" · "),
-        226,
-        rightY - 2,
-        345,
-        8.5,
-        11,
-        italic,
-        2,
-      );
-      item.bullets
-        .filter((bullet) => safe(bullet))
-        .forEach((bullet) => {
-          page.drawCircle({ x: 231, y: rightY + 3, size: 1.5, color: dark });
-          rightY = textBlock(bullet, 241, rightY, 330, 8.6, 11, regular, 3);
-        });
-      rightY -= 8;
-    });
-  }
   const education = data.education.filter((item) => safe(item.institution) || safe(item.degree));
-  if (education.length && rightY > 80) {
-    rightY = heading(labels.education, 226, rightY, 345);
-    education.forEach((item) => {
-      rightY = textBlock(
-        [safe(item.institution), safe(item.degree)].filter(Boolean).join(" — "),
-        226,
-        rightY,
-        345,
-        9.2,
-        11,
-        bold,
-        2,
-      );
-      rightY = textBlock(
-        [safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")]
-          .filter(Boolean)
-          .join(" · "),
-        226,
-        rightY - 2,
-        345,
-        8.3,
-        10,
-        italic,
-        2,
-      ) - 6;
-    });
-  }
   const certifications = data.certifications.filter((item) => safe(item.name) || safe(item.issuer));
-  if (certifications.length && rightY > 80) {
-    rightY = heading(labels.certifications, 226, rightY, 345);
-    certifications.forEach((item) => {
-      rightY = textBlock(safe(item.name), 226, rightY, 345, 9, 11, bold, 2);
-      rightY = textBlock(
-        [safe(item.issuer), safe(item.date)].filter(Boolean).join(" · "),
-        226,
-        rightY - 1,
-        345,
-        8.3,
-        10,
-        italic,
-        2,
-      ) - 5;
-    });
-  }
-  if (data.skills.some((skill) => safe(skill.name)) && rightY > 55) {
-    rightY = heading(labels.skills, 226, rightY, 345);
-    data.skills
-      .map((skill) => skill.name.trim())
-      .filter(Boolean)
-      .slice(0, 12)
-      .forEach((skill) => {
-        page.drawCircle({ x: 231, y: rightY + 3, size: 1.5, color: dark });
-        rightY = textBlock(skill, 241, rightY, 330, 9, 12, regular, 2);
+  const sectionDrawers: Record<MainSectionId, () => void> = {
+    summary: () => {
+      if (!safe(data.summary)) return;
+      rightY = mainHeading(labels.summary);
+      rightY = textBlock(data.summary, mainContentX, rightY, mainContentWidth, 9.5, 13, regular, 7) - 6;
+    },
+    experience: () => {
+      if (!experiences.length || rightY <= 80) return;
+      rightY = mainHeading(labels.experience);
+      experiences.forEach((item) => {
+        rightY = textBlock([safe(item.company), safe(item.role)].filter(Boolean).join(" — "), mainContentX, rightY, mainContentWidth, 9.5, 12, bold, 2);
+        rightY = textBlock([safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")].filter(Boolean).join(" · "), mainContentX, rightY - 2, mainContentWidth, 8.5, 11, italic, 2);
+        item.bullets.filter((bullet) => safe(bullet)).forEach((bullet) => {
+          page.drawCircle({ x: bulletX, y: rightY + 3, size: 1.5, color: dark });
+          rightY = textBlock(bullet, bulletTextX, rightY, mainContentWidth - 15, 8.6, 11, regular, 3);
+        });
+        rightY -= 8;
       });
-  }
+    },
+    education: () => {
+      if (!education.length || rightY <= 80) return;
+      rightY = mainHeading(labels.education);
+      education.forEach((item) => {
+        rightY = textBlock([safe(item.institution), safe(item.degree)].filter(Boolean).join(" — "), mainContentX, rightY, mainContentWidth, 9.2, 11, bold, 2);
+        rightY = textBlock([safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")].filter(Boolean).join(" · "), mainContentX, rightY - 2, mainContentWidth, 8.3, 10, italic, 2) - 6;
+      });
+    },
+    certifications: () => {
+      if (!certifications.length || rightY <= 80) return;
+      rightY = mainHeading(labels.certifications);
+      certifications.forEach((item) => {
+        rightY = textBlock(safe(item.name), mainContentX, rightY, mainContentWidth, 9, 11, bold, 2);
+        rightY = textBlock([safe(item.issuer), safe(item.date)].filter(Boolean).join(" · "), mainContentX, rightY - 1, mainContentWidth, 8.3, 10, italic, 2) - 5;
+      });
+    },
+    skills: () => {
+      if (!data.skills.some((skill) => safe(skill.name)) || rightY <= 55) return;
+      rightY = mainHeading(labels.skills);
+      data.skills.map((skill) => skill.name.trim()).filter(Boolean).slice(0, 12).forEach((skill) => {
+        page.drawCircle({ x: bulletX, y: rightY + 3, size: 1.5, color: dark });
+        rightY = textBlock(skill, bulletTextX, rightY, mainContentWidth - 15, 9, 12, regular, 2);
+      });
+    },
+  };
+  normalizeSectionOrder(data.sectionOrder).forEach((section) => sectionDrawers[section]());
 
   const bytes = await pdf.save();
   const pdfBuffer = bytes.buffer.slice(

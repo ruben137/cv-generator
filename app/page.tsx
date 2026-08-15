@@ -7,7 +7,7 @@ import {
   ColorLensRounded,
   DeleteOutlineRounded,
   DescriptionRounded,
-  DownloadRounded,
+  DragIndicatorRounded,
   ExpandMoreRounded,
   InsertDriveFileRounded,
   LanguageRounded,
@@ -30,8 +30,11 @@ import {
   Container,
   CssBaseline,
   Divider,
+  FormControlLabel,
   IconButton,
+  MenuItem,
   Stack,
+  Switch,
   TextField,
   ThemeProvider,
   Toolbar,
@@ -39,12 +42,29 @@ import {
   Typography,
   createTheme,
 } from "@mui/material";
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
-import { CvData, getInitialCv } from "./types";
+import { CvData, getInitialCv, normalizeSectionOrder, type MainSectionId } from "./types";
 
 const theme = createTheme({
   palette: {
@@ -81,6 +101,17 @@ const colorPresets = [
   { nameKey: "paletteCharcoal", primary: "#263238", accent: "#607D8B" },
 ] as const;
 
+const STORAGE_KEY = "cv-simple-data";
+const AUTOSAVE_KEY = "cv-simple-autosave";
+
+const fontOptions = [
+  { value: "sans", labelKey: "fontSans", css: "Arial, Helvetica, sans-serif" },
+  { value: "humanist", labelKey: "fontHumanist", css: "Calibri, Candara, Arial, sans-serif" },
+  { value: "serif", labelKey: "fontSerif", css: "Georgia, 'Times New Roman', serif" },
+] as const;
+
+const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast"] as const;
+
 function Counter({ value, max }: { value?: string; max: number }) {
   const length = value?.length ?? 0;
   return (
@@ -90,11 +121,50 @@ function Counter({ value, max }: { value?: string; max: number }) {
   );
 }
 
+function SortableSectionItem({ id, label }: { id: MainSectionId; label: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <Box
+      ref={setNodeRef}
+      className={`sortable-section${isDragging ? " dragging" : ""}`}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      sx={{
+        position: "relative",
+        zIndex: isDragging ? 2 : 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        minHeight: 48,
+        px: 1.25,
+        py: 0.5,
+        border: "1px solid",
+        borderColor: isDragging ? "primary.main" : "divider",
+        borderRadius: 2,
+        bgcolor: "background.paper",
+        boxShadow: isDragging ? "0 8px 22px rgba(23, 42, 59, 0.16)" : "0 1px 2px rgba(23, 42, 59, 0.04)",
+        opacity: isDragging ? 0.92 : 1,
+      }}
+    >
+      <IconButton
+        {...attributes}
+        {...listeners}
+        aria-label={label}
+        size="small"
+        className="drag-handle"
+        sx={{ flex: "0 0 auto", cursor: isDragging ? "grabbing" : "grab", touchAction: "none", color: "text.secondary" }}
+      >
+        <DragIndicatorRounded />
+      </IconButton>
+      <Typography fontWeight={700} sx={{ flexGrow: 1 }}>{label}</Typography>
+    </Box>
+  );
+}
+
 export default function Home() {
   const t = useTranslations("App");
   const locale = useLocale();
   const router = useRouter();
-  const initialCv = getInitialCv(locale);
+  const initialCv = useMemo(() => getInitialCv(locale), [locale]);
   const { control, register, reset, setValue } = useForm<CvData>({
     defaultValues: initialCv,
     mode: "onChange",
@@ -108,6 +178,12 @@ export default function Home() {
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeSuccess, setNoticeSuccess] = useState(false);
+  const [autoSave, setAutoSave] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
   const exportLabels: ExportLabels = {
     summary: t("cvSummary"),
     experience: t("cvExperience"),
@@ -120,6 +196,93 @@ export default function Home() {
     phone: t("phone"),
     email: t("email"),
     portfolio: t("portfolio"),
+  };
+
+  useEffect(() => {
+    const enabled = window.localStorage.getItem(AUTOSAVE_KEY) === "true";
+    queueMicrotask(() => {
+      setAutoSave(enabled);
+      if (enabled) {
+        try {
+          const saved = window.localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved) as Partial<CvData>;
+            reset({
+              ...initialCv,
+              ...parsed,
+              template: templateOptions.includes(parsed.template as CvData["template"])
+                ? parsed.template as CvData["template"]
+                : initialCv.template,
+              fontFamily: fontOptions.some((font) => font.value === parsed.fontFamily)
+                ? parsed.fontFamily as CvData["fontFamily"]
+                : initialCv.fontFamily,
+              photoShape: parsed.photoShape === "round" ? "round" : "square",
+              skills: Array.isArray(parsed.skills) ? parsed.skills : initialCv.skills,
+              languages: Array.isArray(parsed.languages) ? parsed.languages : initialCv.languages,
+              experiences: Array.isArray(parsed.experiences) ? parsed.experiences : initialCv.experiences,
+              education: Array.isArray(parsed.education) ? parsed.education : initialCv.education,
+              certifications: Array.isArray(parsed.certifications) ? parsed.certifications : initialCv.certifications,
+              sectionOrder: normalizeSectionOrder(parsed.sectionOrder),
+            });
+          }
+        } catch {
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+      setStorageReady(true);
+    });
+  }, [initialCv, reset]);
+
+  useEffect(() => {
+    if (!storageReady || !autoSave) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch {
+      window.localStorage.setItem(AUTOSAVE_KEY, "false");
+      queueMicrotask(() => {
+        setAutoSave(false);
+        setNotice(t("autoSaveError"));
+        setNoticeSuccess(false);
+      });
+    }
+  }, [autoSave, data, storageReady, t]);
+
+  const changeAutoSave = (enabled: boolean) => {
+    setAutoSave(enabled);
+    window.localStorage.setItem(AUTOSAVE_KEY, String(enabled));
+    if (enabled) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        setNotice(t("autoSaveEnabled"));
+        setNoticeSuccess(true);
+      } catch {
+        setAutoSave(false);
+        window.localStorage.setItem(AUTOSAVE_KEY, "false");
+        setNotice(t("autoSaveError"));
+        setNoticeSuccess(false);
+      }
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+      setNotice(t("autoSaveDisabled"));
+      setNoticeSuccess(true);
+    }
+  };
+
+  const sectionLabel = (section: MainSectionId) => ({
+    summary: t("cvSummary"),
+    experience: t("cvExperience"),
+    education: t("cvEducation"),
+    certifications: t("cvCertifications"),
+    skills: t("cvSkills"),
+  })[section];
+
+  const handleSectionDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    const currentOrder = normalizeSectionOrder(data.sectionOrder);
+    const oldIndex = currentOrder.indexOf(active.id as MainSectionId);
+    const newIndex = currentOrder.indexOf(over.id as MainSectionId);
+    if (oldIndex < 0 || newIndex < 0) return;
+    setValue("sectionOrder", arrayMove(currentOrder, oldIndex, newIndex), { shouldDirty: true });
   };
 
   const changeLocale = (nextLocale: "es" | "en") => {
@@ -169,6 +332,36 @@ export default function Home() {
   const spaceStatus = used > 1750 ? "high" : used > 1200 ? "medium" : "optimal";
   const localizedStatus =
     spaceStatus === "high" ? t("statusHigh") : spaceStatus === "medium" ? t("statusMedium") : t("statusOptimal");
+  const contrastHeadingStyle: CSSProperties | undefined = data.template === "contrast"
+    ? {
+        marginTop: "calc(12px * var(--scale))",
+        marginBottom: "calc(6px * var(--scale))",
+        padding: "0 0 calc(4px * var(--scale))",
+        borderBottom: `1px solid ${data.primaryColor}`,
+        background: "transparent",
+        letterSpacing: "normal",
+        textTransform: "none",
+      }
+    : undefined;
+
+  const renderMainSection = (section: MainSectionId) => {
+    if (section === "summary") {
+      return data.summary ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvSummary")}</h3><p>{data.summary}</p></section> : null;
+    }
+    if (section === "experience") {
+      const items = data.experiences.filter((item) => item.company || item.role);
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvExperience")}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.company}-${index}`}><h4>{item.company}{item.company && item.role ? " — " : ""}<i>{item.role}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p><ul>{item.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul></div>)}</section> : null;
+    }
+    if (section === "education") {
+      const items = data.education.filter((item) => item.institution || item.degree);
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvEducation")}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.institution}-${index}`}><h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
+    }
+    if (section === "certifications") {
+      const items = data.certifications.filter((item) => item.name || item.issuer);
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvCertifications")}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.name}-${index}`}><h4>{item.name}</h4><p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
+    }
+    return skillItems.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvSkills")}</h3><ul className="cv-skills">{skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}</ul></section> : null;
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -223,6 +416,21 @@ export default function Home() {
 
         {notice && <Alert severity={noticeSuccess ? "success" : "info"} sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
 
+        <Box className="autosave-panel">
+          <Box>
+            <Typography fontWeight={750}>{t("autoSave")}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {autoSave ? t("autoSaveOnHelp") : t("autoSaveOffHelp")}
+            </Typography>
+          </Box>
+          <FormControlLabel
+            control={<Switch checked={autoSave} onChange={(event) => changeAutoSave(event.target.checked)} />}
+            label={autoSave ? t("enabled") : t("disabled")}
+            labelPlacement="start"
+            sx={{ m: 0, flexShrink: 0 }}
+          />
+        </Box>
+
         <Box className="workspace">
           <Box className="editor-column">
             <Accordion defaultExpanded sx={sectionSx}>
@@ -256,16 +464,52 @@ export default function Home() {
                       <input hidden type="file" accept="image/png,image/jpeg" onChange={(event) => onPhoto(event.target.files?.[0])} />
                     </Button>
                     {data.photo && (
-                      <IconButton aria-label={t("removePhoto")} onClick={() => setValue("photo", undefined)}>
-                        <DeleteOutlineRounded />
-                      </IconButton>
+                      <>
+                        <ButtonGroup size="small" aria-label={t("photoShape")}>
+                          <Button
+                            variant={data.photoShape === "square" ? "contained" : "outlined"}
+                            onClick={() => setValue("photoShape", "square", { shouldDirty: true })}
+                          >
+                            {t("squarePhoto")}
+                          </Button>
+                          <Button
+                            variant={data.photoShape === "round" ? "contained" : "outlined"}
+                            onClick={() => setValue("photoShape", "round", { shouldDirty: true })}
+                          >
+                            {t("roundPhoto")}
+                          </Button>
+                        </ButtonGroup>
+                        <IconButton aria-label={t("removePhoto")} onClick={() => setValue("photo", undefined)}>
+                          <DeleteOutlineRounded />
+                        </IconButton>
+                      </>
                     )}
                   </Box>
                 </Stack>
               </AccordionDetails>
             </Accordion>
 
-            <Accordion sx={sectionSx}>
+            <Accordion defaultExpanded sx={sectionSx}>
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t("sectionOrder")}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body2" color="text.secondary" mb={1.5}>
+                  {t("sectionOrderHelp")}
+                </Typography>
+                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+                  <SortableContext items={normalizeSectionOrder(data.sectionOrder)} strategy={verticalListSortingStrategy}>
+                    <Stack spacing={1}>
+                      {normalizeSectionOrder(data.sectionOrder).map((section) => (
+                        <SortableSectionItem key={section} id={section} label={sectionLabel(section)} />
+                      ))}
+                    </Stack>
+                  </SortableContext>
+                </DndContext>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion defaultExpanded sx={sectionSx}>
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <ColorLensRounded color="primary" fontSize="small" />
@@ -276,6 +520,38 @@ export default function Home() {
                 <Typography variant="body2" color="text.secondary" mb={1.5}>
                   {t("colorsHelp")}
                 </Typography>
+                <Typography fontWeight={700} mb={1}>{t("chooseTemplate")}</Typography>
+                <Box className="template-list">
+                  {templateOptions.map((template) => (
+                    <button
+                      type="button"
+                      className={`template-option${data.template === template ? " selected" : ""}`}
+                      key={template}
+                      aria-pressed={data.template === template}
+                      onClick={() => setValue("template", template, { shouldDirty: true })}
+                    >
+                      <span className={`template-thumbnail template-thumbnail-${template}`} aria-hidden="true">
+                        <i /><b /><em />
+                      </span>
+                      {t(`template${template[0].toUpperCase()}${template.slice(1)}`)}
+                    </button>
+                  ))}
+                </Box>
+                <Typography fontWeight={700} mt={2} mb={1}>{t("typography")}</Typography>
+                <TextField
+                  select
+                  label={t("chooseFont")}
+                  value={data.fontFamily}
+                  onChange={(event) => setValue("fontFamily", event.target.value as CvData["fontFamily"], { shouldDirty: true })}
+                  sx={{ mt: 2, maxWidth: 320 }}
+                >
+                  {fontOptions.map((font) => (
+                    <MenuItem key={font.value} value={font.value} sx={{ fontFamily: font.css }}>
+                      {t(font.labelKey)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Divider sx={{ my: 2 }} />
                 <Box className="palette-list">
                   {colorPresets.map((preset) => {
                     const paletteName = t(preset.nameKey);
@@ -536,9 +812,7 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
-            <Alert icon={<LockOutlined />} severity="info" sx={{ mt: 2 }}>
-              {t("privacyNotice")}
-            </Alert>
+            <Alert icon={<LockOutlined />} severity="info" sx={{ mt: 2 }}>{t("localPrivacyReminder")}</Alert>
           </Box>
 
           <Box className="preview-column">
@@ -552,17 +826,21 @@ export default function Home() {
 
             <Box className="paper-wrap">
               <article
-                className="cv-paper"
+                className={`cv-paper template-${data.template}`}
                 style={{
                   "--cv-primary": data.primaryColor,
                   "--cv-accent": data.accentColor,
+                  "--cv-font": fontOptions.find((font) => font.value === data.fontFamily)?.css,
                 } as CSSProperties}
               >
-                <aside className="cv-sidebar">
+                <aside
+                  className={`cv-sidebar cv-sidebar-${data.template}`}
+                  style={data.template === "contrast" ? { backgroundColor: data.primaryColor, color: "#fff" } : undefined}
+                >
                   <div className="top-accent" />
                   <h2>{data.name || "Tu nombre"}</h2>
                   {data.headline && <p className="cv-headline">{data.headline}</p>}
-                  {data.photo && <img className="cv-photo" src={data.photo} alt="" />}
+                  {data.photo && <img className={`cv-photo photo-${data.photoShape}`} src={data.photo} alt="" />}
                   {hasContact && (
                     <section>
                       <h3>{t("cvContact")}</h3>
@@ -581,54 +859,8 @@ export default function Home() {
                     </section>
                   )}
                 </aside>
-                <main className="cv-main">
-                  {data.summary && <section><h3>{t("cvSummary")}</h3><p>{data.summary}</p></section>}
-                  {data.experiences.some((experience) => experience.company || experience.role) && (
-                    <section>
-                      <h3>{t("cvExperience")}</h3>
-                      {data.experiences.filter((experience) => experience.company || experience.role).map((experience, index) => (
-                        <div className="cv-experience" key={`${experience.company}-${index}`}>
-                          <h4>{experience.company}{experience.company && experience.role ? " — " : ""}<i>{experience.role}</i></h4>
-                          <p className="cv-meta">
-                            {[experience.location, [experience.start, experience.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}
-                          </p>
-                          <ul>{experience.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul>
-                        </div>
-                      ))}
-                    </section>
-                  )}
-                  {data.education.some((item) => item.institution || item.degree) && (
-                    <section>
-                      <h3>{t("cvEducation")}</h3>
-                      {data.education.filter((item) => item.institution || item.degree).map((item, index) => (
-                        <div className="cv-experience" key={`${item.institution}-${index}`}>
-                          <h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4>
-                          <p className="cv-meta">
-                            {[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}
-                          </p>
-                        </div>
-                      ))}
-                    </section>
-                  )}
-                  {data.certifications.some((item) => item.name || item.issuer) && (
-                    <section>
-                      <h3>{t("cvCertifications")}</h3>
-                      {data.certifications.filter((item) => item.name || item.issuer).map((item, index) => (
-                        <div className="cv-experience" key={`${item.name}-${index}`}>
-                          <h4>{item.name}</h4>
-                          <p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p>
-                        </div>
-                      ))}
-                    </section>
-                  )}
-                  {skillItems.length > 0 && (
-                    <section>
-                      <h3>{t("cvSkills")}</h3>
-                      <ul className="cv-skills">
-                        {skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}
-                      </ul>
-                    </section>
-                  )}
+                <main className={`cv-main cv-main-${data.template}`}>
+                  {normalizeSectionOrder(data.sectionOrder).map(renderMainSection)}
                 </main>
                 <div className="bottom-accent" />
               </article>
