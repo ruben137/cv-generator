@@ -9,12 +9,14 @@ import {
   DescriptionRounded,
   DragIndicatorRounded,
   ExpandMoreRounded,
+  FolderOpenRounded,
   InsertDriveFileRounded,
   LanguageRounded,
   LockOutlined,
   OpenInNewRounded,
   PictureAsPdfRounded,
   RestartAltRounded,
+  SaveRounded,
   UploadRounded,
 } from "@mui/icons-material";
 import {
@@ -65,6 +67,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
 import { CvData, getInitialCv, normalizeSectionOrder, type MainSectionId } from "./types";
+import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 
 const theme = createTheme({
   palette: {
@@ -111,6 +114,26 @@ const fontOptions = [
 ] as const;
 
 const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast"] as const;
+
+function mergeCvData(initialCv: CvData, parsed: Partial<CvData>): CvData {
+  return {
+    ...initialCv,
+    ...parsed,
+    template: templateOptions.includes(parsed.template as CvData["template"])
+      ? parsed.template as CvData["template"]
+      : initialCv.template,
+    fontFamily: fontOptions.some((font) => font.value === parsed.fontFamily)
+      ? parsed.fontFamily as CvData["fontFamily"]
+      : initialCv.fontFamily,
+    photoShape: parsed.photoShape === "round" ? "round" : "square",
+    skills: Array.isArray(parsed.skills) ? parsed.skills : initialCv.skills,
+    languages: Array.isArray(parsed.languages) ? parsed.languages : initialCv.languages,
+    experiences: Array.isArray(parsed.experiences) ? parsed.experiences : initialCv.experiences,
+    education: Array.isArray(parsed.education) ? parsed.education : initialCv.education,
+    certifications: Array.isArray(parsed.certifications) ? parsed.certifications : initialCv.certifications,
+    sectionOrder: normalizeSectionOrder(parsed.sectionOrder),
+  };
+}
 
 function Counter({ value, max }: { value?: string; max: number }) {
   const length = value?.length ?? 0;
@@ -180,6 +203,8 @@ export default function Home() {
   const [noticeSuccess, setNoticeSuccess] = useState(false);
   const [autoSave, setAutoSave] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
+  const [activeCvId, setActiveCvId] = useState<string | null>(null);
+  const [savingCv, setSavingCv] = useState(false);
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -200,37 +225,30 @@ export default function Home() {
 
   useEffect(() => {
     const enabled = window.localStorage.getItem(AUTOSAVE_KEY) === "true";
-    queueMicrotask(() => {
-      setAutoSave(enabled);
-      if (enabled) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const storedCvId = searchParams.get("cv");
+    const forceNew = searchParams.get("new") === "1";
+    void (async () => {
+      let loaded = false;
+      if (storedCvId) {
+        const storedCv = await getStoredCv(storedCvId);
+        if (storedCv) {
+          reset(mergeCvData(initialCv, storedCv.data));
+          setActiveCvId(storedCv.id);
+          loaded = true;
+        }
+      }
+      if (!loaded && enabled && !forceNew) {
         try {
           const saved = window.localStorage.getItem(STORAGE_KEY);
-          if (saved) {
-            const parsed = JSON.parse(saved) as Partial<CvData>;
-            reset({
-              ...initialCv,
-              ...parsed,
-              template: templateOptions.includes(parsed.template as CvData["template"])
-                ? parsed.template as CvData["template"]
-                : initialCv.template,
-              fontFamily: fontOptions.some((font) => font.value === parsed.fontFamily)
-                ? parsed.fontFamily as CvData["fontFamily"]
-                : initialCv.fontFamily,
-              photoShape: parsed.photoShape === "round" ? "round" : "square",
-              skills: Array.isArray(parsed.skills) ? parsed.skills : initialCv.skills,
-              languages: Array.isArray(parsed.languages) ? parsed.languages : initialCv.languages,
-              experiences: Array.isArray(parsed.experiences) ? parsed.experiences : initialCv.experiences,
-              education: Array.isArray(parsed.education) ? parsed.education : initialCv.education,
-              certifications: Array.isArray(parsed.certifications) ? parsed.certifications : initialCv.certifications,
-              sectionOrder: normalizeSectionOrder(parsed.sectionOrder),
-            });
-          }
+          if (saved) reset(mergeCvData(initialCv, JSON.parse(saved) as Partial<CvData>));
         } catch {
           window.localStorage.removeItem(STORAGE_KEY);
         }
       }
+      setAutoSave(enabled);
       setStorageReady(true);
-    });
+    })();
   }, [initialCv, reset]);
 
   useEffect(() => {
@@ -246,6 +264,23 @@ export default function Home() {
       });
     }
   }, [autoSave, data, storageReady, t]);
+
+  useEffect(() => {
+    if (!storageReady || !autoSave || !activeCvId) return;
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        const existing = await getStoredCv(activeCvId);
+        if (!existing) return;
+        await putStoredCv({
+          ...existing,
+          locale: locale as "es" | "en",
+          updatedAt: new Date().toISOString(),
+          data: structuredClone(data),
+        });
+      })().catch(() => undefined);
+    }, 700);
+    return () => window.clearTimeout(timeout);
+  }, [activeCvId, autoSave, data, locale, storageReady]);
 
   const changeAutoSave = (enabled: boolean) => {
     setAutoSave(enabled);
@@ -265,6 +300,27 @@ export default function Home() {
       window.localStorage.removeItem(STORAGE_KEY);
       setNotice(t("autoSaveDisabled"));
       setNoticeSuccess(true);
+    }
+  };
+
+  const saveToLibrary = async () => {
+    try {
+      setSavingCv(true);
+      const snapshot = structuredClone(data);
+      const existing = activeCvId ? await getStoredCv(activeCvId) : undefined;
+      const cv = existing
+        ? { ...existing, locale: locale as "es" | "en", updatedAt: new Date().toISOString(), data: snapshot }
+        : createStoredCv(snapshot, locale as "es" | "en", `${data.name || t("untitledCv")} · ${locale.toUpperCase()}`);
+      await putStoredCv(cv);
+      setActiveCvId(cv.id);
+      window.history.replaceState(null, "", `/?cv=${encodeURIComponent(cv.id)}`);
+      setNotice(t(existing ? "cvUpdated" : "cvSaved"));
+      setNoticeSuccess(true);
+    } catch {
+      setNotice(t("cvSaveError"));
+      setNoticeSuccess(false);
+    } finally {
+      setSavingCv(false);
     }
   };
 
@@ -367,12 +423,30 @@ export default function Home() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="sticky" color="inherit" elevation={0} className="topbar">
-        <Toolbar sx={{ minHeight: 68, gap: 2 }}>
+        <Toolbar sx={{ minHeight: 68, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           <Box className="brand-mark"><DescriptionRounded /></Box>
           <Box sx={{ flexGrow: 1 }}>
             <Typography fontWeight={800} color="primary">CV Simple</Typography>
             <Typography variant="caption" color="text.secondary">{t("tagline")}</Typography>
           </Box>
+          <Button
+            component="a"
+            href="/mis-cvs"
+            variant="outlined"
+            startIcon={<FolderOpenRounded />}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            {t("myCvs")}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveRounded />}
+            onClick={saveToLibrary}
+            disabled={savingCv}
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            {savingCv ? t("savingCv") : activeCvId ? t("updateCv") : t("saveCv")}
+          </Button>
           <ButtonGroup size="small" aria-label="Language selector">
             <Button
               variant={locale === "es" ? "contained" : "outlined"}
@@ -629,8 +703,8 @@ export default function Home() {
                           <TextField
                             label={t("skillNumber", { number: index + 1 })}
                             placeholder={t("skillsPlaceholder")}
-                            inputProps={{ maxLength: 50 }}
-                            helperText={<Counter value={data.skills[index]?.name} max={50} />}
+                            inputProps={{ maxLength: 80 }}
+                            helperText={<Counter value={data.skills[index]?.name} max={80} />}
                             {...register(`skills.${index}.name`)}
                           />
                           <IconButton
