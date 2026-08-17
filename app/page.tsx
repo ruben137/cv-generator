@@ -32,6 +32,11 @@ import {
   Container,
   CssBaseline,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControlLabel,
   IconButton,
   MenuItem,
@@ -204,6 +209,8 @@ export default function Home() {
   const [autoSave, setAutoSave] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
+  const [cvTitle, setCvTitle] = useState("");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [savingCv, setSavingCv] = useState(false);
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -235,6 +242,7 @@ export default function Home() {
         if (storedCv) {
           reset(mergeCvData(initialCv, storedCv.data));
           setActiveCvId(storedCv.id);
+          setCvTitle(storedCv.title);
           loaded = true;
         }
       }
@@ -308,11 +316,15 @@ export default function Home() {
       setSavingCv(true);
       const snapshot = structuredClone(data);
       const existing = activeCvId ? await getStoredCv(activeCvId) : undefined;
+      const fallbackTitle = `${data.name.trim() || t("untitledCv")} · ${locale.toUpperCase()}`;
+      const resolvedTitle = cvTitle.trim() || fallbackTitle;
       const cv = existing
-        ? { ...existing, locale: locale as "es" | "en", updatedAt: new Date().toISOString(), data: snapshot }
-        : createStoredCv(snapshot, locale as "es" | "en", `${data.name || t("untitledCv")} · ${locale.toUpperCase()}`);
+        ? { ...existing, title: resolvedTitle, locale: locale as "es" | "en", updatedAt: new Date().toISOString(), data: snapshot }
+        : createStoredCv(snapshot, locale as "es" | "en", resolvedTitle);
       await putStoredCv(cv);
       setActiveCvId(cv.id);
+      setCvTitle(cv.title);
+      setSaveDialogOpen(false);
       window.history.replaceState(null, "", `/?cv=${encodeURIComponent(cv.id)}`);
       setNotice(t(existing ? "cvUpdated" : "cvSaved"));
       setNoticeSuccess(true);
@@ -322,6 +334,13 @@ export default function Home() {
     } finally {
       setSavingCv(false);
     }
+  };
+
+  const openSaveDialog = () => {
+    if (!activeCvId && !cvTitle) {
+      setCvTitle(`${data.name.trim() || t("untitledCv")} · ${locale.toUpperCase()}`);
+    }
+    setSaveDialogOpen(true);
   };
 
   const sectionLabel = (section: MainSectionId) => ({
@@ -441,7 +460,7 @@ export default function Home() {
           <Button
             variant="contained"
             startIcon={<SaveRounded />}
-            onClick={saveToLibrary}
+            onClick={openSaveDialog}
             disabled={savingCv}
             sx={{ whiteSpace: "nowrap" }}
           >
@@ -993,6 +1012,29 @@ export default function Home() {
           </Box>
         </Box>
       </Container>
+      <Dialog open={saveDialogOpen} onClose={() => !savingCv && setSaveDialogOpen(false)} fullWidth maxWidth="xs">
+        <Box component="form" onSubmit={(event) => { event.preventDefault(); void saveToLibrary(); }}>
+          <DialogTitle>{activeCvId ? t("nameAndUpdateCv") : t("nameAndSaveCv")}</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>{t("cvNameHelp")}</DialogContentText>
+            <TextField
+              autoFocus
+              label={t("cvName")}
+              value={cvTitle}
+              onChange={(event) => setCvTitle(event.target.value)}
+              inputProps={{ maxLength: 80 }}
+              helperText={<Counter value={cvTitle} max={80} />}
+              placeholder={t("cvNamePlaceholder")}
+            />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setSaveDialogOpen(false)} disabled={savingCv}>{t("cancel")}</Button>
+            <Button type="submit" variant="contained" startIcon={<SaveRounded />} disabled={savingCv}>
+              {savingCv ? t("savingCv") : activeCvId ? t("updateCv") : t("saveCv")}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
     </ThemeProvider>
   );
 }
