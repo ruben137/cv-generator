@@ -128,15 +128,20 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   const isMinimal = data.template === "minimal";
   const isRight = data.template === "right";
   const isContrast = data.template === "contrast";
-  const sidebarTextColor = isContrast ? "FFFFFF" : undefined;
-  const sidebarPercent = data.template === "compact" ? 28 : 32;
+  const isEditorial = data.template === "editorial";
+  const hasDarkSidebar = isContrast || isEditorial;
+  const sidebarTextColor = hasDarkSidebar ? "FFFFFF" : undefined;
+  const sidebarPercent = data.template === "compact" ? 28 : isEditorial ? 38 : 32;
   const mainPercent = 100 - sidebarPercent;
 
-  const heading = (text: string, textColor = primary, borderColor = primary) =>
+  const heading = (text: string, textColor = primary, borderColor = primary, main = false) =>
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 220, after: 80 },
-      border: { bottom: { color: borderColor, size: 8, style: BorderStyle.SINGLE } },
+      border: isEditorial && main
+        ? { left: { color: accent, size: 22, space: 8, style: BorderStyle.SINGLE } }
+        : { bottom: { color: borderColor, size: 8, style: BorderStyle.SINGLE } },
+      shading: isEditorial && main ? { fill: "E8EDF2", type: ShadingType.CLEAR } : undefined,
       children: [new TextRun({ text, bold: true, color: textColor, size: 27 })],
     });
 
@@ -147,14 +152,14 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
         new TextRun({
           text: safe(data.name).toUpperCase() || "TU NOMBRE",
           bold: true,
-          color: isContrast ? "FFFFFF" : primary,
+          color: hasDarkSidebar ? "FFFFFF" : primary,
           size: 34,
         }),
       ],
     }),
     new Paragraph({
       spacing: { after: 200 },
-      children: [new TextRun({ text: safe(data.headline), color: isContrast ? "FFFFFF" : primary, size: 20 })],
+      children: [new TextRun({ text: safe(data.headline), color: hasDarkSidebar ? "FFFFFF" : primary, size: 20 })],
     }),
   ];
 
@@ -182,14 +187,14 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   ].filter(([, value]) => safe(value));
 
   if (contacts.length) {
-    left.push(heading(labels.contact, isContrast ? "FFFFFF" : primary, isContrast ? accent : primary));
+    left.push(heading(labels.contact, hasDarkSidebar ? "FFFFFF" : primary, hasDarkSidebar ? accent : primary));
     contacts.forEach(([label, value]) => {
       const children = [
         new TextRun({ text: `${label}: `, bold: true, size: 18, color: sidebarTextColor }),
         new TextRun({
           text: safe(value),
           size: 18,
-          color: isContrast ? "FFFFFF" : label === labels.portfolio ? "0563C1" : undefined,
+          color: hasDarkSidebar ? "FFFFFF" : label === labels.portfolio ? "0563C1" : undefined,
           underline: label === labels.portfolio ? {} : undefined,
         }),
       ];
@@ -198,7 +203,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
 
   if (data.languages.some((item) => safe(item.name))) {
-    left.push(heading(labels.languages, isContrast ? "FFFFFF" : primary, isContrast ? accent : primary));
+    left.push(heading(labels.languages, hasDarkSidebar ? "FFFFFF" : primary, hasDarkSidebar ? accent : primary));
     data.languages
       .filter((item) => safe(item.name))
       .forEach((item) =>
@@ -220,7 +225,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   let right = sectionParagraphs.summary;
   if (safe(data.summary)) {
     right.push(
-      heading(labels.summary),
+      heading(labels.summary, primary, primary, true),
       new Paragraph({
         spacing: { after: 140, line: 280 },
         children: [new TextRun({ text: data.summary, size: 20 })],
@@ -229,7 +234,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
   right = sectionParagraphs.experience;
   if (data.experiences.some((item) => safe(item.company) || safe(item.role))) {
-    right.push(heading(labels.experience));
+    right.push(heading(labels.experience, primary, primary, true));
     data.experiences.forEach((experience) => {
       if (!safe(experience.company) && !safe(experience.role)) return;
       right.push(
@@ -268,7 +273,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
   right = sectionParagraphs.education;
   if (data.education.some((item) => safe(item.institution) || safe(item.degree))) {
-    right.push(heading(labels.education));
+    right.push(heading(labels.education, primary, primary, true));
     data.education.forEach((item) => {
       if (!safe(item.institution) && !safe(item.degree)) return;
       right.push(
@@ -296,7 +301,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
   right = sectionParagraphs.certifications;
   if (data.certifications.some((item) => safe(item.name) || safe(item.issuer))) {
-    right.push(heading(labels.certifications));
+    right.push(heading(labels.certifications, primary, primary, true));
     data.certifications.forEach((item) => {
       if (!safe(item.name) && !safe(item.issuer)) return;
       right.push(
@@ -317,7 +322,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
   right = sectionParagraphs.skills;
   if (data.skills.some((skill) => safe(skill.name))) {
-    right.push(heading(labels.skills));
+    right.push(heading(labels.skills, primary, primary, true));
     data.skills
       .map((skill) => skill.name.trim())
       .filter(Boolean)
@@ -362,7 +367,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   const bodySidebarCell = new TableCell({
     width: { size: sidebarWidthTwips, type: WidthType.DXA },
     margins: cellMargins,
-    shading: isMinimal ? undefined : { fill: isContrast ? primary : isModern ? "F5F7F9" : "F1F3F5", type: ShadingType.CLEAR },
+    shading: isMinimal ? undefined : { fill: hasDarkSidebar ? primary : isModern ? "F5F7F9" : "F1F3F5", type: ShadingType.CLEAR },
     children: left,
   });
   const bodyMainCell = new TableCell({
@@ -379,7 +384,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   const bottomMainCell = new TableCell({
     width: { size: mainWidthTwips, type: WidthType.DXA },
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
-    shading: isMinimal ? undefined : { fill: isContrast ? accent : primary, type: ShadingType.CLEAR },
+    shading: isMinimal ? undefined : { fill: hasDarkSidebar ? accent : primary, type: ShadingType.CLEAR },
     children: [new Paragraph("")],
   });
   const table = new Table({
@@ -463,9 +468,11 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
   const muted = rgb(0.94, 0.95, 0.96);
   const white = rgb(1, 1, 1);
   const isContrastPdf = data.template === "contrast";
-  const sidebarInk = isContrastPdf ? white : dark;
+  const isEditorialPdf = data.template === "editorial";
+  const hasDarkSidebarPdf = isContrastPdf || isEditorialPdf;
+  const sidebarInk = hasDarkSidebarPdf ? white : dark;
   const pageWidth = 595.28;
-  const sidebarWidth = data.template === "compact" ? 167 : 202;
+  const sidebarWidth = data.template === "compact" ? 167 : isEditorialPdf ? 226 : 202;
   const mainWidth = pageWidth - sidebarWidth;
   const isRight = data.template === "right";
   const sidebarX = isRight ? mainWidth : 0;
@@ -479,9 +486,16 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
   const columnBoundary = isRight ? mainWidth : sidebarWidth;
 
   if (data.template !== "minimal") {
-    page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: isContrastPdf ? color : muted });
-    page.drawRectangle({ x: data.template === "modern" ? 0 : sidebarX, y: data.template === "modern" ? 831 : 812, width: data.template === "modern" ? pageWidth : sidebarWidth, height: data.template === "modern" ? 11 : 30, color: accent });
-    page.drawRectangle({ x: data.template === "modern" ? 0 : mainX, y: 0, width: data.template === "modern" ? pageWidth : mainWidth, height: data.template === "modern" ? 10 : 18, color: isContrastPdf ? accent : color });
+    page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: hasDarkSidebarPdf ? color : muted });
+    if (isEditorialPdf) {
+      page.drawRectangle({ x: sidebarContentX, y: 806, width: 34, height: 6, color: accent });
+    } else {
+      page.drawRectangle({ x: data.template === "modern" ? 0 : sidebarX, y: data.template === "modern" ? 831 : 812, width: data.template === "modern" ? pageWidth : sidebarWidth, height: data.template === "modern" ? 11 : 30, color: accent });
+    }
+    page.drawRectangle({ x: data.template === "modern" ? 0 : mainX, y: 0, width: data.template === "modern" ? pageWidth : mainWidth, height: data.template === "modern" ? 10 : 18, color: hasDarkSidebarPdf ? accent : color });
+    if (isEditorialPdf) {
+      page.drawRectangle({ x: sidebarWidth - 5, y: 0, width: 5, height: 841.89, color: accent });
+    }
   } else {
     page.drawLine({ start: { x: columnBoundary, y: 26 }, end: { x: columnBoundary, y: 816 }, thickness: 0.6, color: muted });
   }
@@ -526,7 +540,7 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
   let leftY = 775;
   wrap(safe(data.name).toUpperCase() || "TU NOMBRE", bold, 20, sidebarContentWidth + 2)
     .slice(0, 2)
-    .forEach((line, index) => page.drawText(line, { x: sidebarContentX, y: leftY - index * 24, size: 20, font: bold, color: isContrastPdf ? white : color }));
+    .forEach((line, index) => page.drawText(line, { x: sidebarContentX, y: leftY - index * 24, size: 20, font: bold, color: hasDarkSidebarPdf ? white : color }));
   leftY -= safe(data.name).length > 16 ? 58 : 34;
   if (safe(data.headline)) {
     leftY = textBlock(data.headline, sidebarContentX, leftY, sidebarContentWidth + 2, 9, 11, bold, 2, sidebarInk) - 7;
@@ -551,7 +565,7 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
     [labels.portfolio, data.portfolio],
   ].filter(([, value]) => safe(value));
   if (contacts.length) {
-    leftY = heading(labels.contact, sidebarContentX, leftY, sidebarContentWidth, isContrastPdf ? white : color, isContrastPdf ? accent : color);
+    leftY = heading(labels.contact, sidebarContentX, leftY, sidebarContentWidth, hasDarkSidebarPdf ? white : color, hasDarkSidebarPdf ? accent : color);
     contacts.forEach(([label, value]) => {
       page.drawText(`${label}:`, { x: sidebarContentX, y: leftY, size: 8.5, font: bold, color: sidebarInk });
       leftY = textBlock(value, sidebarContentX, leftY - 12, sidebarContentWidth, 8.2, 10, regular, 2, sidebarInk) - 7;
@@ -559,7 +573,7 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
   }
   const languages = data.languages.filter((item) => safe(item.name));
   if (languages.length) {
-    leftY = heading(labels.languages, sidebarContentX, leftY - 3, sidebarContentWidth, isContrastPdf ? white : color, isContrastPdf ? accent : color);
+    leftY = heading(labels.languages, sidebarContentX, leftY - 3, sidebarContentWidth, hasDarkSidebarPdf ? white : color, hasDarkSidebarPdf ? accent : color);
     languages.forEach((item) => {
       page.drawText(`${item.name}:`, { x: sidebarContentX, y: leftY, size: 8.5, font: bold, color: sidebarInk });
       leftY = textBlock(item.level, sidebarContentX, leftY - 11, sidebarContentWidth, 8.2, 10, regular, 2, sidebarInk) - 5;
@@ -571,6 +585,18 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
   const mainHeading = (label: string) => {
     if (drawnMainSections > 0) rightY -= 12;
     drawnMainSections += 1;
+    if (isEditorialPdf) {
+      page.drawRectangle({ x: mainContentX, y: rightY - 5, width: mainContentWidth, height: 21, color: muted });
+      page.drawRectangle({ x: mainContentX, y: rightY - 5, width: 4, height: 21, color: accent });
+      page.drawText(label.toUpperCase(), {
+        x: mainContentX + 10,
+        y: rightY,
+        size: 13,
+        font: regular,
+        color,
+      });
+      return rightY - 26;
+    }
     return heading(label, mainContentX, rightY, mainContentWidth);
   };
   const experiences = data.experiences.filter((item) => safe(item.company) || safe(item.role));

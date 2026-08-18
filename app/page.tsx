@@ -118,7 +118,7 @@ const fontOptions = [
   { value: "serif", labelKey: "fontSerif", css: "Georgia, 'Times New Roman', serif" },
 ] as const;
 
-const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast"] as const;
+const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial"] as const;
 
 function mergeCvData(initialCv: CvData, parsed: Partial<CvData>): CvData {
   return {
@@ -929,7 +929,7 @@ export default function Home() {
               >
                 <aside
                   className={`cv-sidebar cv-sidebar-${data.template}`}
-                  style={data.template === "contrast" ? { backgroundColor: data.primaryColor, color: "#fff" } : undefined}
+                  style={["contrast", "editorial"].includes(data.template) ? { backgroundColor: data.primaryColor, color: "#fff" } : undefined}
                 >
                   <div className="top-accent" />
                   <h2>{data.name || "Tu nombre"}</h2>

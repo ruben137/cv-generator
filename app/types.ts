@@ -41,7 +41,7 @@ export function normalizeSectionOrder(order?: MainSectionId[]): MainSectionId[] 
 }
 
 export type CvData = {
-  template: "classic" | "modern" | "minimal" | "right" | "compact" | "contrast";
+  template: "classic" | "modern" | "minimal" | "right" | "compact" | "contrast" | "editorial";
   fontFamily: "sans" | "serif" | "humanist";
   photoShape: "square" | "round";
   primaryColor: string;
