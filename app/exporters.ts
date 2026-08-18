@@ -333,47 +333,60 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   }
   const orderedRight = normalizeSectionOrder(data.sectionOrder).flatMap((section) => sectionParagraphs[section]);
 
+  const pageWidthTwips = 11906;
+  const pageHeightTwips = 16838;
+  const topRowHeight = isMinimal ? 40 : isModern ? 180 : 500;
+  const bottomRowHeight = isMinimal ? 40 : isModern ? 160 : 300;
+  // Word needs room for its mandatory paragraph after a table. Making the
+  // rows add up to the exact page height causes it to move whole rows onto
+  // additional pages even though the table visually fits on a single sheet.
+  // Word keeps a small non-printing pagination area even with zero page
+  // margins. Reserve enough room so the fixed bottom band stays on page one.
+  const wordPaginationReserve = 520;
+  const bodyMinHeight = pageHeightTwips - topRowHeight - bottomRowHeight - wordPaginationReserve;
+  const sidebarWidthTwips = Math.round(pageWidthTwips * sidebarPercent / 100);
+  const mainWidthTwips = pageWidthTwips - sidebarWidthTwips;
   const cellMargins = { top: 180, bottom: 180, left: 180, right: 180 };
   const topSidebarCell = new TableCell({
-    width: { size: sidebarPercent, type: WidthType.PERCENTAGE },
+    width: { size: sidebarWidthTwips, type: WidthType.DXA },
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
     shading: isMinimal ? undefined : { fill: accent, type: ShadingType.CLEAR },
     children: [new Paragraph("")],
   });
   const topMainCell = new TableCell({
-    width: { size: mainPercent, type: WidthType.PERCENTAGE },
+    width: { size: mainWidthTwips, type: WidthType.DXA },
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
     shading: isModern ? { fill: accent, type: ShadingType.CLEAR } : undefined,
     children: [new Paragraph("")],
   });
   const bodySidebarCell = new TableCell({
-    width: { size: sidebarPercent, type: WidthType.PERCENTAGE },
+    width: { size: sidebarWidthTwips, type: WidthType.DXA },
     margins: cellMargins,
     shading: isMinimal ? undefined : { fill: isContrast ? primary : isModern ? "F5F7F9" : "F1F3F5", type: ShadingType.CLEAR },
     children: left,
   });
   const bodyMainCell = new TableCell({
-    width: { size: mainPercent, type: WidthType.PERCENTAGE },
+    width: { size: mainWidthTwips, type: WidthType.DXA },
     margins: { ...cellMargins, left: 260 },
     children: orderedRight.length ? orderedRight : [new Paragraph("")],
   });
   const bottomSidebarCell = new TableCell({
-    width: { size: sidebarPercent, type: WidthType.PERCENTAGE },
+    width: { size: sidebarWidthTwips, type: WidthType.DXA },
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
     shading: isModern ? { fill: primary, type: ShadingType.CLEAR } : undefined,
     children: [new Paragraph("")],
   });
   const bottomMainCell = new TableCell({
-    width: { size: mainPercent, type: WidthType.PERCENTAGE },
+    width: { size: mainWidthTwips, type: WidthType.DXA },
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
     shading: isMinimal ? undefined : { fill: isContrast ? accent : primary, type: ShadingType.CLEAR },
     children: [new Paragraph("")],
   });
   const table = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: pageWidthTwips, type: WidthType.DXA },
     columnWidths: isRight
-      ? [mainPercent * 100, sidebarPercent * 100]
-      : [sidebarPercent * 100, mainPercent * 100],
+      ? [mainWidthTwips, sidebarWidthTwips]
+      : [sidebarWidthTwips, mainWidthTwips],
     borders: {
       top: { style: BorderStyle.NONE },
       bottom: { style: BorderStyle.NONE },
@@ -384,15 +397,15 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
     },
     rows: [
       new TableRow({
-        height: { value: isMinimal ? 40 : isModern ? 180 : 500, rule: HeightRule.EXACT },
+        height: { value: topRowHeight, rule: HeightRule.EXACT },
         children: isRight ? [topMainCell, topSidebarCell] : [topSidebarCell, topMainCell],
       }),
       new TableRow({
-        height: { value: 14500, rule: HeightRule.ATLEAST },
+        height: { value: bodyMinHeight, rule: HeightRule.ATLEAST },
         children: isRight ? [bodyMainCell, bodySidebarCell] : [bodySidebarCell, bodyMainCell],
       }),
       new TableRow({
-        height: { value: isMinimal ? 40 : isModern ? 160 : 300, rule: HeightRule.EXACT },
+        height: { value: bottomRowHeight, rule: HeightRule.EXACT },
         children: isRight ? [bottomMainCell, bottomSidebarCell] : [bottomSidebarCell, bottomMainCell],
       }),
     ],
@@ -416,11 +429,17 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
       {
         properties: {
           page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 420, right: 420, bottom: 420, left: 420 },
+            size: { width: pageWidthTwips, height: pageHeightTwips },
+            margin: { top: 0, right: 0, bottom: 0, left: 0 },
           },
         },
-        children: [table],
+        children: [
+          table,
+          new Paragraph({
+            spacing: { before: 0, after: 0, line: 1 },
+            children: [new TextRun({ text: "\u200B", size: 2 })],
+          }),
+        ],
       },
     ],
   });
