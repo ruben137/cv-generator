@@ -211,6 +211,7 @@ export default function Home() {
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [savingCv, setSavingCv] = useState(false);
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -502,7 +503,7 @@ export default function Home() {
               label={t("pageUsage", { status: localizedStatus })}
             />
             <Tooltip title={t("restoreExample")}>
-              <IconButton onClick={() => reset(initialCv)} aria-label={t("restoreExample")}><RestartAltRounded /></IconButton>
+              <IconButton onClick={() => setRestoreDialogOpen(true)} aria-label={t("restoreExample")}><RestartAltRounded /></IconButton>
             </Tooltip>
           </Stack>
         </Box>
@@ -1034,6 +1035,28 @@ export default function Home() {
             </Button>
           </DialogActions>
         </Box>
+      </Dialog>
+      <Dialog open={restoreDialogOpen} onClose={() => setRestoreDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>{t("confirmRestoreTitle")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{t("confirmRestoreHelp")}</DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRestoreDialogOpen(false)}>{t("cancel")}</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            startIcon={<RestartAltRounded />}
+            onClick={() => {
+              reset(initialCv);
+              setRestoreDialogOpen(false);
+              setNotice(t("exampleRestored"));
+              setNoticeSuccess(true);
+            }}
+          >
+            {t("restoreExample")}
+          </Button>
+        </DialogActions>
       </Dialog>
     </ThemeProvider>
   );
