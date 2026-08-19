@@ -386,14 +386,15 @@ body {
 }
 
 .cv-paper {
-  --scale: 0.74;
+  --paper-scale: 0.74;
+  --scale: var(--paper-scale);
   --cv-primary: #173b63;
   --cv-accent: #3c6596;
   position: relative;
   display: grid;
   grid-template-columns: 34% 66%;
-  width: calc(794px * var(--scale));
-  height: calc(1123px * var(--scale));
+  width: calc(794px * var(--paper-scale));
+  height: calc(1123px * var(--paper-scale));
   margin: 0 auto;
   background: #fff;
   color: #111820;
@@ -708,9 +709,9 @@ body {
   .sortable-form-item:not(.mobile-handle-inside) > .sortable-form-handle { width: 28px; flex-basis: 28px; margin-right: 0; padding: 4px; }
   .sortable-form-item.mobile-handle-inside .experience-form > .MuiStack-root:first-child { padding-right: 3.25rem; }
   .paper-wrap { padding: 10px; }
-  .cv-paper { --scale: 0.55; }
+  .cv-paper { --paper-scale: 0.55; }
 }
 
 @media (max-width: 470px) {
-  .cv-paper { --scale: 0.43; }
+  .cv-paper { --paper-scale: 0.43; }
 }

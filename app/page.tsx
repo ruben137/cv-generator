@@ -48,7 +48,7 @@ import {
   Typography,
   createTheme,
 } from "@mui/material";
-import { type CSSProperties, type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -246,6 +246,7 @@ export default function Home() {
   // Keep controlled inputs responsive while the comparatively expensive CV preview
   // catches up at a lower priority.
   const previewData = useDeferredValue(data);
+  const previewPaperRef = useRef<HTMLElement>(null);
   const skills = useFieldArray({ control, name: "skills" });
   const languages = useFieldArray({ control, name: "languages" });
   const experiences = useFieldArray({ control, name: "experiences" });
@@ -509,16 +510,58 @@ export default function Home() {
 
   const hasContact = [previewData.phone, previewData.email, previewData.portfolio, previewData.location].some(Boolean);
   const skillItems = previewData.skills.map((skill) => skill.name.trim()).filter(Boolean);
+  const customContentLength = data.customSections.reduce(
+    (total, section) => total + section.title.length + section.text.length + section.items.reduce((sum, item) => sum + item.text.length, 0),
+    0,
+  );
   const used = data.experiences.reduce(
     (total, item) => total + item.bullets.join("").length + item.company.length + item.role.length,
     data.summary.length +
       data.skills.reduce((total, skill) => total + skill.name.length, 0) +
       data.education.reduce((total, item) => total + item.institution.length + item.degree.length, 0) +
-      data.certifications.reduce((total, item) => total + item.name.length + item.issuer.length, 0),
+      data.certifications.reduce((total, item) => total + item.name.length + item.issuer.length, 0) +
+      customContentLength,
   );
   const spaceStatus = used > 1750 ? "high" : used > 1200 ? "medium" : "optimal";
   const localizedStatus =
     spaceStatus === "high" ? t("statusHigh") : spaceStatus === "medium" ? t("statusMedium") : t("statusOptimal");
+
+  useEffect(() => {
+    const paper = previewPaperRef.current;
+    if (!paper) return;
+
+    let frame = 0;
+    let iteration = 0;
+    const fitContent = () => {
+      const paperScale = Number.parseFloat(getComputedStyle(paper).getPropertyValue("--paper-scale")) || 0.74;
+      if (iteration === 0) paper.style.setProperty("--scale", String(paperScale));
+
+      frame = requestAnimationFrame(() => {
+        const columns = Array.from(paper.querySelectorAll<HTMLElement>(".cv-sidebar, .cv-main"));
+        const availableHeight = Math.max(paper.clientHeight, 1);
+        const overflowRatio = Math.max(1, ...columns.map((column) => column.scrollHeight / availableHeight));
+        if (overflowRatio <= 1.002 || iteration >= 3) return;
+
+        const currentScale = Number.parseFloat(getComputedStyle(paper).getPropertyValue("--scale")) || paperScale;
+        paper.style.setProperty("--scale", String(Math.max(paperScale * 0.68, currentScale / overflowRatio * 0.99)));
+        iteration += 1;
+        fitContent();
+      });
+    };
+
+    fitContent();
+    const handleResize = () => {
+      cancelAnimationFrame(frame);
+      iteration = 0;
+      fitContent();
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [previewData]);
   const contrastHeadingStyle: CSSProperties | undefined = previewData.template === "contrast"
     ? {
         marginTop: "calc(12px * var(--scale))",
@@ -1295,6 +1338,7 @@ export default function Home() {
 
             <Box className="paper-wrap">
               <article
+                ref={previewPaperRef}
                 className={`cv-paper template-${previewData.template}`}
                 style={{
                   "--cv-primary": previewData.primaryColor,
