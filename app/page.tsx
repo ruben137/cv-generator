@@ -6,7 +6,6 @@ import {
   CloudOffRounded,
   ColorLensRounded,
   DeleteOutlineRounded,
-  DescriptionRounded,
   DragIndicatorRounded,
   ExpandMoreRounded,
   FolderOpenRounded,
@@ -49,7 +48,7 @@ import {
   Typography,
   createTheme,
 } from "@mui/material";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   KeyboardSensor,
@@ -69,10 +68,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
-import { CvData, getInitialCv, normalizeSectionOrder, type MainSectionId } from "./types";
+import { CvData, getInitialCv, mainSectionIds, normalizeContentOrder, normalizeSectionOrder, type MainSectionId } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
+import { BrandLogo } from "./brand-logo";
 
 const theme = createTheme({
   palette: {
@@ -90,6 +89,7 @@ const theme = createTheme({
   components: {
     MuiTextField: { defaultProps: { size: "small", fullWidth: true } },
     MuiButton: { defaultProps: { disableElevation: true } },
+    MuiAccordion: { defaultProps: { slotProps: { transition: { unmountOnExit: true } } } },
   },
 });
 
@@ -121,6 +121,18 @@ const fontOptions = [
 const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial"] as const;
 
 function mergeCvData(initialCv: CvData, parsed: Partial<CvData>): CvData {
+  const customSections = Array.isArray(parsed.customSections)
+    ? parsed.customSections.slice(0, 3).map((section) => ({
+        id: String(section.id || `custom-${crypto.randomUUID()}`),
+        title: String(section.title ?? "").slice(0, 50),
+        type: section.type === "list" ? "list" as const : "text" as const,
+        text: String(section.text ?? "").slice(0, 500),
+        items: Array.isArray(section.items)
+          ? section.items.slice(0, 8).map((item) => ({ id: String(item.id || crypto.randomUUID()), text: String(item.text ?? "").slice(0, 120) }))
+          : [],
+      }))
+    : [];
+  const legacyOrder = normalizeSectionOrder(parsed.sectionOrder);
   return {
     ...initialCv,
     ...parsed,
@@ -136,7 +148,10 @@ function mergeCvData(initialCv: CvData, parsed: Partial<CvData>): CvData {
     experiences: Array.isArray(parsed.experiences) ? parsed.experiences : initialCv.experiences,
     education: Array.isArray(parsed.education) ? parsed.education : initialCv.education,
     certifications: Array.isArray(parsed.certifications) ? parsed.certifications : initialCv.certifications,
-    sectionOrder: normalizeSectionOrder(parsed.sectionOrder),
+    sectionOrder: legacyOrder,
+    contentOrder: normalizeContentOrder(parsed.contentOrder, legacyOrder, customSections),
+    sectionTitles: parsed.sectionTitles && typeof parsed.sectionTitles === "object" ? parsed.sectionTitles : {},
+    customSections,
   };
 }
 
@@ -149,7 +164,7 @@ function Counter({ value, max }: { value?: string; max: number }) {
   );
 }
 
-function SortableSectionItem({ id, label }: { id: MainSectionId; label: string }) {
+function SortableSectionItem({ id, label }: { id: string; label: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <Box
@@ -188,43 +203,78 @@ function SortableSectionItem({ id, label }: { id: MainSectionId; label: string }
   );
 }
 
+function SortableFormItem({ id, label, children, mobileHandleInside = false }: { id: string; label: string; children: ReactNode; mobileHandleInside?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <Box
+      className={`sortable-form-item${mobileHandleInside ? " mobile-handle-inside" : ""}`}
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      sx={{
+        position: "relative",
+        zIndex: isDragging ? 3 : 0,
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 0.75,
+        opacity: isDragging ? 0.88 : 1,
+      }}
+    >
+      <IconButton
+        className="sortable-form-handle"
+        {...attributes}
+        {...listeners}
+        aria-label={label}
+        size="small"
+        sx={{ mt: 0.5, flex: "0 0 36px", cursor: isDragging ? "grabbing" : "grab", touchAction: "none", color: "text.secondary" }}
+      >
+        <DragIndicatorRounded fontSize="small" />
+      </IconButton>
+      <Box sx={{ minWidth: 0, flex: 1 }}>{children}</Box>
+    </Box>
+  );
+}
+
 export default function Home() {
   const t = useTranslations("App");
   const locale = useLocale();
-  const router = useRouter();
   const initialCv = useMemo(() => getInitialCv(locale), [locale]);
   const { control, register, reset, setValue } = useForm<CvData>({
     defaultValues: initialCv,
     mode: "onChange",
   });
   const data = useWatch({ control }) as CvData;
+  // Keep controlled inputs responsive while the comparatively expensive CV preview
+  // catches up at a lower priority.
+  const previewData = useDeferredValue(data);
   const skills = useFieldArray({ control, name: "skills" });
   const languages = useFieldArray({ control, name: "languages" });
   const experiences = useFieldArray({ control, name: "experiences" });
   const education = useFieldArray({ control, name: "education" });
   const certifications = useFieldArray({ control, name: "certifications" });
+  const customSections = useFieldArray({ control, name: "customSections" });
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeSuccess, setNoticeSuccess] = useState(false);
-  const [autoSave, setAutoSave] = useState(false);
+  const [autoSave, setAutoSave] = useState(true);
   const [storageReady, setStorageReady] = useState(false);
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [savingCv, setSavingCv] = useState(false);
+  const [bulletSortIds, setBulletSortIds] = useState<Record<string, string[]>>({});
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const exportLabels: ExportLabels = {
-    summary: t("cvSummary"),
-    experience: t("cvExperience"),
-    skills: t("cvSkills"),
+    summary: data.sectionTitles.summary?.trim() || t("cvSummary"),
+    experience: data.sectionTitles.experience?.trim() || t("cvExperience"),
+    skills: data.sectionTitles.skills?.trim() || t("cvSkills"),
     contact: t("cvContact"),
     languages: t("cvLanguages"),
-    education: t("cvEducation"),
-    certifications: t("cvCertifications"),
+    education: data.sectionTitles.education?.trim() || t("cvEducation"),
+    certifications: data.sectionTitles.certifications?.trim() || t("cvCertifications"),
     location: t("location"),
     phone: t("phone"),
     email: t("email"),
@@ -232,7 +282,9 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const enabled = window.localStorage.getItem(AUTOSAVE_KEY) === "true";
+    const storedAutoSave = window.localStorage.getItem(AUTOSAVE_KEY);
+    const enabled = storedAutoSave === null || storedAutoSave === "true";
+    if (storedAutoSave === null) window.localStorage.setItem(AUTOSAVE_KEY, "true");
     const searchParams = new URLSearchParams(window.location.search);
     const storedCvId = searchParams.get("cv");
     const forceNew = searchParams.get("new") === "1";
@@ -262,16 +314,17 @@ export default function Home() {
 
   useEffect(() => {
     if (!storageReady || !autoSave) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      window.localStorage.setItem(AUTOSAVE_KEY, "false");
-      queueMicrotask(() => {
+    const timeout = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch {
+        window.localStorage.setItem(AUTOSAVE_KEY, "false");
         setAutoSave(false);
         setNotice(t("autoSaveError"));
         setNoticeSuccess(false);
-      });
-    }
+      }
+    }, 600);
+    return () => window.clearTimeout(timeout);
   }, [autoSave, data, storageReady, t]);
 
   useEffect(() => {
@@ -344,27 +397,85 @@ export default function Home() {
     setSaveDialogOpen(true);
   };
 
-  const sectionLabel = (section: MainSectionId) => ({
-    summary: t("cvSummary"),
-    experience: t("cvExperience"),
-    education: t("cvEducation"),
-    certifications: t("cvCertifications"),
-    skills: t("cvSkills"),
-  })[section];
+  const sectionLabel = (section: string) => {
+    if (mainSectionIds.includes(section as MainSectionId)) {
+      const mainSection = section as MainSectionId;
+      return data.sectionTitles[mainSection]?.trim() || ({
+        summary: t("cvSummary"),
+        experience: t("cvExperience"),
+        education: t("cvEducation"),
+        certifications: t("cvCertifications"),
+        skills: t("cvSkills"),
+      })[mainSection];
+    }
+    return data.customSections.find((item) => item.id === section)?.title.trim() || t("untitledSection");
+  };
+
+  const sectionHasContent = (section: string) => {
+    if (section === "summary") return Boolean(data.summary.trim());
+    if (section === "experience") return data.experiences.some((item) => item.company.trim() || item.role.trim());
+    if (section === "education") return data.education.some((item) => item.institution.trim() || item.degree.trim());
+    if (section === "certifications") return data.certifications.some((item) => item.name.trim() || item.issuer.trim());
+    if (section === "skills") return data.skills.some((item) => item.name.trim());
+    const custom = data.customSections.find((item) => item.id === section);
+    return Boolean(custom && (custom.type === "text" ? custom.text.trim() : custom.items.some((item) => item.text.trim())));
+  };
+  const fullContentOrder = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections);
+  const visibleSectionOrder = fullContentOrder.filter(sectionHasContent);
+  const previewContentOrder = normalizeContentOrder(
+    previewData.contentOrder,
+    previewData.sectionOrder,
+    previewData.customSections,
+  );
+
+  const previewSectionLabel = (section: string) => {
+    if (mainSectionIds.includes(section as MainSectionId)) {
+      const mainSection = section as MainSectionId;
+      return previewData.sectionTitles[mainSection]?.trim() || ({
+        summary: t("cvSummary"),
+        experience: t("cvExperience"),
+        education: t("cvEducation"),
+        certifications: t("cvCertifications"),
+        skills: t("cvSkills"),
+      })[mainSection];
+    }
+    return previewData.customSections.find((item) => item.id === section)?.title.trim() || t("untitledSection");
+  };
 
   const handleSectionDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
-    const currentOrder = normalizeSectionOrder(data.sectionOrder);
-    const oldIndex = currentOrder.indexOf(active.id as MainSectionId);
-    const newIndex = currentOrder.indexOf(over.id as MainSectionId);
+    const currentOrder = fullContentOrder;
+    const oldIndex = currentOrder.indexOf(String(active.id));
+    const newIndex = currentOrder.indexOf(String(over.id));
     if (oldIndex < 0 || newIndex < 0) return;
-    setValue("sectionOrder", arrayMove(currentOrder, oldIndex, newIndex), { shouldDirty: true });
+    setValue("contentOrder", arrayMove(currentOrder, oldIndex, newIndex), { shouldDirty: true });
+  };
+
+  const moveFieldArrayItem = (ids: string[], move: (from: number, to: number) => void) =>
+    ({ active, over }: DragEndEvent) => {
+      if (!over || active.id === over.id) return;
+      const oldIndex = ids.indexOf(String(active.id));
+      const newIndex = ids.indexOf(String(over.id));
+      if (oldIndex >= 0 && newIndex >= 0) move(oldIndex, newIndex);
+    };
+
+  const addCustomSection = () => {
+    if (customSections.fields.length >= 3) return;
+    const id = `custom-${crypto.randomUUID()}`;
+    customSections.append({ id, title: "", type: "text", text: "", items: [] });
+    setValue("contentOrder", [...fullContentOrder, id], { shouldDirty: true });
+  };
+
+  const removeCustomSection = (index: number) => {
+    const id = data.customSections[index]?.id;
+    customSections.remove(index);
+    if (id) setValue("contentOrder", data.contentOrder.filter((item) => item !== id), { shouldDirty: true });
   };
 
   const changeLocale = (nextLocale: "es" | "en") => {
     if (nextLocale === locale) return;
     document.cookie = `locale=${nextLocale};path=/;max-age=31536000;samesite=lax`;
-    router.refresh();
+    window.location.assign(`/${nextLocale}${window.location.search}`);
   };
 
   const runExport = async (type: "pdf" | "docx") => {
@@ -396,8 +507,8 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
-  const hasContact = [data.phone, data.email, data.portfolio, data.location].some(Boolean);
-  const skillItems = data.skills.map((skill) => skill.name.trim()).filter(Boolean);
+  const hasContact = [previewData.phone, previewData.email, previewData.portfolio, previewData.location].some(Boolean);
+  const skillItems = previewData.skills.map((skill) => skill.name.trim()).filter(Boolean);
   const used = data.experiences.reduce(
     (total, item) => total + item.bullets.join("").length + item.company.length + item.role.length,
     data.summary.length +
@@ -408,58 +519,70 @@ export default function Home() {
   const spaceStatus = used > 1750 ? "high" : used > 1200 ? "medium" : "optimal";
   const localizedStatus =
     spaceStatus === "high" ? t("statusHigh") : spaceStatus === "medium" ? t("statusMedium") : t("statusOptimal");
-  const contrastHeadingStyle: CSSProperties | undefined = data.template === "contrast"
+  const contrastHeadingStyle: CSSProperties | undefined = previewData.template === "contrast"
     ? {
         marginTop: "calc(12px * var(--scale))",
         marginBottom: "calc(6px * var(--scale))",
         padding: "0 0 calc(4px * var(--scale))",
-        borderBottom: `1px solid ${data.primaryColor}`,
+        borderBottom: `1px solid ${previewData.primaryColor}`,
         background: "transparent",
         letterSpacing: "normal",
         textTransform: "none",
       }
     : undefined;
 
-  const renderMainSection = (section: MainSectionId) => {
+  const renderMainSection = (section: string) => {
+    if (!mainSectionIds.includes(section as MainSectionId)) {
+      const custom = previewData.customSections.find((item) => item.id === section);
+      if (!custom) return null;
+      if (custom.type === "text") {
+        return custom.text.trim() ? <section key={section}><h3 style={contrastHeadingStyle}>{custom.title || t("untitledSection")}</h3><p>{custom.text}</p></section> : null;
+      }
+      const items = custom.items.filter((item) => item.text.trim());
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{custom.title || t("untitledSection")}</h3><ul className="cv-skills">{items.map((item) => <li key={item.id}>{item.text}</li>)}</ul></section> : null;
+    }
     if (section === "summary") {
-      return data.summary ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvSummary")}</h3><p>{data.summary}</p></section> : null;
+      return previewData.summary ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3><p>{previewData.summary}</p></section> : null;
     }
     if (section === "experience") {
-      const items = data.experiences.filter((item) => item.company || item.role);
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvExperience")}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.company}-${index}`}><h4>{item.company}{item.company && item.role ? " — " : ""}<i>{item.role}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p><ul>{item.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul></div>)}</section> : null;
+      const items = previewData.experiences.filter((item) => item.company || item.role);
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.company}-${index}`}><h4>{item.company}{item.company && item.role ? " — " : ""}<i>{item.role}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p><ul>{item.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul></div>)}</section> : null;
     }
     if (section === "education") {
-      const items = data.education.filter((item) => item.institution || item.degree);
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvEducation")}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.institution}-${index}`}><h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
+      const items = previewData.education.filter((item) => item.institution || item.degree);
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.institution}-${index}`}><h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
     }
     if (section === "certifications") {
-      const items = data.certifications.filter((item) => item.name || item.issuer);
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvCertifications")}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.name}-${index}`}><h4>{item.name}</h4><p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
+      const items = previewData.certifications.filter((item) => item.name || item.issuer);
+      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.name}-${index}`}><h4>{item.name}</h4><p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
     }
-    return skillItems.length ? <section key={section}><h3 style={contrastHeadingStyle}>{t("cvSkills")}</h3><ul className="cv-skills">{skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}</ul></section> : null;
+    return skillItems.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3><ul className="cv-skills">{skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}</ul></section> : null;
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="sticky" color="inherit" elevation={0} className="topbar">
-        <Toolbar sx={{ minHeight: 68, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
-          <Box className="brand-mark"><DescriptionRounded /></Box>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography fontWeight={800} color="primary">CV Simple</Typography>
-            <Typography variant="caption" color="text.secondary">{t("tagline")}</Typography>
+        <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
+          <BrandLogo />
+          <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
+            <Button component="a" href="#generator" className="main-nav-link active">{t("generatorNav")}</Button>
+            <Button component="a" href="#landingTemplates" className="main-nav-link">{t("templatesNav")}</Button>
+            <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
           </Box>
+          <Box className="topbar-actions">
+            <Button
+              component="a"
+              href="/mis-cvs"
+              variant="outlined"
+              startIcon={<FolderOpenRounded />}
+              sx={{ whiteSpace: "nowrap", display: { md: "none" } }}
+            >
+              {t("myCvs")}
+            </Button>
           <Button
-            component="a"
-            href="/mis-cvs"
-            variant="outlined"
-            startIcon={<FolderOpenRounded />}
-            sx={{ whiteSpace: "nowrap" }}
-          >
-            {t("myCvs")}
-          </Button>
-          <Button
-            variant="contained"
+              variant="contained"
+              className="save-cv-button"
             startIcon={<SaveRounded />}
             onClick={openSaveDialog}
             disabled={savingCv}
@@ -484,17 +607,50 @@ export default function Home() {
             </Button>
           </ButtonGroup>
           <Chip className="privacy-chip" icon={<CloudOffRounded />} label={t("noStorage")} variant="outlined" />
+          </Box>
         </Toolbar>
       </AppBar>
 
       <Container maxWidth={false} sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 3 } }}>
         <Box className="intro">
-          <Box>
-            <Typography variant="h4" component="h1">{t("heroTitle")}</Typography>
-            <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+          <Box className="hero-copy">
+            <Chip className="hero-eyebrow" size="small" label={t("heroEyebrow")} />
+            <Typography variant="h3" component="h1">{t("heroTitle")}</Typography>
+            <Typography className="hero-description" color="text.secondary">
               {t("heroDescription")}
             </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} mt={2.5}>
+              <Button variant="contained" size="large" component="a" href="#generator">
+                {t("heroPrimaryCta")}
+              </Button>
+              <Button variant="outlined" size="large" component="a" href="#landingTemplates">
+                {t("heroSecondaryCta")}
+              </Button>
+            </Stack>
+            <Box className="hero-trust-list">
+              {[t("heroTrustFree"), t("heroTrustNoAccount"), t("heroTrustLocal")].map((item) => (
+                <span key={item}><CheckCircleRounded fontSize="small" />{item}</span>
+              ))}
+            </Box>
           </Box>
+          <Box className="hero-visual" aria-hidden="true">
+            <div className="hero-document">
+              <span className="hero-document-sidebar" />
+              <span className="hero-document-title" />
+              <span className="hero-document-line line-one" />
+              <span className="hero-document-line line-two" />
+              <span className="hero-document-heading" />
+              <span className="hero-document-line line-three" />
+              <span className="hero-document-line line-four" />
+            </div>
+            <div className="hero-format format-pdf">PDF</div>
+            <div className="hero-format format-docx">DOCX</div>
+            <div className="hero-private"><LockOutlined fontSize="small" />{t("heroPrivateBadge")}</div>
+          </Box>
+        </Box>
+
+        <Stack className="editor-toolbar" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
+          <Typography fontWeight={800}>{t("editorHeading")}</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
             <Chip
               color={spaceStatus === "high" ? "warning" : "success"}
@@ -506,9 +662,9 @@ export default function Home() {
               <IconButton onClick={() => setRestoreDialogOpen(true)} aria-label={t("restoreExample")}><RestartAltRounded /></IconButton>
             </Tooltip>
           </Stack>
-        </Box>
+        </Stack>
 
-        {notice && <Alert severity={noticeSuccess ? "success" : "info"} sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
+        {notice && <Alert className="editor-notice" severity={noticeSuccess ? "success" : "info"} sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
 
         <Box className="autosave-panel">
           <Box>
@@ -525,7 +681,7 @@ export default function Home() {
           />
         </Box>
 
-        <Box className="workspace">
+        <Box className="workspace" id="generator">
           <Box className="editor-column">
             <Accordion defaultExpanded sx={sectionSx}>
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
@@ -573,12 +729,148 @@ export default function Home() {
                             {t("roundPhoto")}
                           </Button>
                         </ButtonGroup>
-                        <IconButton aria-label={t("removePhoto")} onClick={() => setValue("photo", undefined)}>
+                        <IconButton className="photo-remove-button" aria-label={t("removePhoto")} onClick={() => setValue("photo", undefined)}>
                           <DeleteOutlineRounded />
                         </IconButton>
                       </>
                     )}
                   </Box>
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion sx={sectionSx}>
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t("sectionCustomization")}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography variant="body2" color="text.secondary" mb={2}>{t("sectionCustomizationHelp")}</Typography>
+                <Typography fontWeight={700} mb={1}>{t("editSectionTitles")}</Typography>
+                <Box className="form-grid">
+                  {mainSectionIds.map((section) => (
+                    <TextField
+                      key={section}
+                      label={sectionLabel(section)}
+                      placeholder={({ summary: t("cvSummary"), experience: t("cvExperience"), education: t("cvEducation"), certifications: t("cvCertifications"), skills: t("cvSkills") })[section]}
+                      inputProps={{ maxLength: 50 }}
+                      helperText={<Counter value={data.sectionTitles[section]} max={50} />}
+                      {...register(`sectionTitles.${section}`)}
+                    />
+                  ))}
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                  <Box>
+                    <Typography fontWeight={700}>{t("customSections")}</Typography>
+                    <Typography variant="caption" color="text.secondary">{t("customSectionsLimit", { count: customSections.fields.length })}</Typography>
+                  </Box>
+                  <Button startIcon={<AddRounded />} disabled={customSections.fields.length >= 3} onClick={addCustomSection}>
+                    {t("addCustomSection")}
+                  </Button>
+                </Stack>
+
+                <Stack spacing={2}>
+                  {customSections.fields.map((field, index) => {
+                    const section = data.customSections[index];
+                    if (!section) return null;
+                    return (
+                      <Box className="experience-form" key={field.id}>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                          <Typography fontWeight={750}>{section.title.trim() || t("customSectionNumber", { number: index + 1 })}</Typography>
+                          <IconButton aria-label={t("removeCustomSection", { number: index + 1 })} onClick={() => removeCustomSection(index)}>
+                            <DeleteOutlineRounded />
+                          </IconButton>
+                        </Stack>
+                        <Stack spacing={1.5}>
+                          <TextField
+                            label={t("sectionTitle")}
+                            inputProps={{ maxLength: 50 }}
+                            helperText={<Counter value={section.title} max={50} />}
+                            {...register(`customSections.${index}.title`)}
+                          />
+                          <TextField
+                            select
+                            label={t("sectionType")}
+                            value={section.type}
+                            onChange={(event) => setValue(`customSections.${index}.type`, event.target.value as "text" | "list", { shouldDirty: true })}
+                          >
+                            <MenuItem value="text">{t("textSection")}</MenuItem>
+                            <MenuItem value="list">{t("listSection")}</MenuItem>
+                          </TextField>
+                          {section.type === "text" ? (
+                            <Box>
+                              <Typography component="label" variant="caption" color="text.secondary">
+                                {t("sectionContent")}
+                              </Typography>
+                              <Box
+                                component="textarea"
+                                aria-label={t("sectionContent")}
+                                rows={3}
+                                maxLength={500}
+                                {...register(`customSections.${index}.text`)}
+                                sx={{
+                                  display: "block", width: "100%", mt: 0.5, p: 1.5,
+                                  resize: "vertical", font: "inherit", color: "text.primary",
+                                  bgcolor: "background.paper", border: "1px solid", borderColor: "divider",
+                                  borderRadius: 1, outline: 0, "&:focus": { borderColor: "primary.main", boxShadow: "0 0 0 1px", color: "primary.main" },
+                                }}
+                              />
+                              <Counter value={section.text} max={500} />
+                            </Box>
+                          ) : (
+                            <>
+                              <DndContext
+                                id={`custom-section-items-${index}`}
+                                sensors={dndSensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={({ active, over }) => {
+                                  if (!over || active.id === over.id) return;
+                                  const ids = section.items.map((item) => item.id);
+                                  const oldIndex = ids.indexOf(String(active.id));
+                                  const newIndex = ids.indexOf(String(over.id));
+                                  if (oldIndex >= 0 && newIndex >= 0) {
+                                    setValue(`customSections.${index}.items`, arrayMove(section.items, oldIndex, newIndex), { shouldDirty: true });
+                                  }
+                                }}
+                              >
+                                <SortableContext items={section.items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                                  <Stack spacing={1}>
+                                    {section.items.map((item, itemIndex) => (
+                                      <SortableFormItem key={item.id} id={item.id} label={t("reorderItem", { item: t("listItemNumber", { number: itemIndex + 1 }) })}>
+                                        <Stack direction="row" spacing={1} alignItems="flex-start">
+                                          <TextField
+                                            label={t("listItemNumber", { number: itemIndex + 1 })}
+                                            inputProps={{ maxLength: 120 }}
+                                            helperText={<Counter value={item.text} max={120} />}
+                                            {...register(`customSections.${index}.items.${itemIndex}.text`)}
+                                          />
+                                          <IconButton
+                                            aria-label={t("removeListItem", { number: itemIndex + 1 })}
+                                            onClick={() => setValue(`customSections.${index}.items`, section.items.filter((_, currentIndex) => currentIndex !== itemIndex), { shouldDirty: true })}
+                                          >
+                                            <DeleteOutlineRounded />
+                                          </IconButton>
+                                        </Stack>
+                                      </SortableFormItem>
+                                    ))}
+                                  </Stack>
+                                </SortableContext>
+                              </DndContext>
+                              <Button
+                                startIcon={<AddRounded />}
+                                disabled={section.items.length >= 8}
+                                onClick={() => setValue(`customSections.${index}.items`, [...section.items, { id: crypto.randomUUID(), text: "" }], { shouldDirty: true })}
+                                sx={{ alignSelf: "flex-start" }}
+                              >
+                                {t("addListItem")}
+                              </Button>
+                            </>
+                          )}
+                        </Stack>
+                      </Box>
+                    );
+                  })}
                 </Stack>
               </AccordionDetails>
             </Accordion>
@@ -591,19 +883,22 @@ export default function Home() {
                 <Typography variant="body2" color="text.secondary" mb={1.5}>
                   {t("sectionOrderHelp")}
                 </Typography>
-                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-                  <SortableContext items={normalizeSectionOrder(data.sectionOrder)} strategy={verticalListSortingStrategy}>
+                <DndContext id="section-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+                  <SortableContext items={visibleSectionOrder} strategy={verticalListSortingStrategy}>
                     <Stack spacing={1}>
-                      {normalizeSectionOrder(data.sectionOrder).map((section) => (
+                      {visibleSectionOrder.map((section) => (
                         <SortableSectionItem key={section} id={section} label={sectionLabel(section)} />
                       ))}
+                      {!visibleSectionOrder.length && (
+                        <Typography variant="body2" color="text.secondary">{t("noSectionsToOrder")}</Typography>
+                      )}
                     </Stack>
                   </SortableContext>
                 </DndContext>
               </AccordionDetails>
             </Accordion>
 
-            <Accordion defaultExpanded sx={sectionSx}>
+            <Accordion defaultExpanded sx={{ ...sectionSx, scrollMarginTop: "88px" }} id="templates">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <ColorLensRounded color="primary" fontSize="small" />
@@ -703,49 +998,71 @@ export default function Home() {
 
             <Accordion defaultExpanded sx={sectionSx}>
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("summaryAndSkills")}</Typography>
+                <Typography fontWeight={750}>{t("cvSummary")}</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Stack spacing={2}>
-                  <TextField
-                    label={t("aboutYou")}
-                    multiline
-                    minRows={4}
-                    inputProps={{ maxLength: 600 }}
-                    helperText={<Counter value={data.summary} max={600} />}
+                <Box>
+                  <Typography component="label" variant="caption" color="text.secondary">
+                    {t("aboutYou")}
+                  </Typography>
+                  <Box
+                    component="textarea"
+                    aria-label={t("aboutYou")}
+                    rows={4}
+                    maxLength={600}
                     {...register("summary")}
+                    sx={{
+                      display: "block", width: "100%", mt: 0.5, p: 1.5,
+                      resize: "vertical", font: "inherit", color: "text.primary",
+                      bgcolor: "background.paper", border: "1px solid", borderColor: "divider",
+                      borderRadius: 1, outline: 0, "&:focus": { borderColor: "primary.main", boxShadow: "0 0 0 1px", color: "primary.main" },
+                    }}
                   />
-                  <Box>
-                    <Typography fontWeight={700} mb={1}>{t("skills")} ({skills.fields.length}/12)</Typography>
-                    <Stack spacing={1}>
-                      {skills.fields.map((field, index) => (
-                        <Stack direction="row" spacing={1} alignItems="flex-start" key={field.id}>
-                          <TextField
-                            label={t("skillNumber", { number: index + 1 })}
-                            placeholder={t("skillsPlaceholder")}
-                            inputProps={{ maxLength: 80 }}
-                            helperText={<Counter value={data.skills[index]?.name} max={80} />}
-                            {...register(`skills.${index}.name`)}
-                          />
-                          <IconButton
-                            aria-label={t("removeSkill", { number: index + 1 })}
-                            onClick={() => skills.remove(index)}
-                            sx={{ width: 40, height: 40, flex: "0 0 40px", mt: 0.5 }}
-                          >
-                            <DeleteOutlineRounded />
-                          </IconButton>
+                  <Counter value={data.summary} max={600} />
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion defaultExpanded sx={sectionSx}>
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t("skills")} ({skills.fields.length}/12)</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <DndContext id="skills-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(skills.fields.map((field) => field.id), skills.move)}>
+                      <SortableContext items={skills.fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                        <Stack spacing={1}>
+                          {skills.fields.map((field, index) => (
+                            <SortableFormItem key={field.id} id={field.id} label={t("reorderItem", { item: t("skillNumber", { number: index + 1 }) })}>
+                              <Stack direction="row" spacing={1} alignItems="flex-start">
+                                <TextField
+                                  label={t("skillNumber", { number: index + 1 })}
+                                  placeholder={t("skillsPlaceholder")}
+                                  inputProps={{ maxLength: 80 }}
+                                  helperText={<Counter value={data.skills[index]?.name} max={80} />}
+                                  {...register(`skills.${index}.name`)}
+                                />
+                                <IconButton
+                                  aria-label={t("removeSkill", { number: index + 1 })}
+                                  onClick={() => skills.remove(index)}
+                                  sx={{ width: 40, height: 40, flex: "0 0 40px", mt: 0.5 }}
+                                >
+                                  <DeleteOutlineRounded />
+                                </IconButton>
+                              </Stack>
+                            </SortableFormItem>
+                          ))}
                         </Stack>
-                      ))}
-                      <Button
-                        startIcon={<AddRounded />}
-                        disabled={skills.fields.length >= 12}
-                        onClick={() => skills.append({ name: "" })}
-                        sx={{ alignSelf: "flex-start" }}
-                      >
-                        {t("addSkill")}
-                      </Button>
-                    </Stack>
-                  </Box>
+                      </SortableContext>
+                </DndContext>
+                <Stack spacing={1} mt={1}>
+                  <Button
+                    startIcon={<AddRounded />}
+                    disabled={skills.fields.length >= 12}
+                    onClick={() => skills.append({ name: "" })}
+                    sx={{ alignSelf: "flex-start" }}
+                  >
+                    {t("addSkill")}
+                  </Button>
                 </Stack>
               </AccordionDetails>
             </Accordion>
@@ -756,15 +1073,23 @@ export default function Home() {
               </AccordionSummary>
               <AccordionDetails>
                 <Stack spacing={1.5}>
-                  {languages.fields.map((field, index) => (
-                    <Stack direction="row" spacing={1} key={field.id}>
-                      <TextField label={t("language")} inputProps={{ maxLength: 30 }} {...register(`languages.${index}.name`)} />
-                      <TextField label={t("level")} inputProps={{ maxLength: 40 }} {...register(`languages.${index}.level`)} />
-                      <IconButton aria-label={t("removeLanguage", { number: index + 1 })} onClick={() => languages.remove(index)}>
-                        <DeleteOutlineRounded />
-                      </IconButton>
-                    </Stack>
-                  ))}
+                <DndContext id="languages-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(languages.fields.map((field) => field.id), languages.move)}>
+                    <SortableContext items={languages.fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                      <Stack spacing={1.5}>
+                        {languages.fields.map((field, index) => (
+                          <SortableFormItem key={field.id} id={field.id} label={t("reorderItem", { item: `${t("language")} ${index + 1}` })}>
+                            <Stack direction="row" spacing={1}>
+                              <TextField label={t("language")} inputProps={{ maxLength: 30 }} {...register(`languages.${index}.name`)} />
+                              <TextField label={t("level")} inputProps={{ maxLength: 40 }} {...register(`languages.${index}.level`)} />
+                              <IconButton aria-label={t("removeLanguage", { number: index + 1 })} onClick={() => languages.remove(index)}>
+                                <DeleteOutlineRounded />
+                              </IconButton>
+                            </Stack>
+                          </SortableFormItem>
+                        ))}
+                      </Stack>
+                    </SortableContext>
+                  </DndContext>
                   <Button
                     startIcon={<AddRounded />}
                     disabled={languages.fields.length >= 5}
@@ -782,9 +1107,14 @@ export default function Home() {
                 <Typography fontWeight={750}>{t("experience")} ({experiences.fields.length}/4)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Stack spacing={2}>
-                  {experiences.fields.map((field, index) => (
-                    <Box className="experience-form" key={field.id}>
+                <DndContext id="experiences-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(experiences.fields.map((field) => field.id), experiences.move)}>
+                  <SortableContext items={experiences.fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                    <Stack spacing={2}>
+                      {experiences.fields.map((field, index) => {
+                        const bulletIds = bulletSortIds[field.id] ?? [0, 1, 2, 3].map((bulletIndex) => `bullet-${field.id}-${bulletIndex}`);
+                        return (
+                        <SortableFormItem mobileHandleInside key={field.id} id={field.id} label={t("reorderItem", { item: t("experienceNumber", { number: index + 1 }) })}>
+                          <Box className="experience-form">
                       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
                         <Typography fontWeight={750}>{t("experienceNumber", { number: index + 1 })}</Typography>
                         <IconButton aria-label={t("removeExperience", { number: index + 1 })} onClick={() => experiences.remove(index)}>
@@ -803,25 +1133,54 @@ export default function Home() {
                       <Typography variant="caption" color="text.secondary" display="block" mt={1.5} mb={1}>
                         {t("achievements")}
                       </Typography>
-                      {[0, 1, 2, 3].map((bulletIndex) => (
-                        <Controller
-                          key={bulletIndex}
-                          control={control}
-                          name={`experiences.${index}.bullets.${bulletIndex}`}
-                          defaultValue=""
-                          render={({ field: bulletField }) => (
-                            <TextField
-                              {...bulletField}
-                              value={bulletField.value ?? ""}
-                              label={t("bullet", { number: bulletIndex + 1 })}
-                              inputProps={{ maxLength: 160 }}
-                              sx={{ mb: 1 }}
-                            />
-                          )}
-                        />
-                      ))}
-                    </Box>
-                  ))}
+                          <DndContext
+                            id={`experience-bullets-${index}`}
+                            sensors={dndSensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={({ active, over }) => {
+                              if (!over || active.id === over.id) return;
+                              const oldIndex = bulletIds.indexOf(String(active.id));
+                              const newIndex = bulletIds.indexOf(String(over.id));
+                              if (oldIndex < 0 || newIndex < 0) return;
+                              const currentBullets = [0, 1, 2, 3].map((bulletIndex) => data.experiences[index]?.bullets[bulletIndex] ?? "");
+                              setBulletSortIds((current) => ({ ...current, [field.id]: arrayMove(bulletIds, oldIndex, newIndex) }));
+                              setValue(`experiences.${index}.bullets`, arrayMove(currentBullets, oldIndex, newIndex), { shouldDirty: true });
+                            }}
+                          >
+                            <SortableContext items={bulletIds} strategy={verticalListSortingStrategy}>
+                              <Stack spacing={1}>
+                                {bulletIds.map((bulletId, bulletIndex) => (
+                                  <SortableFormItem
+                                    key={bulletId}
+                                    id={bulletId}
+                                    label={t("reorderItem", { item: t("bullet", { number: bulletIndex + 1 }) })}
+                                  >
+                                    <Controller
+                                      control={control}
+                                      name={`experiences.${index}.bullets.${bulletIndex}`}
+                                      defaultValue=""
+                                      render={({ field: bulletField }) => (
+                                        <TextField
+                                          {...bulletField}
+                                          value={bulletField.value ?? ""}
+                                          label={t("bullet", { number: bulletIndex + 1 })}
+                                          inputProps={{ maxLength: 160 }}
+                                        />
+                                      )}
+                                    />
+                                  </SortableFormItem>
+                                ))}
+                              </Stack>
+                            </SortableContext>
+                          </DndContext>
+                          </Box>
+                        </SortableFormItem>
+                        );
+                      })}
+                    </Stack>
+                  </SortableContext>
+                </DndContext>
+                <Stack mt={2}>
                   <Button
                     variant="outlined"
                     startIcon={<AddRounded />}
@@ -841,9 +1200,12 @@ export default function Home() {
                 <Typography fontWeight={750}>{t("education")} ({education.fields.length}/3)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Stack spacing={2}>
-                  {education.fields.map((field, index) => (
-                    <Box className="experience-form" key={field.id}>
+                <DndContext id="education-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(education.fields.map((field) => field.id), education.move)}>
+                  <SortableContext items={education.fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                    <Stack spacing={2}>
+                      {education.fields.map((field, index) => (
+                        <SortableFormItem mobileHandleInside key={field.id} id={field.id} label={t("reorderItem", { item: t("educationNumber", { number: index + 1 }) })}>
+                          <Box className="experience-form">
                       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
                         <Typography fontWeight={750}>{t("educationNumber", { number: index + 1 })}</Typography>
                         <IconButton aria-label={t("removeEducation", { number: index + 1 })} onClick={() => education.remove(index)}>
@@ -859,8 +1221,13 @@ export default function Home() {
                           <TextField label={t("to")} inputProps={{ maxLength: 20 }} {...register(`education.${index}.end`)} />
                         </Stack>
                       </Box>
-                    </Box>
-                  ))}
+                          </Box>
+                        </SortableFormItem>
+                      ))}
+                    </Stack>
+                  </SortableContext>
+                </DndContext>
+                <Stack mt={2}>
                   <Button
                     variant="outlined"
                     startIcon={<AddRounded />}
@@ -878,9 +1245,12 @@ export default function Home() {
                 <Typography fontWeight={750}>{t("certifications")} ({certifications.fields.length}/4)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Stack spacing={2}>
-                  {certifications.fields.map((field, index) => (
-                    <Box className="experience-form" key={field.id}>
+                <DndContext id="certifications-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(certifications.fields.map((field) => field.id), certifications.move)}>
+                  <SortableContext items={certifications.fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
+                    <Stack spacing={2}>
+                      {certifications.fields.map((field, index) => (
+                        <SortableFormItem mobileHandleInside key={field.id} id={field.id} label={t("reorderItem", { item: t("certificationNumber", { number: index + 1 }) })}>
+                          <Box className="experience-form">
                       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
                         <Typography fontWeight={750}>{t("certificationNumber", { number: index + 1 })}</Typography>
                         <IconButton aria-label={t("removeCertification", { number: index + 1 })} onClick={() => certifications.remove(index)}>
@@ -892,8 +1262,13 @@ export default function Home() {
                         <TextField label={t("issuer")} inputProps={{ maxLength: 70 }} {...register(`certifications.${index}.issuer`)} />
                         <TextField label={t("certificationDate")} inputProps={{ maxLength: 20 }} {...register(`certifications.${index}.date`)} />
                       </Box>
-                    </Box>
-                  ))}
+                          </Box>
+                        </SortableFormItem>
+                      ))}
+                    </Stack>
+                  </SortableContext>
+                </DndContext>
+                <Stack mt={2}>
                   <Button
                     variant="outlined"
                     startIcon={<AddRounded />}
@@ -920,41 +1295,41 @@ export default function Home() {
 
             <Box className="paper-wrap">
               <article
-                className={`cv-paper template-${data.template}`}
+                className={`cv-paper template-${previewData.template}`}
                 style={{
-                  "--cv-primary": data.primaryColor,
-                  "--cv-accent": data.accentColor,
-                  "--cv-font": fontOptions.find((font) => font.value === data.fontFamily)?.css,
+                  "--cv-primary": previewData.primaryColor,
+                  "--cv-accent": previewData.accentColor,
+                  "--cv-font": fontOptions.find((font) => font.value === previewData.fontFamily)?.css,
                 } as CSSProperties}
               >
                 <aside
-                  className={`cv-sidebar cv-sidebar-${data.template}`}
-                  style={["contrast", "editorial"].includes(data.template) ? { backgroundColor: data.primaryColor, color: "#fff" } : undefined}
+                  className={`cv-sidebar cv-sidebar-${previewData.template}`}
+                  style={["contrast", "editorial"].includes(previewData.template) ? { backgroundColor: previewData.primaryColor, color: "#fff" } : undefined}
                 >
                   <div className="top-accent" />
-                  <h2>{data.name || "Tu nombre"}</h2>
-                  {data.headline && <p className="cv-headline">{data.headline}</p>}
-                  {data.photo && <img className={`cv-photo photo-${data.photoShape}`} src={data.photo} alt="" />}
+                  <h2>{previewData.name || "Tu nombre"}</h2>
+                  {previewData.headline && <p className="cv-headline">{previewData.headline}</p>}
+                  {previewData.photo && <img className={`cv-photo photo-${previewData.photoShape}`} src={previewData.photo} alt="" />}
                   {hasContact && (
                     <section>
                       <h3>{t("cvContact")}</h3>
-                      {data.location && <p><b>{t("location")}:</b><br />{data.location}</p>}
-                      {data.phone && <p><b>{t("phone")}:</b><br />{data.phone}</p>}
-                      {data.email && <p><b>{t("email")}:</b><br />{data.email}</p>}
-                      {data.portfolio && <p><b>{t("portfolio")}:</b><br />{data.portfolio}</p>}
+                      {previewData.location && <p><b>{t("location")}:</b><br />{previewData.location}</p>}
+                      {previewData.phone && <p><b>{t("phone")}:</b><br />{previewData.phone}</p>}
+                      {previewData.email && <p><b>{t("email")}:</b><br />{previewData.email}</p>}
+                      {previewData.portfolio && <p><b>{t("portfolio")}:</b><br />{previewData.portfolio}</p>}
                     </section>
                   )}
-                  {data.languages.some((language) => language.name) && (
+                  {previewData.languages.some((language) => language.name) && (
                     <section>
                       <h3>{t("cvLanguages")}</h3>
-                      {data.languages.filter((language) => language.name).map((language, index) => (
+                      {previewData.languages.filter((language) => language.name).map((language, index) => (
                         <p className="compact" key={`${language.name}-${index}`}><b>{language.name}:</b> {language.level}</p>
                       ))}
                     </section>
                   )}
                 </aside>
-                <main className={`cv-main cv-main-${data.template}`}>
-                  {normalizeSectionOrder(data.sectionOrder).map(renderMainSection)}
+                <main className={`cv-main cv-main-${previewData.template}`}>
+                  {previewContentOrder.map(renderMainSection)}
                 </main>
                 <div className="bottom-accent" />
               </article>
@@ -1013,6 +1388,123 @@ export default function Home() {
           </Box>
         </Box>
       </Container>
+
+      <Box component="section" className="landing-section landing-how" id="howItWorks">
+        <Container maxWidth="lg">
+          <Box className="landing-heading">
+            <Typography className="section-eyebrow">{t("howEyebrow")}</Typography>
+            <Typography variant="h3" component="h2">{t("howTitle")}</Typography>
+            <Typography color="text.secondary">{t("howDescription")}</Typography>
+          </Box>
+          <Box className="steps-grid">
+            {[1, 2, 3].map((step) => (
+              <Box className="step-card" key={step}>
+                <span className="step-number">0{step}</span>
+                <Typography variant="h6" component="h3">{t(`step${step}Title`)}</Typography>
+                <Typography color="text.secondary">{t(`step${step}Description`)}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
+      <Box component="section" className="landing-section landing-benefits">
+        <Container maxWidth="lg">
+          <Box className="landing-heading">
+            <Typography className="section-eyebrow">{t("benefitsEyebrow")}</Typography>
+            <Typography variant="h3" component="h2">{t("benefitsTitle")}</Typography>
+          </Box>
+          <Box className="benefits-grid">
+            {(["free", "private", "flexible", "onePage"] as const).map((benefit) => (
+              <Box className="benefit-card" key={benefit}>
+                <CheckCircleRounded color="primary" />
+                <Typography variant="h6" component="h3">{t(`benefit${benefit[0].toUpperCase()}${benefit.slice(1)}Title`)}</Typography>
+                <Typography color="text.secondary">{t(`benefit${benefit[0].toUpperCase()}${benefit.slice(1)}Description`)}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
+      <Box component="section" className="landing-section landing-templates" id="landingTemplates">
+        <Container maxWidth="lg">
+          <Box className="landing-heading">
+            <Typography className="section-eyebrow">{t("landingTemplatesEyebrow")}</Typography>
+            <Typography variant="h3" component="h2">{t("landingTemplatesTitle")}</Typography>
+            <Typography color="text.secondary">{t("landingTemplatesDescription")}</Typography>
+          </Box>
+          <Box className="landing-template-grid">
+            {templateOptions.map((template) => (
+              <button
+                type="button"
+                className={`landing-template-card${data.template === template ? " selected" : ""}`}
+                key={template}
+                aria-pressed={data.template === template}
+                onClick={() => {
+                  setValue("template", template, { shouldDirty: true });
+                  document.getElementById("generator")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                <span className={`template-thumbnail template-thumbnail-${template}`} aria-hidden="true"><i /><b /><em /></span>
+                <span><strong>{t(`template${template[0].toUpperCase()}${template.slice(1)}`)}</strong><small>{t("useTemplate")}</small></span>
+              </button>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
+      <Box component="section" className="landing-section privacy-section">
+        <Container maxWidth="lg" className="privacy-layout">
+          <Box className="privacy-icon"><LockOutlined /></Box>
+          <Box>
+            <Typography className="section-eyebrow">{t("privacyEyebrow")}</Typography>
+            <Typography variant="h3" component="h2">{t("privacyTitle")}</Typography>
+            <Typography color="text.secondary" mt={1}>{t("privacyDescription")}</Typography>
+          </Box>
+          <Box className="privacy-points">
+            {[t("privacyPointOne"), t("privacyPointTwo"), t("privacyPointThree")].map((item) => <span key={item}><CheckCircleRounded />{item}</span>)}
+          </Box>
+        </Container>
+      </Box>
+
+      <Box component="section" className="landing-section faq-section">
+        <Container maxWidth="md">
+          <Box className="landing-heading">
+            <Typography className="section-eyebrow">FAQ</Typography>
+            <Typography variant="h3" component="h2">{t("faqTitle")}</Typography>
+          </Box>
+          {[1, 2, 3, 4, 5].map((item) => (
+            <Accordion key={item} disableGutters elevation={0} className="faq-item">
+              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t(`faq${item}Question`)}</Typography>
+              </AccordionSummary>
+              <AccordionDetails><Typography color="text.secondary">{t(`faq${item}Answer`)}</Typography></AccordionDetails>
+            </Accordion>
+          ))}
+        </Container>
+      </Box>
+
+      <Box component="section" className="landing-cta">
+        <Container maxWidth="md">
+          <Typography variant="h3" component="h2">{t("finalCtaTitle")}</Typography>
+          <Typography>{t("finalCtaDescription")}</Typography>
+          <Button variant="contained" size="large" component="a" href="#generator">{t("heroPrimaryCta")}</Button>
+        </Container>
+      </Box>
+
+      <Box component="footer" className="site-footer">
+        <Container maxWidth="lg" className="footer-layout">
+          <BrandLogo />
+          <Typography variant="body2" color="text.secondary">{t("footerDescription")}</Typography>
+          <Box className="footer-links">
+            <a href="#generator">{t("generatorNav")}</a>
+            <a href="#landingTemplates">{t("templatesNav")}</a>
+            <a href="/mis-cvs">{t("myCvs")}</a>
+            <a href="https://github.com/ruben137/cv-generator" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </Box>
+          <Typography variant="caption" color="text.secondary">{t("footerLicense")}</Typography>
+        </Container>
+      </Box>
       <Dialog open={saveDialogOpen} onClose={() => !savingCv && setSaveDialogOpen(false)} fullWidth maxWidth="xs">
         <Box component="form" onSubmit={(event) => { event.preventDefault(); void saveToLibrary(); }}>
           <DialogTitle>{activeCvId ? t("nameAndUpdateCv") : t("nameAndSaveCv")}</DialogTitle>

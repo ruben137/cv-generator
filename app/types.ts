@@ -33,11 +33,36 @@ export type Certification = {
 export const mainSectionIds = ["summary", "experience", "education", "certifications", "skills"] as const;
 export type MainSectionId = (typeof mainSectionIds)[number];
 
+export type CustomSectionItem = { id: string; text: string };
+export type CustomSection = {
+  id: string;
+  title: string;
+  type: "text" | "list";
+  text: string;
+  items: CustomSectionItem[];
+};
+
 export function normalizeSectionOrder(order?: MainSectionId[]): MainSectionId[] {
   const valid = (order ?? []).filter(
     (item, index, items): item is MainSectionId => mainSectionIds.includes(item) && items.indexOf(item) === index,
   );
   return [...valid, ...mainSectionIds.filter((item) => !valid.includes(item))];
+}
+
+export function normalizeContentOrder(
+  order: string[] | undefined,
+  legacyOrder: MainSectionId[] | undefined,
+  customSections: CustomSection[],
+): string[] {
+  const customIds = customSections.map((section) => section.id);
+  const validIds = new Set<string>([...mainSectionIds, ...customIds]);
+  const preferred = order?.length ? order : normalizeSectionOrder(legacyOrder);
+  const valid = preferred.filter((item, index, items) => validIds.has(item) && items.indexOf(item) === index);
+  return [
+    ...valid,
+    ...mainSectionIds.filter((item) => !valid.includes(item)),
+    ...customIds.filter((item) => !valid.includes(item)),
+  ];
 }
 
 export type CvData = {
@@ -60,15 +85,21 @@ export type CvData = {
   education: Education[];
   certifications: Certification[];
   sectionOrder: MainSectionId[];
+  contentOrder: string[];
+  sectionTitles: Partial<Record<MainSectionId, string>>;
+  customSections: CustomSection[];
 };
 
-const baseCv: Pick<CvData, "template" | "fontFamily" | "photoShape" | "primaryColor" | "accentColor" | "sectionOrder"> = {
+const baseCv: Pick<CvData, "template" | "fontFamily" | "photoShape" | "primaryColor" | "accentColor" | "sectionOrder" | "contentOrder" | "sectionTitles" | "customSections"> = {
   template: "classic",
   fontFamily: "sans",
   photoShape: "square",
   primaryColor: "#173B63",
   accentColor: "#3C6596",
   sectionOrder: [...mainSectionIds],
+  contentOrder: [...mainSectionIds],
+  sectionTitles: {},
+  customSections: [],
 };
 
 export function getInitialCv(locale: string): CvData {

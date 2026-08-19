@@ -1,6 +1,6 @@
 "use client";
 
-import { normalizeSectionOrder, type CvData, type MainSectionId } from "./types";
+import { mainSectionIds, normalizeContentOrder, normalizeSectionOrder, type CvData, type MainSectionId } from "./types";
 
 export type ExportLabels = {
   summary: string;
@@ -219,9 +219,9 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
       );
   }
 
-  const sectionParagraphs = Object.fromEntries(
+  const sectionParagraphs: Record<string, InstanceType<typeof Paragraph>[]> = Object.fromEntries(
     normalizeSectionOrder(data.sectionOrder).map((section) => [section, [] as InstanceType<typeof Paragraph>[]]),
-  ) as Record<MainSectionId, InstanceType<typeof Paragraph>[]>;
+  );
   let right = sectionParagraphs.summary;
   if (safe(data.summary)) {
     right.push(
@@ -336,7 +336,24 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
         ),
       );
   }
-  const orderedRight = normalizeSectionOrder(data.sectionOrder).flatMap((section) => sectionParagraphs[section]);
+  data.customSections.forEach((section) => {
+    const paragraphs: InstanceType<typeof Paragraph>[] = [];
+    if (section.type === "text" && safe(section.text)) {
+      paragraphs.push(
+        heading(safe(section.title) || "Section", primary, primary, true),
+        new Paragraph({ spacing: { after: 140, line: 280 }, children: [new TextRun({ text: section.text, size: 20 })] }),
+      );
+    }
+    if (section.type === "list" && section.items.some((item) => safe(item.text))) {
+      paragraphs.push(heading(safe(section.title) || "Section", primary, primary, true));
+      section.items.filter((item) => safe(item.text)).forEach((item) => paragraphs.push(
+        new Paragraph({ bullet: { level: 0 }, spacing: { after: 35, line: 245 }, children: [new TextRun({ text: item.text, size: 19 })] }),
+      ));
+    }
+    sectionParagraphs[section.id] = paragraphs;
+  });
+  const orderedRight = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections)
+    .flatMap((section) => sectionParagraphs[section] ?? []);
 
   const pageWidthTwips = 11906;
   const pageHeightTwips = 16838;
@@ -646,7 +663,25 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
       });
     },
   };
-  normalizeSectionOrder(data.sectionOrder).forEach((section) => sectionDrawers[section]());
+  normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections).forEach((sectionId) => {
+    if (mainSectionIds.includes(sectionId as MainSectionId)) {
+      sectionDrawers[sectionId as MainSectionId]();
+      return;
+    }
+    const section = data.customSections.find((item) => item.id === sectionId);
+    if (!section || rightY <= 55) return;
+    if (section.type === "text" && safe(section.text)) {
+      rightY = mainHeading(safe(section.title) || "Section");
+      rightY = textBlock(section.text, mainContentX, rightY, mainContentWidth, 9.5, 13, regular, 7) - 6;
+    }
+    if (section.type === "list" && section.items.some((item) => safe(item.text))) {
+      rightY = mainHeading(safe(section.title) || "Section");
+      section.items.filter((item) => safe(item.text)).slice(0, 8).forEach((item) => {
+        page.drawCircle({ x: bulletX, y: rightY + 3, size: 1.5, color: dark });
+        rightY = textBlock(item.text, bulletTextX, rightY, mainContentWidth - 15, 9, 12, regular, 2);
+      });
+    }
+  });
 
   const bytes = await pdf.save();
   const pdfBuffer = bytes.buffer.slice(

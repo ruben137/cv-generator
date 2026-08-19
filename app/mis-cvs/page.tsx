@@ -33,6 +33,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { createStoredCv, deleteStoredCv, listStoredCvs, putStoredCv, type StoredCv } from "../cv-library";
+import { BrandLogo } from "../brand-logo";
 
 const theme = createTheme({
   palette: {
@@ -91,12 +92,9 @@ export default function MyCvsPage() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBar position="sticky" color="inherit" elevation={0} className="topbar">
-        <Toolbar sx={{ minHeight: 68, gap: 2 }}>
-          <Box className="brand-mark"><DescriptionRounded /></Box>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography fontWeight={800} color="primary">CV Simple</Typography>
-            <Typography variant="caption" color="text.secondary">{t("myCvs")}</Typography>
-          </Box>
+        <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: 2 }}>
+          <BrandLogo />
+          <Box sx={{ flexGrow: 1 }} />
           <Button component="a" href="/" startIcon={<ArrowBackRounded />}>{t("backToEditor")}</Button>
         </Toolbar>
       </AppBar>
