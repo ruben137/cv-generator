@@ -5,13 +5,34 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
     groups:
-      development-dependencies:
+      react-ecosystem:
+        patterns:
+          - react
+          - react-dom
+          - react-server-dom-webpack
+          - "@types/react"
+          - "@types/react-dom"
+      development-patches:
         dependency-type: development
+        update-types:
+          - patch
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 1
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+    groups:
+      github-actions:
+        patterns:
+          - "*"
