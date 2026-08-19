@@ -18,8 +18,11 @@ function localeFromHeader(acceptLanguage: string): Locale {
 
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
+  const headerLocale = (await headers()).get("x-cv-locale") ?? undefined;
   const savedLocale = cookieStore.get("locale")?.value;
-  const locale = isLocale(savedLocale)
+  const locale = isLocale(headerLocale)
+    ? headerLocale
+    : isLocale(savedLocale)
     ? savedLocale
     : localeFromHeader((await headers()).get("accept-language") ?? "");
 
