@@ -5,6 +5,7 @@ import {
   CheckCircleRounded,
   CloudOffRounded,
   ColorLensRounded,
+  CropRounded,
   DeleteOutlineRounded,
   DragIndicatorRounded,
   ExpandMoreRounded,
@@ -39,6 +40,7 @@ import {
   FormControlLabel,
   IconButton,
   MenuItem,
+  Slider,
   Stack,
   Switch,
   TextField,
@@ -68,6 +70,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useLocale, useTranslations } from "next-intl";
+import Cropper, { type Area, type Point } from "react-easy-crop";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
 import { CvData, getInitialCv, mainSectionIds, normalizeContentOrder, normalizeSectionOrder, type MainSectionId } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
@@ -262,6 +265,10 @@ export default function Home() {
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
+  const [cropPosition, setCropPosition] = useState<Point>({ x: 0, y: 0 });
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
   const [savingCv, setSavingCv] = useState(false);
   const [bulletSortIds, setBulletSortIds] = useState<Record<string, string[]>>({});
   const dndSensors = useSensors(
@@ -504,8 +511,41 @@ export default function Home() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setValue("photo", String(reader.result), { shouldDirty: true });
+    reader.onload = () => {
+      setCropPosition({ x: 0, y: 0 });
+      setCroppedAreaPixels(null);
+      setCropZoom(1);
+      setPendingPhoto(String(reader.result));
+    };
     reader.readAsDataURL(file);
+  };
+
+  const applyPhotoCrop = async () => {
+    if (!pendingPhoto || !croppedAreaPixels) return;
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("Invalid image"));
+      image.src = pendingPhoto;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = 700;
+    canvas.height = 700;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    context.drawImage(
+      image,
+      croppedAreaPixels.x,
+      croppedAreaPixels.y,
+      croppedAreaPixels.width,
+      croppedAreaPixels.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+    setValue("photo", canvas.toDataURL("image/jpeg", 0.9), { shouldDirty: true });
+    setPendingPhoto(null);
   };
 
   const hasContact = [previewData.phone, previewData.email, previewData.portfolio, previewData.location].some(Boolean);
@@ -754,7 +794,15 @@ export default function Home() {
                     </Box>
                     <Button component="label" variant="outlined" startIcon={<UploadRounded />}>
                       {t("choose")}
-                      <input hidden type="file" accept="image/png,image/jpeg" onChange={(event) => onPhoto(event.target.files?.[0])} />
+                      <input
+                        hidden
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        onChange={(event) => {
+                          onPhoto(event.target.files?.[0]);
+                          event.target.value = "";
+                        }}
+                      />
                     </Button>
                     {data.photo && (
                       <>
@@ -1591,6 +1639,69 @@ export default function Home() {
             }}
           >
             {t("restoreExample")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={Boolean(pendingPhoto)} onClose={() => setPendingPhoto(null)} fullWidth maxWidth="xs">
+        <DialogTitle>{t("cropPhotoTitle")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>{t("cropPhotoHelp")}</DialogContentText>
+          <Box
+            className="photo-crop-stage"
+            sx={{
+              position: "relative",
+              width: "min(320px, 100%)",
+              aspectRatio: "1",
+              mx: "auto",
+              overflow: "hidden",
+              bgcolor: "#dfe5ea",
+              borderRadius: 3,
+            }}
+          >
+            {pendingPhoto && (
+              <Cropper
+                image={pendingPhoto}
+                crop={cropPosition}
+                zoom={cropZoom}
+                aspect={1}
+                cropShape={data.photoShape === "round" ? "round" : "rect"}
+                objectFit="cover"
+                showGrid
+                onCropChange={setCropPosition}
+                onZoomChange={setCropZoom}
+                onCropComplete={(_, areaPixels) => setCroppedAreaPixels(areaPixels)}
+                mediaProps={{
+                  "aria-label": t("cropPhotoPreview"),
+                  onError: () => {
+                  setPendingPhoto(null);
+                  setNotice(t("imageError"));
+                  setNoticeSuccess(false);
+                  },
+                }}
+              />
+            )}
+          </Box>
+          <Box className="photo-crop-zoom">
+            <Typography variant="body2" fontWeight={700}>{t("zoom")}</Typography>
+            <Slider
+              value={cropZoom}
+              min={1}
+              max={3}
+              step={0.01}
+              aria-label={t("zoom")}
+              onChange={(_, value) => setCropZoom(value as number)}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPendingPhoto(null)}>{t("cancel")}</Button>
+          <Button
+            variant="contained"
+            startIcon={<CropRounded />}
+            onClick={() => void applyPhotoCrop()}
+            disabled={!croppedAreaPixels}
+          >
+            {t("applyCrop")}
           </Button>
         </DialogActions>
       </Dialog>

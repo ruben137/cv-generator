@@ -198,6 +198,25 @@ body {
   object-fit: cover;
 }
 
+.photo-crop-stage {
+  position: relative;
+  width: min(320px, 100%);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #dfe5ea;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9), 0 8px 24px rgba(23, 42, 59, 0.14);
+}
+
+.photo-crop-zoom {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
 .experience-form {
   border-radius: 12px;
   border: 1px solid #dde3e8;
