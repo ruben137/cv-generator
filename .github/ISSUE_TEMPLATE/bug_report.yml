@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem in CV Simple
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve CV Simple. Do not attach a real CV or personal photograph; use generic test data.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open…\n2. Select…\n3. Export…"
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where does it happen?
+      options:
+        - Editor
+        - Preview
+        - PDF export
+        - DOCX export
+        - My CVs
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and operating system
+      placeholder: Chrome 140 on Windows 11
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Use generic data and remove all personal information from screenshots.

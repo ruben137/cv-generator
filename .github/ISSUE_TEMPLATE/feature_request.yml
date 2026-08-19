@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest an improvement consistent with the product principles
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What problem would this feature solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Product principles
+      options:
+        - label: The feature can remain free and work without registration.
+          required: true
+        - label: The feature does not require transmitting CV data or photographs.
+          required: true
+        - label: I searched for an existing issue covering this request.
+          required: true
