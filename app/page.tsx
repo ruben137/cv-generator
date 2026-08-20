@@ -18,6 +18,7 @@ import {
   RestartAltRounded,
   SaveRounded,
   UploadRounded,
+  WorkOutlineRounded,
 } from "@mui/icons-material";
 import {
   Accordion,
@@ -72,9 +73,10 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useLocale, useTranslations } from "next-intl";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
-import { CvData, getInitialCv, mainSectionIds, normalizeContentOrder, normalizeSectionOrder, type MainSectionId } from "./types";
+import { type CvData, getInitialCv, mainSectionIds, normalizeContentOrder, normalizeSectionOrder, type MainSectionId } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
+import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
 
 const theme = createTheme({
   palette: {
@@ -240,6 +242,7 @@ function SortableFormItem({ id, label, children, mobileHandleInside = false }: {
 export default function Home() {
   const t = useTranslations("App");
   const locale = useLocale();
+  const templatesPath = locale === "en" ? "/en/templates" : "/es/plantillas";
   const initialCv = useMemo(() => getInitialCv(locale), [locale]);
   const { control, register, reset, setValue } = useForm<CvData>({
     defaultValues: initialCv,
@@ -295,10 +298,20 @@ export default function Home() {
     if (storedAutoSave === null) window.localStorage.setItem(AUTOSAVE_KEY, "true");
     const searchParams = new URLSearchParams(window.location.search);
     const storedCvId = searchParams.get("cv");
+    const professionalPresetId = searchParams.get("preset");
     const forceNew = searchParams.get("new") === "1";
     void (async () => {
       let loaded = false;
-      if (storedCvId) {
+      if (isProfessionalPresetId(professionalPresetId)) {
+        reset(getProfessionalPreset(locale, professionalPresetId));
+        setActiveCvId(null);
+        setCvTitle("");
+        const roleKey = professionalPresetId[0].toUpperCase() + professionalPresetId.slice(1);
+        setNotice(t("professionalPresetApplied", { role: t(`professionalPreset${roleKey}`) }));
+        setNoticeSuccess(true);
+        window.history.replaceState(null, "", `/${locale}#generator`);
+        loaded = true;
+      } else if (storedCvId) {
         const storedCv = await getStoredCv(storedCvId);
         if (storedCv) {
           reset(mergeCvData(initialCv, storedCv.data));
@@ -318,7 +331,7 @@ export default function Home() {
       setAutoSave(enabled);
       setStorageReady(true);
     })();
-  }, [initialCv, reset]);
+  }, [initialCv, locale, reset, t]);
 
   useEffect(() => {
     if (!storageReady || !autoSave) return;
@@ -650,7 +663,7 @@ export default function Home() {
           <BrandLogo />
           <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
             <Button component="a" href="#generator" className="main-nav-link active">{t("generatorNav")}</Button>
-            <Button component="a" href="#landingTemplates" className="main-nav-link">{t("templatesNav")}</Button>
+            <Button component="a" href={templatesPath} className="main-nav-link">{t("templatesNav")}</Button>
             <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
           </Box>
           <Box className="topbar-actions">
@@ -706,7 +719,7 @@ export default function Home() {
               <Button variant="contained" size="large" component="a" href="#generator">
                 {t("heroPrimaryCta")}
               </Button>
-              <Button variant="outlined" size="large" component="a" href="#landingTemplates">
+              <Button variant="outlined" size="large" component="a" href={templatesPath}>
                 {t("heroSecondaryCta")}
               </Button>
             </Stack>
@@ -730,6 +743,15 @@ export default function Home() {
             <div className="hero-format format-docx">DOCX</div>
             <div className="hero-private"><LockOutlined fontSize="small" />{t("heroPrivateBadge")}</div>
           </Box>
+        </Box>
+
+        <Box component="aside" className="professional-presets-cta">
+          <span className="professional-preset-icon"><WorkOutlineRounded /></span>
+          <Box>
+            <Typography fontWeight={800}>{t("professionalPresetsCompactTitle")}</Typography>
+            <Typography variant="body2" color="text.secondary">{t("professionalPresetsCompactDescription")}</Typography>
+          </Box>
+          <Button component="a" href={templatesPath} variant="outlined">{t("exploreProfessionalPresets")}</Button>
         </Box>
 
         <Stack className="editor-toolbar" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
@@ -1590,7 +1612,7 @@ export default function Home() {
           <Typography variant="body2" color="text.secondary">{t("footerDescription")}</Typography>
           <Box className="footer-links">
             <a href="#generator">{t("generatorNav")}</a>
-            <a href="#landingTemplates">{t("templatesNav")}</a>
+            <a href={templatesPath}>{t("templatesNav")}</a>
             <a href="/mis-cvs">{t("myCvs")}</a>
             <a href="https://github.com/ruben137/cv-generator" target="_blank" rel="noopener noreferrer">GitHub</a>
           </Box>
