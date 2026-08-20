@@ -21,6 +21,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
+    "@vercel/analytics": "^2.0.1",
     "docx": "^9.7.1",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
