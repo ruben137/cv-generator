@@ -663,7 +663,8 @@ export default function Home() {
           <BrandLogo />
           <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
             <Button component="a" href="#generator" className="main-nav-link active">{t("generatorNav")}</Button>
-            <Button component="a" href={templatesPath} className="main-nav-link">{t("templatesNav")}</Button>
+            <Button component="a" href="#landingTemplates" className="main-nav-link">{t("templatesNav")}</Button>
+            <Button component="a" href={templatesPath} className="main-nav-link">{t("professionalExamplesNav")}</Button>
             <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
           </Box>
           <Box className="topbar-actions">
