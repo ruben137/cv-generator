@@ -13,6 +13,7 @@ import {
   InsertDriveFileRounded,
   LanguageRounded,
   LockOutlined,
+  ManageSearchRounded,
   OpenInNewRounded,
   PictureAsPdfRounded,
   RestartAltRounded,
@@ -85,6 +86,8 @@ import {
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
 import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
+import { writeJobMatchTransfer } from "./job-match/transfer";
+import { jobFamilies, type JobFamily } from "./job-match/model";
 
 const theme = createTheme({
   palette: {
@@ -214,8 +217,10 @@ function SortableFormItem({ id, label, children, mobileHandleInside = false }: {
 
 export default function Home() {
   const t = useTranslations("App");
+  const jobMatchT = useTranslations("JobMatch");
   const locale = useLocale();
   const templatesPath = locale === "en" ? "/en/templates" : "/es/plantillas";
+  const jobMatchPath = locale === "en" ? "/en/job-match" : "/es/analizar-vacante";
   const initialCv = useMemo(() => getInitialCv(locale), [locale]);
   const { control, register, reset, setValue } = useForm<CvData>({
     defaultValues: initialCv,
@@ -241,6 +246,8 @@ export default function Home() {
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [jobMatchDialogOpen, setJobMatchDialogOpen] = useState(false);
+  const [selectedJobFamily, setSelectedJobFamily] = useState<JobFamily | "">("");
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const [cropPosition, setCropPosition] = useState<Point>({ x: 0, y: 0 });
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -389,6 +396,18 @@ export default function Home() {
       setNoticeSuccess(false);
     } finally {
       setSavingCv(false);
+    }
+  };
+
+  const analyzeCurrentCv = () => {
+    if (!selectedJobFamily) return;
+    try {
+      writeJobMatchTransfer(window.localStorage, data, selectedJobFamily);
+      window.open(`${jobMatchPath}?source=editor`, "_blank", "noopener,noreferrer");
+      setJobMatchDialogOpen(false);
+    } catch {
+      setNotice(t("jobMatchTransferError"));
+      setNoticeSuccess(false);
     }
   };
 
@@ -665,6 +684,7 @@ export default function Home() {
             <Button component="a" href="#generator" className="main-nav-link active">{t("generatorNav")}</Button>
             <Button component="a" href="#landingTemplates" className="main-nav-link">{t("templatesNav")}</Button>
             <Button component="a" href={templatesPath} className="main-nav-link">{t("professionalExamplesNav")}</Button>
+            <Button component="a" href={jobMatchPath} className="main-nav-link">{t("jobMatchNav")}</Button>
             <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
           </Box>
           <Box className="topbar-actions">
@@ -1503,6 +1523,23 @@ export default function Home() {
                 </Button>
               </Stack>
               <Divider sx={{ my: 2 }} />
+              <Box className="job-match-editor-cta">
+                <Box>
+                  <Typography fontWeight={750} variant="body2">{t("analyzeCurrentCv")}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">{t("analyzeCurrentCvHelp")}</Typography>
+                </Box>
+                <Button
+                  type="button"
+                  onClick={() => setJobMatchDialogOpen(true)}
+                  startIcon={<ManageSearchRounded />}
+                  variant="outlined"
+                  size="small"
+                  sx={{ whiteSpace: "nowrap" }}
+                >
+                  {t("openJobMatch")}
+                </Button>
+              </Box>
+              <Divider sx={{ my: 2 }} />
               <Box className="reconvert-box">
                 <Box>
                   <Typography fontWeight={750} variant="body2">{t("editedDocx")}</Typography>
@@ -1641,6 +1678,7 @@ export default function Home() {
           <Box className="footer-links">
             <a href="#generator">{t("generatorNav")}</a>
             <a href={templatesPath}>{t("templatesNav")}</a>
+            <a href={jobMatchPath}>{t("jobMatchNav")}</a>
             <a href="/mis-cvs">{t("myCvs")}</a>
             <a href={locale === "en" ? "/en/about" : "/es/acerca-de"}>{t("aboutLink")}</a>
             <a href={locale === "en" ? "/en/privacy" : "/es/privacidad"}>{t("privacyLink")}</a>
@@ -1650,6 +1688,28 @@ export default function Home() {
           <Typography variant="caption" color="text.secondary">{t("footerLicense")}</Typography>
         </Container>
       </Box>
+      <Dialog open={jobMatchDialogOpen} onClose={() => setJobMatchDialogOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>{t("jobMatchAreaTitle")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>{t("jobMatchAreaHelp")}</DialogContentText>
+          <TextField
+            select
+            autoFocus
+            fullWidth
+            label={t("jobMatchAreaLabel")}
+            value={selectedJobFamily}
+            onChange={(event) => setSelectedJobFamily(event.target.value as JobFamily)}
+          >
+            {jobFamilies.map((family) => <MenuItem key={family} value={family}>{jobMatchT(`families.${family}`)}</MenuItem>)}
+          </TextField>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setJobMatchDialogOpen(false)}>{t("cancel")}</Button>
+          <Button variant="contained" onClick={analyzeCurrentCv} disabled={!selectedJobFamily} startIcon={<ManageSearchRounded />}>
+            {t("continueToJobMatch")}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={saveDialogOpen} onClose={() => !savingCv && setSaveDialogOpen(false)} fullWidth maxWidth="xs">
         <Box component="form" onSubmit={(event) => { event.preventDefault(); void saveToLibrary(); }}>
           <DialogTitle>{activeCvId ? t("nameAndUpdateCv") : t("nameAndSaveCv")}</DialogTitle>

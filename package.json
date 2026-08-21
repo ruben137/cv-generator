@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
+    "test": "npm run build && node --test tests/rendered-html.test.mjs && npm run test:job-match",
+    "test:job-match": "tsx tests/job-match-vacancy-regression.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
@@ -46,6 +47,7 @@
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.8",
     "tailwindcss": "4.3.3",
+    "tsx": "4.22.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",
     "vite": "8.0.13",
