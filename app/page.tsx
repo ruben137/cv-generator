@@ -73,15 +73,14 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useLocale, useTranslations } from "next-intl";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
+import { defaultDocumentLabels, normalizeCvData } from "./cv-data";
 import {
   type CvData,
   getInitialCv,
   mainSectionIds,
   normalizeContentOrder,
-  normalizeSectionOrder,
   sidebarLabelIds,
   type MainSectionId,
-  type SidebarLabelId,
 } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
@@ -133,41 +132,6 @@ const fontOptions = [
 ] as const;
 
 const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial"] as const;
-
-function mergeCvData(initialCv: CvData, parsed: Partial<CvData>): CvData {
-  const customSections = Array.isArray(parsed.customSections)
-    ? parsed.customSections.slice(0, 3).map((section) => ({
-        id: String(section.id || `custom-${crypto.randomUUID()}`),
-        title: String(section.title ?? "").slice(0, 50),
-        type: section.type === "list" ? "list" as const : "text" as const,
-        text: String(section.text ?? "").slice(0, 500),
-        items: Array.isArray(section.items)
-          ? section.items.slice(0, 8).map((item) => ({ id: String(item.id || crypto.randomUUID()), text: String(item.text ?? "").slice(0, 120) }))
-          : [],
-      }))
-    : [];
-  const legacyOrder = normalizeSectionOrder(parsed.sectionOrder);
-  return {
-    ...initialCv,
-    ...parsed,
-    template: templateOptions.includes(parsed.template as CvData["template"])
-      ? parsed.template as CvData["template"]
-      : initialCv.template,
-    fontFamily: fontOptions.some((font) => font.value === parsed.fontFamily)
-      ? parsed.fontFamily as CvData["fontFamily"]
-      : initialCv.fontFamily,
-    photoShape: parsed.photoShape === "round" ? "round" : "square",
-    skills: Array.isArray(parsed.skills) ? parsed.skills : initialCv.skills,
-    languages: Array.isArray(parsed.languages) ? parsed.languages : initialCv.languages,
-    experiences: Array.isArray(parsed.experiences) ? parsed.experiences : initialCv.experiences,
-    education: Array.isArray(parsed.education) ? parsed.education : initialCv.education,
-    certifications: Array.isArray(parsed.certifications) ? parsed.certifications : initialCv.certifications,
-    sectionOrder: legacyOrder,
-    contentOrder: normalizeContentOrder(parsed.contentOrder, legacyOrder, customSections),
-    sectionTitles: parsed.sectionTitles && typeof parsed.sectionTitles === "object" ? parsed.sectionTitles : {},
-    customSections,
-  };
-}
 
 function Counter({ value, max }: { value?: string; max: number }) {
   const length = value?.length ?? 0;
@@ -287,18 +251,19 @@ export default function Home() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  const documentLabels = defaultDocumentLabels[data.documentLocale];
   const exportLabels: ExportLabels = {
-    summary: data.sectionTitles.summary?.trim() || t("cvSummary"),
-    experience: data.sectionTitles.experience?.trim() || t("cvExperience"),
-    skills: data.sectionTitles.skills?.trim() || t("cvSkills"),
-    contact: data.sectionTitles.contact?.trim() || t("cvContact"),
-    languages: data.sectionTitles.languages?.trim() || t("cvLanguages"),
-    education: data.sectionTitles.education?.trim() || t("cvEducation"),
-    certifications: data.sectionTitles.certifications?.trim() || t("cvCertifications"),
-    location: data.sectionTitles.location?.trim() || t("location"),
-    phone: data.sectionTitles.phone?.trim() || t("phone"),
-    email: data.sectionTitles.email?.trim() || t("email"),
-    portfolio: data.sectionTitles.portfolio?.trim() || t("portfolio"),
+    summary: data.sectionTitles.summary?.trim() || documentLabels.summary,
+    experience: data.sectionTitles.experience?.trim() || documentLabels.experience,
+    skills: data.sectionTitles.skills?.trim() || documentLabels.skills,
+    contact: data.sectionTitles.contact?.trim() || documentLabels.contact,
+    languages: data.sectionTitles.languages?.trim() || documentLabels.languages,
+    education: data.sectionTitles.education?.trim() || documentLabels.education,
+    certifications: data.sectionTitles.certifications?.trim() || documentLabels.certifications,
+    location: data.sectionTitles.location?.trim() || documentLabels.location,
+    phone: data.sectionTitles.phone?.trim() || documentLabels.phone,
+    email: data.sectionTitles.email?.trim() || documentLabels.email,
+    portfolio: data.sectionTitles.portfolio?.trim() || documentLabels.portfolio,
   };
 
   useEffect(() => {
@@ -309,9 +274,16 @@ export default function Home() {
     const storedCvId = searchParams.get("cv");
     const professionalPresetId = searchParams.get("preset");
     const forceNew = searchParams.get("new") === "1";
+    const requestedDocumentLocale = searchParams.get("documentLocale");
     void (async () => {
       let loaded = false;
-      if (isProfessionalPresetId(professionalPresetId)) {
+      if (forceNew && (requestedDocumentLocale === "es" || requestedDocumentLocale === "en")) {
+        reset(getInitialCv(requestedDocumentLocale));
+        setActiveCvId(null);
+        setCvTitle("");
+        window.history.replaceState(null, "", `/${locale}#generator`);
+        loaded = true;
+      } else if (isProfessionalPresetId(professionalPresetId)) {
         reset(getProfessionalPreset(locale, professionalPresetId));
         setActiveCvId(null);
         setCvTitle("");
@@ -323,7 +295,7 @@ export default function Home() {
       } else if (storedCvId) {
         const storedCv = await getStoredCv(storedCvId);
         if (storedCv) {
-          reset(mergeCvData(initialCv, storedCv.data));
+          reset(normalizeCvData(storedCv.data, storedCv.locale));
           setActiveCvId(storedCv.id);
           setCvTitle(storedCv.title);
           loaded = true;
@@ -332,7 +304,7 @@ export default function Home() {
       if (!loaded && enabled && !forceNew) {
         try {
           const saved = window.localStorage.getItem(STORAGE_KEY);
-          if (saved) reset(mergeCvData(initialCv, JSON.parse(saved) as Partial<CvData>));
+          if (saved) reset(normalizeCvData(JSON.parse(saved), locale as "es" | "en"));
         } catch {
           window.localStorage.removeItem(STORAGE_KEY);
         }
@@ -365,14 +337,14 @@ export default function Home() {
         if (!existing) return;
         await putStoredCv({
           ...existing,
-          locale: locale as "es" | "en",
+          locale: data.documentLocale,
           updatedAt: new Date().toISOString(),
           data: structuredClone(data),
         });
       })().catch(() => undefined);
     }, 700);
     return () => window.clearTimeout(timeout);
-  }, [activeCvId, autoSave, data, locale, storageReady]);
+  }, [activeCvId, autoSave, data, storageReady]);
 
   const changeAutoSave = (enabled: boolean) => {
     setAutoSave(enabled);
@@ -400,11 +372,11 @@ export default function Home() {
       setSavingCv(true);
       const snapshot = structuredClone(data);
       const existing = activeCvId ? await getStoredCv(activeCvId) : undefined;
-      const fallbackTitle = `${data.name.trim() || t("untitledCv")} · ${locale.toUpperCase()}`;
+      const fallbackTitle = `${data.name.trim() || t("untitledCv")} · ${data.documentLocale.toUpperCase()}`;
       const resolvedTitle = cvTitle.trim() || fallbackTitle;
       const cv = existing
-        ? { ...existing, title: resolvedTitle, locale: locale as "es" | "en", updatedAt: new Date().toISOString(), data: snapshot }
-        : createStoredCv(snapshot, locale as "es" | "en", resolvedTitle);
+        ? { ...existing, title: resolvedTitle, locale: data.documentLocale, updatedAt: new Date().toISOString(), data: snapshot }
+        : createStoredCv(snapshot, data.documentLocale, resolvedTitle);
       await putStoredCv(cv);
       setActiveCvId(cv.id);
       setCvTitle(cv.title);
@@ -422,7 +394,7 @@ export default function Home() {
 
   const openSaveDialog = () => {
     if (!activeCvId && !cvTitle) {
-      setCvTitle(`${data.name.trim() || t("untitledCv")} · ${locale.toUpperCase()}`);
+      setCvTitle(`${data.name.trim() || t("untitledCv")} · ${data.documentLocale.toUpperCase()}`);
     }
     setSaveDialogOpen(true);
   };
@@ -431,11 +403,11 @@ export default function Home() {
     if (mainSectionIds.includes(section as MainSectionId)) {
       const mainSection = section as MainSectionId;
       return data.sectionTitles[mainSection]?.trim() || ({
-        summary: t("cvSummary"),
-        experience: t("cvExperience"),
-        education: t("cvEducation"),
-        certifications: t("cvCertifications"),
-        skills: t("cvSkills"),
+        summary: documentLabels.summary,
+        experience: documentLabels.experience,
+        education: documentLabels.education,
+        certifications: documentLabels.certifications,
+        skills: documentLabels.skills,
       })[mainSection];
     }
     return data.customSections.find((item) => item.id === section)?.title.trim() || t("untitledSection");
@@ -457,16 +429,17 @@ export default function Home() {
     previewData.sectionOrder,
     previewData.customSections,
   );
+  const previewDocumentLabels = defaultDocumentLabels[previewData.documentLocale];
 
   const previewSectionLabel = (section: string) => {
     if (mainSectionIds.includes(section as MainSectionId)) {
       const mainSection = section as MainSectionId;
       return previewData.sectionTitles[mainSection]?.trim() || ({
-        summary: t("cvSummary"),
-        experience: t("cvExperience"),
-        education: t("cvEducation"),
-        certifications: t("cvCertifications"),
-        skills: t("cvSkills"),
+        summary: previewDocumentLabels.summary,
+        experience: previewDocumentLabels.experience,
+        education: previewDocumentLabels.education,
+        certifications: previewDocumentLabels.certifications,
+        skills: previewDocumentLabels.skills,
       })[mainSection];
     }
     return previewData.customSections.find((item) => item.id === section)?.title.trim() || t("untitledSection");
@@ -804,6 +777,16 @@ export default function Home() {
               </AccordionSummary>
               <AccordionDetails>
                 <Stack spacing={2}>
+                  <Controller
+                    control={control}
+                    name="documentLocale"
+                    render={({ field }) => (
+                      <TextField select label={t("documentLanguage")} helperText={t("documentLanguageHelp")} {...field}>
+                        <MenuItem value="es">{t("documentLanguageSpanish")}</MenuItem>
+                        <MenuItem value="en">{t("documentLanguageEnglish")}</MenuItem>
+                      </TextField>
+                    )}
+                  />
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                     <TextField
                       label={t("name")}
@@ -874,7 +857,7 @@ export default function Home() {
                     <TextField
                       key={section}
                       label={sectionLabel(section)}
-                      placeholder={({ summary: t("cvSummary"), experience: t("cvExperience"), education: t("cvEducation"), certifications: t("cvCertifications"), skills: t("cvSkills") })[section]}
+                      placeholder={documentLabels[section]}
                       inputProps={{ maxLength: 50 }}
                       helperText={<Counter value={data.sectionTitles[section]} max={50} />}
                       {...register(`sectionTitles.${section}`)}
@@ -885,14 +868,7 @@ export default function Home() {
                 <Typography fontWeight={700} mt={2} mb={1}>{t("editSidebarLabels")}</Typography>
                 <Box className="form-grid">
                   {sidebarLabelIds.map((label) => {
-                    const fallback = ({
-                      contact: t("cvContact"),
-                      languages: t("cvLanguages"),
-                      location: t("location"),
-                      phone: t("phone"),
-                      email: t("email"),
-                      portfolio: t("portfolio"),
-                    } satisfies Record<SidebarLabelId, string>)[label];
+                    const fallback = documentLabels[label];
                     return (
                       <TextField
                         key={label}
@@ -1460,16 +1436,16 @@ export default function Home() {
                   {previewData.photo && <img className={`cv-photo photo-${previewData.photoShape}`} src={previewData.photo} alt="" />}
                   {hasContact && (
                     <section>
-                      <h3>{previewData.sectionTitles.contact?.trim() || t("cvContact")}</h3>
-                      {previewData.location && <p><b>{previewData.sectionTitles.location?.trim() || t("location")}:</b><br />{previewData.location}</p>}
-                      {previewData.phone && <p><b>{previewData.sectionTitles.phone?.trim() || t("phone")}:</b><br />{previewData.phone}</p>}
-                      {previewData.email && <p><b>{previewData.sectionTitles.email?.trim() || t("email")}:</b><br />{previewData.email}</p>}
-                      {previewData.portfolio && <p><b>{previewData.sectionTitles.portfolio?.trim() || t("portfolio")}:</b><br />{previewData.portfolio}</p>}
+                      <h3>{previewData.sectionTitles.contact?.trim() || previewDocumentLabels.contact}</h3>
+                      {previewData.location && <p><b>{previewData.sectionTitles.location?.trim() || previewDocumentLabels.location}:</b><br />{previewData.location}</p>}
+                      {previewData.phone && <p><b>{previewData.sectionTitles.phone?.trim() || previewDocumentLabels.phone}:</b><br />{previewData.phone}</p>}
+                      {previewData.email && <p><b>{previewData.sectionTitles.email?.trim() || previewDocumentLabels.email}:</b><br />{previewData.email}</p>}
+                      {previewData.portfolio && <p><b>{previewData.sectionTitles.portfolio?.trim() || previewDocumentLabels.portfolio}:</b><br />{previewData.portfolio}</p>}
                     </section>
                   )}
                   {previewData.languages.some((language) => language.name) && (
                     <section>
-                      <h3>{previewData.sectionTitles.languages?.trim() || t("cvLanguages")}</h3>
+                      <h3>{previewData.sectionTitles.languages?.trim() || previewDocumentLabels.languages}</h3>
                       {previewData.languages.filter((language) => language.name).map((language, index) => (
                         <p className="compact" key={`${language.name}-${index}`}><b>{language.name}:</b> {language.level}</p>
                       ))}
@@ -1621,7 +1597,7 @@ export default function Home() {
             <Typography className="section-eyebrow">FAQ</Typography>
             <Typography variant="h3" component="h2">{t("faqTitle")}</Typography>
           </Box>
-          {[1, 2, 3, 4, 5].map((item) => (
+          {[1, 2, 3, 4, 5, 6].map((item) => (
             <Accordion key={item} disableGutters elevation={0} className="faq-item">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t(`faq${item}Question`)}</Typography>

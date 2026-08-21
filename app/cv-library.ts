@@ -1,4 +1,5 @@
 import type { CvData } from "./types";
+import { normalizeCvData } from "./cv-data";
 
 const DATABASE_NAME = "cv-simple";
 const STORE_NAME = "cvs";
@@ -41,11 +42,20 @@ async function runRequest<T>(mode: IDBTransactionMode, operation: (store: IDBObj
 
 export async function listStoredCvs(): Promise<StoredCv[]> {
   const items = await runRequest<StoredCv[]>("readonly", (store) => store.getAll());
-  return items.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  return items.map((item) => {
+    const locale = item.locale === "en" ? "en" : "es";
+    const data = normalizeCvData(item.data, locale);
+    return { ...item, locale: data.documentLocale, data };
+  }).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
 export function getStoredCv(id: string): Promise<StoredCv | undefined> {
-  return runRequest<StoredCv | undefined>("readonly", (store) => store.get(id));
+  return runRequest<StoredCv | undefined>("readonly", (store) => store.get(id)).then((item) => {
+    if (!item) return undefined;
+    const locale = item.locale === "en" ? "en" : "es";
+    const data = normalizeCvData(item.data, locale);
+    return { ...item, locale: data.documentLocale, data };
+  });
 }
 
 export function putStoredCv(cv: StoredCv): Promise<IDBValidKey> {

@@ -378,6 +378,9 @@ body {
 
 .cv-library-card { overflow: hidden; }
 
+.library-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #dce3e9; border-radius: 14px; background: #fff; }
+.library-toolbar .MuiTextField-root { min-width: 180px; }
+
 .cv-library-preview {
   position: relative;
   display: grid;
@@ -729,6 +732,8 @@ body {
   .privacy-icon { width: 58px; height: 58px; }
   .footer-layout { grid-template-columns: 1fr; align-items: start; }
   .footer-links { justify-content: flex-start; }
+  .library-toolbar { align-items: stretch; flex-direction: column; }
+  .library-toolbar .MuiTextField-root, .library-toolbar .MuiButton-root { width: 100%; }
   .form-grid { grid-template-columns: 1fr; }
   .palette-list { grid-template-columns: repeat(2, 1fr); }
   .template-list { grid-template-columns: 1fr; }

@@ -70,6 +70,7 @@ export function normalizeContentOrder(
 }
 
 export type CvData = {
+  documentLocale: "es" | "en";
   template: "classic" | "modern" | "minimal" | "right" | "compact" | "contrast" | "editorial";
   fontFamily: "sans" | "serif" | "humanist";
   photoShape: "square" | "round";
@@ -94,7 +95,8 @@ export type CvData = {
   customSections: CustomSection[];
 };
 
-const baseCv: Pick<CvData, "template" | "fontFamily" | "photoShape" | "primaryColor" | "accentColor" | "sectionOrder" | "contentOrder" | "sectionTitles" | "customSections"> = {
+const baseCv: Pick<CvData, "documentLocale" | "template" | "fontFamily" | "photoShape" | "primaryColor" | "accentColor" | "sectionOrder" | "contentOrder" | "sectionTitles" | "customSections"> = {
+  documentLocale: "es",
   template: "classic",
   fontFamily: "sans",
   photoShape: "square",
@@ -110,6 +112,7 @@ export function getInitialCv(locale: string): CvData {
   if (locale === "en") {
     return {
       ...baseCv,
+      documentLocale: "en",
       name: "First Last",
       headline: "Professional title",
       phone: "+00 000 000 000",
