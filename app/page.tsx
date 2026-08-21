@@ -73,7 +73,16 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { useLocale, useTranslations } from "next-intl";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { exportDocx, exportPdf, type ExportLabels } from "./exporters";
-import { type CvData, getInitialCv, mainSectionIds, normalizeContentOrder, normalizeSectionOrder, type MainSectionId } from "./types";
+import {
+  type CvData,
+  getInitialCv,
+  mainSectionIds,
+  normalizeContentOrder,
+  normalizeSectionOrder,
+  sidebarLabelIds,
+  type MainSectionId,
+  type SidebarLabelId,
+} from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
 import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
@@ -282,14 +291,14 @@ export default function Home() {
     summary: data.sectionTitles.summary?.trim() || t("cvSummary"),
     experience: data.sectionTitles.experience?.trim() || t("cvExperience"),
     skills: data.sectionTitles.skills?.trim() || t("cvSkills"),
-    contact: t("cvContact"),
-    languages: t("cvLanguages"),
+    contact: data.sectionTitles.contact?.trim() || t("cvContact"),
+    languages: data.sectionTitles.languages?.trim() || t("cvLanguages"),
     education: data.sectionTitles.education?.trim() || t("cvEducation"),
     certifications: data.sectionTitles.certifications?.trim() || t("cvCertifications"),
-    location: t("location"),
-    phone: t("phone"),
-    email: t("email"),
-    portfolio: t("portfolio"),
+    location: data.sectionTitles.location?.trim() || t("location"),
+    phone: data.sectionTitles.phone?.trim() || t("phone"),
+    email: data.sectionTitles.email?.trim() || t("email"),
+    portfolio: data.sectionTitles.portfolio?.trim() || t("portfolio"),
   };
 
   useEffect(() => {
@@ -873,6 +882,30 @@ export default function Home() {
                   ))}
                 </Box>
 
+                <Typography fontWeight={700} mt={2} mb={1}>{t("editSidebarLabels")}</Typography>
+                <Box className="form-grid">
+                  {sidebarLabelIds.map((label) => {
+                    const fallback = ({
+                      contact: t("cvContact"),
+                      languages: t("cvLanguages"),
+                      location: t("location"),
+                      phone: t("phone"),
+                      email: t("email"),
+                      portfolio: t("portfolio"),
+                    } satisfies Record<SidebarLabelId, string>)[label];
+                    return (
+                      <TextField
+                        key={label}
+                        label={fallback}
+                        placeholder={fallback}
+                        inputProps={{ maxLength: 50 }}
+                        helperText={<Counter value={data.sectionTitles[label]} max={50} />}
+                        {...register(`sectionTitles.${label}`)}
+                      />
+                    );
+                  })}
+                </Box>
+
                 <Divider sx={{ my: 2 }} />
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
                   <Box>
@@ -1427,16 +1460,16 @@ export default function Home() {
                   {previewData.photo && <img className={`cv-photo photo-${previewData.photoShape}`} src={previewData.photo} alt="" />}
                   {hasContact && (
                     <section>
-                      <h3>{t("cvContact")}</h3>
-                      {previewData.location && <p><b>{t("location")}:</b><br />{previewData.location}</p>}
-                      {previewData.phone && <p><b>{t("phone")}:</b><br />{previewData.phone}</p>}
-                      {previewData.email && <p><b>{t("email")}:</b><br />{previewData.email}</p>}
-                      {previewData.portfolio && <p><b>{t("portfolio")}:</b><br />{previewData.portfolio}</p>}
+                      <h3>{previewData.sectionTitles.contact?.trim() || t("cvContact")}</h3>
+                      {previewData.location && <p><b>{previewData.sectionTitles.location?.trim() || t("location")}:</b><br />{previewData.location}</p>}
+                      {previewData.phone && <p><b>{previewData.sectionTitles.phone?.trim() || t("phone")}:</b><br />{previewData.phone}</p>}
+                      {previewData.email && <p><b>{previewData.sectionTitles.email?.trim() || t("email")}:</b><br />{previewData.email}</p>}
+                      {previewData.portfolio && <p><b>{previewData.sectionTitles.portfolio?.trim() || t("portfolio")}:</b><br />{previewData.portfolio}</p>}
                     </section>
                   )}
                   {previewData.languages.some((language) => language.name) && (
                     <section>
-                      <h3>{t("cvLanguages")}</h3>
+                      <h3>{previewData.sectionTitles.languages?.trim() || t("cvLanguages")}</h3>
                       {previewData.languages.filter((language) => language.name).map((language, index) => (
                         <p className="compact" key={`${language.name}-${index}`}><b>{language.name}:</b> {language.level}</p>
                       ))}

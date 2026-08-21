@@ -146,6 +146,7 @@
     "sectionCustomization": "Titles and custom sections",
     "sectionCustomizationHelp": "Customize existing titles or add up to 3 sections of your own. Leave a title blank to keep its default value.",
     "editSectionTitles": "Section titles",
+    "editSidebarLabels": "Sidebar titles and labels",
     "customSections": "Custom sections",
     "customSectionsLimit": "{count}/3 sections created",
     "addCustomSection": "Add section",

@@ -33,6 +33,10 @@ export type Certification = {
 export const mainSectionIds = ["summary", "experience", "education", "certifications", "skills"] as const;
 export type MainSectionId = (typeof mainSectionIds)[number];
 
+export const sidebarLabelIds = ["contact", "languages", "location", "phone", "email", "portfolio"] as const;
+export type SidebarLabelId = (typeof sidebarLabelIds)[number];
+export type CvLabelId = MainSectionId | SidebarLabelId;
+
 export type CustomSectionItem = { id: string; text: string };
 export type CustomSection = {
   id: string;
@@ -86,7 +90,7 @@ export type CvData = {
   certifications: Certification[];
   sectionOrder: MainSectionId[];
   contentOrder: string[];
-  sectionTitles: Partial<Record<MainSectionId, string>>;
+  sectionTitles: Partial<Record<CvLabelId, string>>;
   customSections: CustomSection[];
 };
 
