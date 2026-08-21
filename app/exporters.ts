@@ -469,7 +469,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   download(blob, `${slugName(data.name)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
 
-export async function exportPdf(data: CvData, labels: ExportLabels) {
+export async function exportPdf(data: CvData, labels: ExportLabels, filename?: string) {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]);
@@ -688,5 +688,5 @@ export async function exportPdf(data: CvData, labels: ExportLabels) {
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
   ) as ArrayBuffer;
-  download(pdfBuffer, `${slugName(data.name)}.pdf`, "application/pdf");
+  download(pdfBuffer, `${slugName(filename?.trim() || data.name)}.pdf`, "application/pdf");
 }
