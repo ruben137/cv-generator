@@ -9,6 +9,7 @@ import {
   DownloadRounded,
   EditRounded,
   LanguageRounded,
+  PictureAsPdfRounded,
   SaveAltRounded,
   UploadFileRounded,
 } from "@mui/icons-material";
@@ -40,6 +41,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { createStoredCv, deleteStoredCv, listStoredCvs, putStoredCv, type StoredCv } from "../cv-library";
 import { BrandLogo } from "../brand-logo";
 import { parseBackupFile, parseCvFile, serializeBackup, serializeCv } from "../cv-portability";
+import { defaultDocumentLabels } from "../cv-data";
+import { exportPdf, type ExportLabels } from "../exporters";
 
 const theme = createTheme({
   palette: {
@@ -57,6 +60,7 @@ export default function MyCvsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [exportingCvId, setExportingCvId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [languageFilter, setLanguageFilter] = useState<"all" | "es" | "en">("all");
 
@@ -107,6 +111,33 @@ export default function MyCvsPage() {
   const safeFilename = (title: string) => title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "cv";
 
   const exportCvJson = (cv: StoredCv) => downloadJson(serializeCv(cv), `${safeFilename(cv.title)}.cv-simple.json`);
+
+  const downloadCvPdf = async (cv: StoredCv) => {
+    try {
+      setExportingCvId(cv.id);
+      setError("");
+      setNotice("");
+      const defaults = defaultDocumentLabels[cv.data.documentLocale];
+      const labels: ExportLabels = {
+        summary: cv.data.sectionTitles.summary?.trim() || defaults.summary,
+        experience: cv.data.sectionTitles.experience?.trim() || defaults.experience,
+        skills: cv.data.sectionTitles.skills?.trim() || defaults.skills,
+        contact: cv.data.sectionTitles.contact?.trim() || defaults.contact,
+        languages: cv.data.sectionTitles.languages?.trim() || defaults.languages,
+        education: cv.data.sectionTitles.education?.trim() || defaults.education,
+        certifications: cv.data.sectionTitles.certifications?.trim() || defaults.certifications,
+        location: cv.data.sectionTitles.location?.trim() || defaults.location,
+        phone: cv.data.sectionTitles.phone?.trim() || defaults.phone,
+        email: cv.data.sectionTitles.email?.trim() || defaults.email,
+        portfolio: cv.data.sectionTitles.portfolio?.trim() || defaults.portfolio,
+      };
+      await exportPdf(cv.data, labels, cv.title);
+    } catch {
+      setError(t("pdfDownloadError"));
+    } finally {
+      setExportingCvId(null);
+    }
+  };
 
   const exportBackup = () => {
     downloadJson(serializeBackup(items), `cv-simple-backup-${new Date().toISOString().slice(0, 10)}.json`);
@@ -210,11 +241,31 @@ export default function MyCvsPage() {
                     {t("updatedAt", { date: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(cv.updatedAt)) })}
                   </Typography>
                 </CardContent>
-                <CardActions sx={{ px: 2, pb: 2 }}>
-                  <Button variant="contained" startIcon={<EditRounded />} onClick={() => openCv(cv)}>{t("openCv")}</Button>
-                  <Tooltip title={t("exportCvJson")}><IconButton onClick={() => exportCvJson(cv)}><DownloadRounded /></IconButton></Tooltip>
-                  <Tooltip title={t("duplicateCv")}><IconButton onClick={() => duplicateCv(cv)}><ContentCopyRounded /></IconButton></Tooltip>
-                  <Tooltip title={t("deleteCv")}><IconButton color="error" onClick={() => removeCv(cv)}><DeleteOutlineRounded /></IconButton></Tooltip>
+                <CardActions sx={{ px: 2, pb: 1.5, pt: 1, display: "block" }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={exportingCvId === cv.id ? <CircularProgress size={16} color="inherit" /> : <PictureAsPdfRounded />}
+                    disabled={exportingCvId !== null}
+                    onClick={() => { void downloadCvPdf(cv); }}
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    {exportingCvId === cv.id ? t("generating") : t("downloadPdf")}
+                  </Button>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    spacing={0.5}
+                    sx={{ mt: 1.25, pt: 1, borderTop: "1px solid", borderColor: "divider" }}
+                  >
+                    <Button size="small" startIcon={<EditRounded />} onClick={() => openCv(cv)}>{t("openCv")}</Button>
+                    <Stack direction="row" spacing={0.25}>
+                      <Tooltip title={t("exportCvJson")}><IconButton size="small" aria-label={t("exportCvJson")} onClick={() => exportCvJson(cv)}><DownloadRounded /></IconButton></Tooltip>
+                      <Tooltip title={t("duplicateCv")}><IconButton size="small" aria-label={t("duplicateCv")} onClick={() => duplicateCv(cv)}><ContentCopyRounded /></IconButton></Tooltip>
+                      <Tooltip title={t("deleteCv")}><IconButton size="small" aria-label={t("deleteCv")} color="error" onClick={() => removeCv(cv)}><DeleteOutlineRounded /></IconButton></Tooltip>
+                    </Stack>
+                  </Stack>
                 </CardActions>
               </Card>
             ))}

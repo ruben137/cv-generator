@@ -58,6 +58,7 @@
     "noSavedCvsHelp": "Resumes you save will appear here and remain only in this browser.",
     "createFirstCv": "Create my first resume",
     "openCv": "Open",
+    "pdfDownloadError": "The PDF could not be generated. Open the resume in the editor and try again.",
     "duplicateCv": "Duplicate resume",
     "deleteCv": "Delete resume",
     "confirmDeleteCv": "Delete “{title}” from this browser?",
