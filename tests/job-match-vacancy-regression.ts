@@ -1,0 +1,125 @@
+import assert from "node:assert/strict";
+import { analyzeJobMatch } from "../app/job-match/engine";
+import { validateConceptDictionary } from "../app/job-match/concepts/registry";
+import type { JobDescriptionInput, JobFamily, ResumeMatchInput } from "../app/job-match/model";
+
+type Case = {
+  area: JobFamily;
+  source: string;
+  job: JobDescriptionInput;
+  strong: ResumeMatchInput;
+  partial: ResumeMatchInput;
+  unrelated: ResumeMatchInput;
+};
+
+const resume = (title: string, skills: string[], experience: string[]): ResumeMatchInput => ({
+  title,
+  summary: `Professional with experience in ${skills.join(", ")}.`,
+  skills,
+  experience,
+  education: [],
+  certifications: [],
+  languages: ["English"],
+});
+
+const unrelated = resume(
+  "Hospitality Assistant",
+  ["food preparation", "cash handling"],
+  ["Served customers and prepared daily orders."],
+);
+
+// Requirements are concise paraphrases of public vacancies, captured on 2026-08-21.
+// The test stays deterministic and does not download or reproduce the postings.
+const cases: Case[] = [
+  {
+    area: "software-development",
+    source: "https://jobs.lever.co/intropic/6d0617f1-f846-438c-ab87-e958f6925a6f",
+    job: { title: "Full-stack Engineer", language: "en", jobFamily: "software-development", text: "Requirements: Python backend services. React and TypeScript frontend applications. AWS deployments. Git, CI/CD, automated testing and Docker. Strong communication." },
+    strong: resume("Full-stack Engineer", ["Python", "React", "TypeScript", "AWS", "Git", "CI/CD", "software testing", "Docker", "communication"], ["Built Python APIs and React TypeScript products; deployed them to AWS with Docker and CI/CD, improving release time by 40%."]),
+    partial: resume("Frontend Developer", ["React", "TypeScript", "Git"], ["Built React interfaces and reviewed code with Git."]),
+    unrelated,
+  },
+  {
+    area: "industrial-engineering",
+    source: "https://jobs.lever.co/brightmachines/47620a6b-a8d4-4e4d-bc87-8f3b276771fb",
+    job: { title: "Continuous Improvement Engineer", language: "en", jobFamily: "industrial-engineering", text: "Requirements: Lean manufacturing, continuous improvement, Kaizen, 5S, value stream mapping, root cause analysis, manufacturing KPIs and Six Sigma. Communication and cross-functional leadership." },
+    strong: resume("Continuous Improvement Engineer", ["Lean Manufacturing", "continuous improvement", "Kaizen", "5S", "value stream mapping", "root cause analysis", "KPI", "Six Sigma", "communication", "leadership"], ["Led cross-functional Lean Six Sigma, 5S and Kaizen improvements; communicated manufacturing KPIs and used value stream mapping and root cause analysis to reduce production waste by 18%."]),
+    partial: resume("Industrial Engineer", ["continuous improvement", "KPI", "quality management"], ["Analyzed production processes and quality indicators."]),
+    unrelated,
+  },
+  {
+    area: "marketing",
+    source: "https://jobs.lever.co/webfx/716efddf-dbb2-4c7c-a343-9cb023f59a13",
+    job: { title: "Digital Marketing Specialist", language: "en", jobFamily: "marketing", text: "Requirements: digital marketing, SEO strategy, PPC campaigns, content strategy, email marketing, Google Analytics, campaign reporting and keyword research. Excel and communication." },
+    strong: resume("Digital Marketing Specialist", ["digital marketing", "SEO", "campaign management", "content marketing", "email marketing", "Google Analytics", "Excel", "communication"], ["Managed SEO, paid and email campaigns in Google Analytics, increasing conversions by 25%."]),
+    partial: resume("Content Marketer", ["content marketing", "SEO", "social media"], ["Created SEO content and social campaigns."]),
+    unrelated,
+  },
+  {
+    area: "accounting",
+    source: "https://boards.greenhouse.io/embed/job_app?token=4928312008",
+    job: { title: "Staff Accountant", language: "en", jobFamily: "accounting", text: "Requirements: accounting, journal and ledger entries, financial reporting, GAAP, bank and balance sheet reconciliations, payroll analysis, Excel, attention to detail and problem solving." },
+    strong: resume("Staff Accountant", ["accounting", "bookkeeping", "GAAP", "financial reporting", "bank reconciliation", "account reconciliation", "payroll accounting", "Excel", "attention to detail", "problem solving"], ["Prepared journal entries and financial reports under GAAP; reconciled bank and balance sheet accounts and analyzed payroll, reducing discrepancies by 30%."]),
+    partial: resume("Accounting Assistant", ["accounting", "bookkeeping", "Excel"], ["Recorded monthly accounting entries in Excel."]),
+    unrelated,
+  },
+  {
+    area: "sales",
+    source: "https://jobs.lever.co/bigblue/c07d8efa-19b9-4a79-b191-3076fcdea654",
+    job: { title: "Senior Account Executive", language: "en", jobFamily: "sales", text: "Requirements: B2B sales, account management, prospecting, full sales cycle, consultative selling, negotiation and closing, sales quotas, CRM pipeline, forecasting, communication and presentation." },
+    strong: resume("Senior Account Executive", ["sales management", "account management", "customer prospecting", "negotiation", "sales quota", "CRM", "communication"], ["Owned full sales cycles, managed CRM pipeline and exceeded annual quota by 22%."]),
+    partial: resume("Sales Representative", ["customer prospecting", "CRM", "communication"], ["Prospected customers and maintained CRM records."]),
+    unrelated,
+  },
+  {
+    area: "customer-service",
+    source: "https://jobs.lever.co/fullscript/da2f1ff4-5110-4975-9aa7-e2a5f0892bd8",
+    job: { title: "Customer Support Specialist", language: "en", jobFamily: "customer-service", text: "Requirements: customer support, issue resolution, ticket management, Zendesk, active listening, communication, teamwork and adaptability." },
+    strong: resume("Customer Support Specialist", ["customer support", "issue resolution", "ticketing systems", "active listening", "communication", "teamwork", "adaptability"], ["Resolved support tickets in Zendesk and maintained 94% customer satisfaction."]),
+    partial: resume("Customer Service Agent", ["customer service", "communication", "active listening"], ["Answered customer questions and escalated complex cases."]),
+    unrelated,
+  },
+  {
+    area: "administration",
+    source: "https://jobs.lever.co/t5datacenters/3aced2af-2153-4430-8fb7-857382d24b02",
+    job: { title: "Administrative Assistant", language: "en", jobFamily: "administration", text: "Requirements: administrative support, calendar management, scheduling, meeting coordination, document management, expense reports, Microsoft Office, Excel, organization, communication and time management." },
+    strong: resume("Administrative Assistant", ["administrative support", "calendar management", "document management", "Microsoft Office", "Excel", "organization", "communication", "time management"], ["Managed executive calendars, meetings, documents and expense reports for two departments."]),
+    partial: resume("Office Assistant", ["Microsoft Office", "document management", "organization"], ["Organized documents and updated Excel records."]),
+    unrelated,
+  },
+  {
+    area: "graphic-design",
+    source: "https://jobs.lever.co/terrahq/cdaa5f52-8ff7-43c6-b0a2-2e651de90a8c",
+    job: { title: "Senior Graphic Designer", language: "en", jobFamily: "graphic-design", text: "Requirements: graphic design portfolio, branding, Adobe Photoshop, Illustrator and InDesign, Figma, typography, color, layout and composition. Organization, attention to detail and communication." },
+    strong: resume("Senior Graphic Designer", ["graphic design", "branding", "Adobe Photoshop", "Adobe Illustrator", "Figma", "typography", "layout design", "organization", "attention to detail", "communication"], ["Designed brand systems and digital campaigns in Photoshop, Illustrator and Figma, improving delivery time by 20%."]),
+    partial: resume("Graphic Designer", ["graphic design", "Adobe Photoshop", "typography"], ["Created social media graphics in Photoshop."]),
+    unrelated,
+  },
+];
+
+const rows = cases.map((testCase) => {
+  const strong = analyzeJobMatch(testCase.job, testCase.strong, { now: () => new Date(0) });
+  const partial = analyzeJobMatch(testCase.job, testCase.partial, { now: () => new Date(0) });
+  const low = analyzeJobMatch(testCase.job, testCase.unrelated, { now: () => new Date(0) });
+  assert.ok(strong.score.percentage > partial.score.percentage, `${testCase.area}: strong must score above partial`);
+  assert.ok(partial.score.percentage > low.score.percentage, `${testCase.area}: partial must score above unrelated`);
+  assert.ok(strong.score.percentage >= 70, `${testCase.area}: representative strong resume should score at least 70`);
+  assert.ok(low.score.percentage <= 10, `${testCase.area}: unrelated resume should not exceed 10`);
+  assert.ok(strong.unclassifiedTerms.length <= 1, `${testCase.area}: public vacancy leaves too many terms for manual review`);
+  return {
+    area: testCase.area,
+    strong: strong.score.percentage,
+    partial: partial.score.percentage,
+    unrelated: low.score.percentage,
+    recognized: new Set([
+      ...strong.matches.map((item) => item.jobTerm.conceptId),
+      ...strong.missingRequirements.map((item) => item.term.conceptId),
+    ].filter(Boolean)).size,
+    manualReview: strong.unclassifiedTerms.length,
+    manualTerms: strong.unclassifiedTerms.map((item) => item.term.original).join(" | "),
+    source: testCase.source,
+  };
+});
+
+assert.deepEqual(validateConceptDictionary(), []);
+console.table(rows);
