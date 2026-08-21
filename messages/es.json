@@ -146,6 +146,7 @@
     "sectionCustomization": "Títulos y secciones personalizadas",
     "sectionCustomizationHelp": "Personaliza los títulos existentes o añade hasta 3 secciones propias. Déjalo vacío para conservar el título predeterminado.",
     "editSectionTitles": "Títulos de las secciones",
+    "editSidebarLabels": "Títulos y etiquetas de la columna lateral",
     "customSections": "Secciones personalizadas",
     "customSectionsLimit": "{count}/3 secciones creadas",
     "addCustomSection": "Añadir sección",
