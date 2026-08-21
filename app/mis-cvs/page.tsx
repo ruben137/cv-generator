@@ -6,8 +6,11 @@ import {
   ContentCopyRounded,
   DeleteOutlineRounded,
   DescriptionRounded,
+  DownloadRounded,
   EditRounded,
   LanguageRounded,
+  SaveAltRounded,
+  UploadFileRounded,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -23,17 +26,20 @@ import {
   Container,
   CssBaseline,
   IconButton,
+  MenuItem,
   Stack,
+  TextField,
   ThemeProvider,
   Toolbar,
   Tooltip,
   Typography,
   createTheme,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { createStoredCv, deleteStoredCv, listStoredCvs, putStoredCv, type StoredCv } from "../cv-library";
 import { BrandLogo } from "../brand-logo";
+import { parseBackupFile, parseCvFile, serializeBackup, serializeCv } from "../cv-portability";
 
 const theme = createTheme({
   palette: {
@@ -50,6 +56,9 @@ export default function MyCvsPage() {
   const [items, setItems] = useState<StoredCv[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [search, setSearch] = useState("");
+  const [languageFilter, setLanguageFilter] = useState<"all" | "es" | "en">("all");
 
   const refresh = useCallback(async () => {
     try {
@@ -67,13 +76,11 @@ export default function MyCvsPage() {
   }, [refresh]);
 
   const openCv = (cv: StoredCv) => {
-    Reflect.set(document, "cookie", `locale=${cv.locale};path=/;max-age=31536000;samesite=lax`);
-    window.location.assign(`/?cv=${encodeURIComponent(cv.id)}#generator`);
+    window.location.assign(`/${locale}?cv=${encodeURIComponent(cv.id)}#generator`);
   };
 
   const createNew = (nextLocale: "es" | "en") => {
-    Reflect.set(document, "cookie", `locale=${nextLocale};path=/;max-age=31536000;samesite=lax`);
-    window.location.assign("/?new=1");
+    window.location.assign(`/${locale}?new=1&documentLocale=${nextLocale}#generator`);
   };
 
   const duplicateCv = async (cv: StoredCv) => {
@@ -87,6 +94,48 @@ export default function MyCvsPage() {
     await deleteStoredCv(cv.id);
     await refresh();
   };
+
+  const downloadJson = (contents: string, filename: string) => {
+    const url = URL.createObjectURL(new Blob([contents], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const safeFilename = (title: string) => title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "cv";
+
+  const exportCvJson = (cv: StoredCv) => downloadJson(serializeCv(cv), `${safeFilename(cv.title)}.cv-simple.json`);
+
+  const exportBackup = () => {
+    downloadJson(serializeBackup(items), `cv-simple-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    setNotice(t("backupExported"));
+  };
+
+  const importFile = async (file: File | undefined, backup: boolean) => {
+    if (!file) return;
+    try {
+      const source = await file.text();
+      const imported = backup
+        ? parseBackupFile(source, locale as "es" | "en")
+        : [parseCvFile(source, locale as "es" | "en")];
+      await Promise.all(imported.map((cv) => putStoredCv(cv)));
+      await refresh();
+      setError("");
+      setNotice(t(backup ? "backupImported" : "cvImported", { count: imported.length }));
+    } catch (reason) {
+      const code = reason instanceof Error ? reason.message : "invalid_resume";
+      setNotice("");
+      setError(t(code === "unsupported_version" ? "importUnsupportedVersion" : code === "file_too_large" ? "importTooLarge" : "importInvalid"));
+    }
+  };
+
+  const visibleItems = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase(locale);
+    return items.filter((cv) => (languageFilter === "all" || cv.locale === languageFilter)
+      && (!term || `${cv.title} ${cv.data.name} ${cv.data.headline}`.toLocaleLowerCase(locale).includes(term)));
+  }, [items, languageFilter, locale, search]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -111,7 +160,25 @@ export default function MyCvsPage() {
           </ButtonGroup>
         </Stack>
 
+        <Box className="library-toolbar">
+          <TextField size="small" label={t("searchCvs")} value={search} onChange={(event) => setSearch(event.target.value)} />
+          <TextField select size="small" label={t("filterByLanguage")} value={languageFilter} onChange={(event) => setLanguageFilter(event.target.value as "all" | "es" | "en")}>
+            <MenuItem value="all">{t("allLanguages")}</MenuItem>
+            <MenuItem value="es">ES</MenuItem>
+            <MenuItem value="en">EN</MenuItem>
+          </TextField>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button component="label" variant="outlined" startIcon={<UploadFileRounded />}>
+            {t("importCvJson")}<input hidden type="file" accept="application/json,.json" onChange={(event) => { void importFile(event.target.files?.[0], false); event.target.value = ""; }} />
+          </Button>
+          <Button component="label" variant="outlined" startIcon={<SaveAltRounded />}>
+            {t("restoreBackup")}<input hidden type="file" accept="application/json,.json" onChange={(event) => { void importFile(event.target.files?.[0], true); event.target.value = ""; }} />
+          </Button>
+          <Button variant="outlined" startIcon={<DownloadRounded />} disabled={!items.length} onClick={exportBackup}>{t("downloadBackup")}</Button>
+        </Box>
+
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
         {loading ? (
           <Box display="grid" sx={{ placeItems: "center", py: 10 }}><CircularProgress /></Box>
         ) : items.length === 0 ? (
@@ -122,8 +189,10 @@ export default function MyCvsPage() {
             <Button variant="contained" startIcon={<AddRounded />} onClick={() => createNew(locale as "es" | "en")}>{t("createFirstCv")}</Button>
           </Card>
         ) : (
+          <>
+          {visibleItems.length === 0 && <Alert severity="info" sx={{ mb: 2 }}>{t("noMatchingCvs")}</Alert>}
           <Box className="cv-library-grid">
-            {items.map((cv) => (
+            {visibleItems.map((cv) => (
               <Card variant="outlined" key={cv.id} className="cv-library-card">
                 <Box className="cv-library-preview" sx={{ "--library-primary": cv.data.primaryColor } as React.CSSProperties}>
                   <span />
@@ -143,12 +212,14 @@ export default function MyCvsPage() {
                 </CardContent>
                 <CardActions sx={{ px: 2, pb: 2 }}>
                   <Button variant="contained" startIcon={<EditRounded />} onClick={() => openCv(cv)}>{t("openCv")}</Button>
+                  <Tooltip title={t("exportCvJson")}><IconButton onClick={() => exportCvJson(cv)}><DownloadRounded /></IconButton></Tooltip>
                   <Tooltip title={t("duplicateCv")}><IconButton onClick={() => duplicateCv(cv)}><ContentCopyRounded /></IconButton></Tooltip>
                   <Tooltip title={t("deleteCv")}><IconButton color="error" onClick={() => removeCv(cv)}><DeleteOutlineRounded /></IconButton></Tooltip>
                 </CardActions>
               </Card>
             ))}
           </Box>
+          </>
         )}
       </Container>
     </ThemeProvider>
