@@ -637,9 +637,27 @@ export default function Home() {
     return skillItems.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3><ul className="cv-skills">{skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}</ul></section> : null;
   };
 
+  const faqItems = [1, 2, 3, 4, 5, 6, 7, 8].map((item) => ({
+    question: t(`faq${item}Question`),
+    answer: t(`faq${item}Answer`),
+  }));
+  const faqStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData).replace(/</g, "\\u003c") }}
+      />
       <AppBar position="sticky" color="inherit" elevation={0} className="topbar">
         <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           <BrandLogo />
@@ -1597,12 +1615,12 @@ export default function Home() {
             <Typography className="section-eyebrow">FAQ</Typography>
             <Typography variant="h3" component="h2">{t("faqTitle")}</Typography>
           </Box>
-          {[1, 2, 3, 4, 5, 6].map((item) => (
-            <Accordion key={item} disableGutters elevation={0} className="faq-item">
+          {faqItems.map(({ question, answer }) => (
+            <Accordion key={question} disableGutters elevation={0} className="faq-item">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t(`faq${item}Question`)}</Typography>
+                <Typography fontWeight={750}>{question}</Typography>
               </AccordionSummary>
-              <AccordionDetails><Typography color="text.secondary">{t(`faq${item}Answer`)}</Typography></AccordionDetails>
+              <AccordionDetails><Typography color="text.secondary">{answer}</Typography></AccordionDetails>
             </Accordion>
           ))}
         </Container>
@@ -1624,6 +1642,9 @@ export default function Home() {
             <a href="#generator">{t("generatorNav")}</a>
             <a href={templatesPath}>{t("templatesNav")}</a>
             <a href="/mis-cvs">{t("myCvs")}</a>
+            <a href={locale === "en" ? "/en/about" : "/es/acerca-de"}>{t("aboutLink")}</a>
+            <a href={locale === "en" ? "/en/privacy" : "/es/privacidad"}>{t("privacyLink")}</a>
+            <a href={locale === "en" ? "/en/terms" : "/es/terminos"}>{t("termsLink")}</a>
             <a href="https://github.com/ruben137/cv-generator" target="_blank" rel="noopener noreferrer">GitHub</a>
           </Box>
           <Typography variant="caption" color="text.secondary">{t("footerLicense")}</Typography>
