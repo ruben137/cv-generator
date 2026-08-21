@@ -34,6 +34,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages },
     }));
   });
+  const jobMatchLanguages = { es: `${siteUrl}/es/analizar-vacante`, en: `${siteUrl}/en/job-match` };
+  const jobMatchPages = [jobMatchLanguages.es, jobMatchLanguages.en].map((url) => ({
+    url,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.9,
+    alternates: { languages: jobMatchLanguages },
+  }));
   const institutionalGroups = [
     { es: "es/acerca-de", en: "en/about" },
     { es: "es/privacidad", en: "en/privacy" },
@@ -49,5 +57,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages },
     }));
   });
-  return [...homePages, ...catalogPages, ...professionalPages, ...institutionalPages];
+  return [...homePages, ...catalogPages, ...professionalPages, ...jobMatchPages, ...institutionalPages];
 }

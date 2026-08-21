@@ -1,0 +1,74 @@
+import type { CvData } from "../types";
+import { cvDataToMatchInput } from "./cv-adapter";
+import { jobFamilies, type JobFamily, type JobMatchLanguage, type ResumeMatchInput } from "./model";
+
+export const JOB_MATCH_TRANSFER_KEY = "cv-simple-job-match-transfer";
+const TRANSFER_VERSION = 1;
+
+type JobMatchTransfer = {
+  version: typeof TRANSFER_VERSION;
+  createdAt: string;
+  language: JobMatchLanguage;
+  jobFamily: JobFamily;
+  resume: ResumeMatchInput;
+};
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isResumeInput(value: unknown): value is ResumeMatchInput {
+  if (!value || typeof value !== "object") return false;
+  const resume = value as Partial<ResumeMatchInput>;
+  return typeof resume.title === "string"
+    && typeof resume.summary === "string"
+    && isStringArray(resume.skills)
+    && isStringArray(resume.experience)
+    && isStringArray(resume.education)
+    && isStringArray(resume.certifications)
+    && isStringArray(resume.languages);
+}
+
+export function createJobMatchTransfer(cv: CvData, jobFamily: JobFamily): JobMatchTransfer {
+  return {
+    version: TRANSFER_VERSION,
+    createdAt: new Date().toISOString(),
+    language: cv.documentLocale,
+    jobFamily,
+    resume: cvDataToMatchInput(cv),
+  };
+}
+
+export function writeJobMatchTransfer(storage: Storage, cv: CvData, jobFamily: JobFamily): void {
+  storage.setItem(JOB_MATCH_TRANSFER_KEY, JSON.stringify(createJobMatchTransfer(cv, jobFamily)));
+}
+
+export function consumeJobMatchTransfer(storage: Storage): JobMatchTransfer | null {
+  const raw = storage.getItem(JOB_MATCH_TRANSFER_KEY);
+  storage.removeItem(JOB_MATCH_TRANSFER_KEY);
+  if (!raw) return null;
+  try {
+    const transfer = JSON.parse(raw) as Partial<JobMatchTransfer>;
+    if (transfer.version !== TRANSFER_VERSION || !isResumeInput(transfer.resume)) return null;
+    if (transfer.language !== "es" && transfer.language !== "en") return null;
+    if (!jobFamilies.includes(transfer.jobFamily as JobFamily)) return null;
+    return transfer as JobMatchTransfer;
+  } catch {
+    return null;
+  }
+}
+
+export function resumeMatchInputToText(resume: ResumeMatchInput, language: JobMatchLanguage): string {
+  const labels = language === "en"
+    ? { summary: "SUMMARY", skills: "SKILLS", experience: "EXPERIENCE", education: "EDUCATION", certifications: "CERTIFICATIONS", languages: "LANGUAGES" }
+    : { summary: "RESUMEN", skills: "HABILIDADES", experience: "EXPERIENCIA", education: "FORMACIÓN ACADÉMICA", certifications: "CERTIFICACIONES", languages: "IDIOMAS" };
+  const sections: Array<[string, string[]]> = [
+    [labels.summary, resume.summary ? [resume.summary] : []],
+    [labels.skills, resume.skills],
+    [labels.experience, resume.experience],
+    [labels.education, resume.education],
+    [labels.certifications, resume.certifications],
+    [labels.languages, resume.languages],
+  ];
+  return sections.filter(([, items]) => items.length).map(([label, items]) => `${label}\n${items.join("\n")}`).join("\n\n");
+}
