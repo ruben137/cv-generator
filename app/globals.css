@@ -170,6 +170,23 @@ body {
 .landing-cta { padding: 5rem 1rem; background: linear-gradient(135deg, #eaf2f8, #f7fafc); text-align: center; }.landing-cta p { margin: 1rem auto 1.6rem; color: #5b6b79; font-size: 1.08rem; }.landing-cta .MuiButton-root { padding-inline: 1.5rem; }
 .site-footer { padding: 3rem 1rem; border-top: 1px solid #dce3e9; background: #fff; }.footer-layout { display: grid !important; grid-template-columns: auto minmax(200px, 1fr) auto; align-items: center; gap: 1rem 2rem; }.footer-links { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.75rem 1.25rem; }.footer-links a { color: #40566b; font-size: 0.88rem; font-weight: 700; text-decoration: none; }.footer-links a:hover { color: #173b63; }.footer-layout > :last-child { grid-column: 1 / -1; padding-top: 1rem; border-top: 1px solid #edf0f3; }
 
+.institutional-page { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+.institutional-article { max-width: 820px; margin: 0 auto; padding: clamp(4rem, 9vw, 7rem) 0; }
+.institutional-hero { padding-bottom: 3rem; border-bottom: 1px solid #d9e2e9; }
+.institutional-hero h1 { margin: .75rem 0 1rem; color: #102f51; font-size: clamp(2.6rem, 7vw, 4.8rem); line-height: 1; letter-spacing: -.055em; }
+.institutional-hero p { max-width: 740px; margin: 0; color: #516577; font-size: 1.15rem; line-height: 1.75; }
+.institutional-hero small { display: block; margin-top: 1.25rem; color: #758492; }
+.institutional-content { display: grid; gap: 2.5rem; padding-top: 3rem; }
+.institutional-content section { padding: 0 0 2.5rem; border-bottom: 1px solid #e1e7ec; }
+.institutional-content section:last-child { border-bottom: 0; }
+.institutional-content h2 { margin: 0 0 1rem; color: #173b63; font-size: 1.45rem; }
+.institutional-content p, .institutional-content li { color: #485d6e; line-height: 1.75; }
+.institutional-content ul { display: grid; gap: .65rem; padding-left: 1.25rem; }
+.institutional-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 2rem 0 3rem; border-top: 1px solid #d9e2e9; color: #687988; font-size: .88rem; }
+.institutional-footer nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+.institutional-footer a { color: #36536d; font-weight: 750; text-decoration: none; }
+.institutional-footer a:hover { color: #173b63; }
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(520px, 1.08fr);
@@ -734,6 +751,7 @@ body {
   .footer-links { justify-content: flex-start; }
   .library-toolbar { align-items: stretch; flex-direction: column; }
   .library-toolbar .MuiTextField-root, .library-toolbar .MuiButton-root { width: 100%; }
+  .institutional-footer { align-items: flex-start; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr; }
   .palette-list { grid-template-columns: repeat(2, 1fr); }
   .template-list { grid-template-columns: 1fr; }

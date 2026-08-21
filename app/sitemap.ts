@@ -34,5 +34,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages },
     }));
   });
-  return [...homePages, ...catalogPages, ...professionalPages];
+  const institutionalGroups = [
+    { es: "es/acerca-de", en: "en/about" },
+    { es: "es/privacidad", en: "en/privacy" },
+    { es: "es/terminos", en: "en/terms" },
+  ];
+  const institutionalPages = institutionalGroups.flatMap((paths) => {
+    const languages = { es: `${siteUrl}/${paths.es}`, en: `${siteUrl}/${paths.en}` };
+    return (["es", "en"] as const).map((locale) => ({
+      url: languages[locale],
+      lastModified: new Date(),
+      changeFrequency: "yearly" as const,
+      priority: 0.55,
+      alternates: { languages },
+    }));
+  });
+  return [...homePages, ...catalogPages, ...professionalPages, ...institutionalPages];
 }

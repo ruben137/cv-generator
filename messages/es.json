@@ -127,10 +127,17 @@
     "faq5Answer": "Los borradores y CV guardados localmente pueden desaparecer. Para evitarlo, puedes descargar una copia de seguridad JSON desde Mis CVs y conservarla fuera del navegador.",
     "faq6Question": "¿Cómo puedo trasladar mis CVs a otro navegador o dispositivo?",
     "faq6Answer": "Desde Mis CVs puedes exportar un CV individual en JSON o crear una copia de seguridad de toda la biblioteca. Después utiliza Importar JSON o Restaurar copia en el otro navegador. Los CVs importados se añaden como copias nuevas y no reemplazan los existentes.",
+    "faq7Question": "¿CV Simple utiliza cookies o herramientas de analítica?",
+    "faq7Answer": "Usamos Vercel Web Analytics para conocer métricas agregadas como páginas visitadas, país, navegador y dispositivo. Esta herramienta no utiliza cookies y no recibe el contenido de tu CV ni tu fotografía.",
+    "faq8Question": "¿Qué sucede al usar el enlace para convertir Word a PDF?",
+    "faq8Answer": "La conversión es ofrecida por iLovePDF, un servicio externo. Si decides utilizarlo, abandonarás CV Simple y el archivo que subas estará sujeto a las condiciones y política de privacidad de ese proveedor.",
     "finalCtaTitle": "Tu próximo CV puede empezar ahora",
     "finalCtaDescription": "Sin registro, sin pago al final y con control completo sobre tus datos.",
     "footerDescription": "Un generador de CV gratuito, privado y de código abierto.",
     "footerLicense": "Código disponible bajo AGPL-3.0. La marca CV Simple está reservada.",
+    "aboutLink": "Acerca de",
+    "privacyLink": "Privacidad",
+    "termsLink": "Términos",
     "pageUsage": "Uso de página: {status}",
     "statusOptimal": "Óptimo",
     "statusMedium": "Medio",
@@ -278,6 +285,102 @@
     "cvLanguages": "Idiomas",
     "cvEducation": "Formación académica",
     "cvCertifications": "Certificaciones"
+  },
+  "Institutional": {
+    "navigationLabel": "Navegación de páginas informativas",
+    "legalNavigationLabel": "Información legal",
+    "generatorLink": "Crear mi CV",
+    "templatesLink": "Plantillas",
+    "aboutLink": "Acerca de",
+    "privacyLink": "Privacidad",
+    "termsLink": "Términos",
+    "footerText": "CV Simple · Gratis, privado y sin registro.",
+    "about": {
+      "metaTitle": "Acerca de CV Simple",
+      "metaDescription": "Conoce por qué existe CV Simple y cómo ofrece creación de currículums gratuita, sin registro y con procesamiento local.",
+      "eyebrow": "Nuestra propuesta",
+      "title": "Crear un buen CV no debería tener una trampa al final",
+      "intro": "CV Simple nació como una alternativa transparente a los generadores que piden completar todo el currículum antes de revelar un pago o un registro obligatorio.",
+      "updated": "Última actualización: 21 de agosto de 2026",
+      "sections": [
+        {
+          "title": "La idea detrás de CV Simple",
+          "paragraphs": ["Queremos que cualquier persona pueda crear, personalizar y descargar un currículum profesional sin entregar primero sus datos a una plataforma ni descubrir una barrera de pago al terminar.", "La página principal sigue siendo el generador: puedes ver el resultado mientras escribes, controlar el espacio disponible y exportar el documento cuando esté listo."]
+        },
+        {
+          "title": "Principios del producto",
+          "items": ["Todas las plantillas, personalizaciones y exportaciones están disponibles gratis.", "No necesitas una cuenta ni una contraseña.", "El contenido del CV y la fotografía se procesan dentro del navegador.", "Los CV guardados permanecen en el dispositivo y navegador donde los creaste.", "La interfaz explica sus límites y los servicios externos antes de utilizarlos."]
+        },
+        {
+          "title": "Cómo funciona el procesamiento local",
+          "paragraphs": ["Mientras completas el formulario, la vista previa y los archivos PDF y DOCX se generan mediante código que se ejecuta en tu dispositivo. CV Simple no cuenta con una base de datos de currículums ni recibe el texto o la fotografía que introduces.", "El guardado automático utiliza el almacenamiento local del navegador y Mis CVs utiliza IndexedDB. No existe sincronización entre dispositivos ni una copia de respaldo en nuestros servidores."]
+        },
+        {
+          "title": "Un producto en evolución",
+          "paragraphs": ["CV Simple continúa incorporando plantillas, ejemplos profesionales y mejoras de accesibilidad y rendimiento. La intención es sostener el producto sin convertir las funciones esenciales en una capa premium."]
+        }
+      ]
+    },
+    "privacy": {
+      "metaTitle": "Política de privacidad",
+      "metaDescription": "Consulta qué datos procesa CV Simple, qué permanece en tu navegador y cómo funciona la analítica anónima del sitio.",
+      "eyebrow": "Privacidad",
+      "title": "Política de privacidad",
+      "intro": "Esta política explica de forma directa qué ocurre con la información cuando utilizas CV Simple.",
+      "updated": "Última actualización: 21 de agosto de 2026",
+      "sections": [
+        {
+          "title": "Contenido del currículum",
+          "paragraphs": ["Los nombres, datos de contacto, experiencia, formación, habilidades, fotografías y demás contenido que introduces se procesan localmente en tu navegador. CV Simple no los envía a una base de datos ni a un backend propio.", "La generación de PDF y DOCX y el recorte de la fotografía también ocurren en tu dispositivo."]
+        },
+        {
+          "title": "Almacenamiento en tu navegador",
+          "paragraphs": ["El guardado automático utiliza localStorage y los documentos de Mis CVs se conservan en IndexedDB. Puedes desactivar el borrador automático desde el generador y eliminar cada CV desde Mis CVs.", "Estos datos pertenecen al perfil de navegador y al dispositivo actuales. Pueden perderse si borras los datos del sitio, usas navegación privada, cambias de navegador o dispositivo, o desinstalas el navegador. CV Simple no puede recuperarlos porque no conserva una copia remota."]
+        },
+        {
+          "title": "Analítica y datos técnicos",
+          "paragraphs": ["CV Simple utiliza Vercel Web Analytics para obtener estadísticas agregadas de uso. Según la documentación de Vercel, esta analítica no utiliza cookies, no asocia la actividad con una identidad personal y puede procesar datos como la página visitada, referencia, ubicación aproximada, navegador, sistema operativo y tipo de dispositivo.", "El contenido del currículum y la fotografía no se incluyen en los eventos de analítica. Como proveedor de hosting, Vercel también puede procesar información técnica necesaria para servir y proteger el sitio de acuerdo con su propia política de privacidad."]
+        },
+        {
+          "title": "Servicios y enlaces externos",
+          "paragraphs": ["CV Simple incluye un enlace opcional a iLovePDF para convertir un DOCX modificado a PDF. Al seguirlo abandonas este sitio. Cualquier archivo que subas allí será procesado por ese proveedor y estará sujeto a sus términos y política de privacidad.", "Los enlaces a GitHub u otros sitios externos se rigen igualmente por las políticas de sus respectivos operadores."]
+        },
+        {
+          "title": "Cambios en esta política",
+          "paragraphs": ["Esta política se actualizará si cambia la forma en que funciona el producto, se incorporan nuevos proveedores o se añade publicidad. La fecha de la versión vigente aparecerá al inicio de esta página."]
+        }
+      ]
+    },
+    "terms": {
+      "metaTitle": "Términos de uso",
+      "metaDescription": "Consulta las condiciones de uso de CV Simple, sus límites, responsabilidades y relación con servicios externos.",
+      "eyebrow": "Condiciones claras",
+      "title": "Términos de uso",
+      "intro": "Al utilizar CV Simple aceptas estas condiciones. Están escritas para explicar el alcance de la herramienta sin letra pequeña innecesaria.",
+      "updated": "Última actualización: 21 de agosto de 2026",
+      "sections": [
+        {
+          "title": "Uso de la herramienta",
+          "paragraphs": ["CV Simple permite crear, personalizar, guardar localmente y exportar currículums. Actualmente sus funciones se ofrecen sin pago y sin registro.", "Debes utilizar el sitio de forma lícita y no intentar interrumpirlo, abusar de su infraestructura o emplearlo para distribuir contenido malicioso."]
+        },
+        {
+          "title": "Tu contenido y tus archivos",
+          "paragraphs": ["Conservas la titularidad y responsabilidad sobre la información que introduces y los documentos que generas. Debes contar con autorización para usar fotografías, textos u otros materiales de terceros.", "Los ejemplos profesionales son contenido orientativo. Es tu responsabilidad reemplazarlos con información verdadera, revisar la ortografía y comprobar que el CV final sea adecuado para la vacante."]
+        },
+        {
+          "title": "Sin garantía de resultados",
+          "paragraphs": ["La herramienta se ofrece tal como está y puede cambiar, presentar errores o no estar disponible temporalmente. Ninguna plantilla garantiza superar un sistema ATS, obtener una entrevista o conseguir empleo.", "Antes de enviar un currículum, revisa el PDF o DOCX descargado y confirma que el contenido, los enlaces y el formato sean correctos."]
+        },
+        {
+          "title": "Almacenamiento local y pérdida de datos",
+          "paragraphs": ["Los borradores y CV guardados existen únicamente en el navegador utilizado. Eres responsable de conservar copias de los archivos que necesites. CV Simple no puede restaurar información eliminada del almacenamiento local."]
+        },
+        {
+          "title": "Servicios externos y cambios",
+          "paragraphs": ["Los servicios externos enlazados, incluido iLovePDF, tienen sus propias condiciones y políticas. CV Simple no controla su disponibilidad ni el tratamiento que hagan de los archivos que decidas enviarles.", "Estos términos pueden actualizarse cuando evolucione el producto. El uso posterior a una actualización estará sujeto a la versión publicada en esta página."]
+        }
+      ]
+    }
   },
   "Presets": {
     "navigationLabel": "Navegación de plantillas",
