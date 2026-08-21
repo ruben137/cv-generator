@@ -1,8 +1,11 @@
 import { Box, Typography } from "@mui/material";
+import { useTranslations } from "next-intl";
 
 export function BrandLogo({ compact = false }: { compact?: boolean }) {
+  const t = useTranslations("App");
+
   return (
-    <Box component="a" href="/" className="brand-logo" aria-label="CV Simple · inicio">
+    <Box component="a" href="/" className="brand-logo" aria-label={t("brandHomeLabel")}>
       <svg className="brand-logo-mark" viewBox="0 0 48 48" aria-hidden="true">
         <rect x="7" y="4" width="34" height="40" rx="9" fill="#173B63" />
         <path d="M17 15h14M17 21h10" stroke="white" strokeWidth="3" strokeLinecap="round" />
@@ -11,7 +14,7 @@ export function BrandLogo({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <Box className="brand-logo-copy">
           <Typography component="span" className="brand-logo-name">CV Simple</Typography>
-          <Typography component="span" className="brand-logo-tagline">Gratis. Privado. Sin registro.</Typography>
+          <Typography component="span" className="brand-logo-tagline">{t("brandTagline")}</Typography>
         </Box>
       )}
     </Box>
