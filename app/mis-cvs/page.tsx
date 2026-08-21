@@ -68,7 +68,7 @@ export default function MyCvsPage() {
 
   const openCv = (cv: StoredCv) => {
     Reflect.set(document, "cookie", `locale=${cv.locale};path=/;max-age=31536000;samesite=lax`);
-    window.location.assign(`/?cv=${encodeURIComponent(cv.id)}`);
+    window.location.assign(`/?cv=${encodeURIComponent(cv.id)}#generator`);
   };
 
   const createNew = (nextLocale: "es" | "en") => {
