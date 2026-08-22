@@ -132,7 +132,6 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
   const hasDarkSidebar = isContrast || isEditorial;
   const sidebarTextColor = hasDarkSidebar ? "FFFFFF" : undefined;
   const sidebarPercent = data.template === "compact" ? 28 : isEditorial ? 38 : 32;
-  const mainPercent = 100 - sidebarPercent;
 
   const heading = (text: string, textColor = primary, borderColor = primary, main = false) =>
     new Paragraph({
