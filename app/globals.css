@@ -157,7 +157,7 @@ body {
 .benefit-card > svg { margin-bottom: 1.2rem; }.benefit-card h3 { margin-bottom: 0.6rem; color: #203b57; }.benefit-card p { line-height: 1.6; }
 .landing-templates { background: #fff; }
 .landing-template-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-.landing-template-card { display: flex; align-items: center; gap: 1.1rem; min-height: 152px; padding: 1.1rem; border: 1px solid #d8e0e7; border-radius: 16px; background: #fafbfc; color: #273746; cursor: pointer; text-align: left; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.landing-template-card { display: flex; align-items: center; gap: 1.1rem; min-height: 152px; padding: 1.1rem; border: 1px solid #d8e0e7; border-radius: 16px; background: #fafbfc; color: #273746; cursor: pointer; text-align: left; transition: transform .18s ease; }
 .landing-template-card:hover { transform: translateY(-3px); border-color: #8ca8c1; box-shadow: 0 14px 30px rgba(23, 42, 59, 0.1); }.landing-template-card.selected { border-color: #173b63; box-shadow: 0 0 0 1px #173b63; background: #f3f7fa; }
 .landing-template-card .template-thumbnail { flex: 0 0 auto; width: 77px; height: 100px; }
 .landing-template-card > span:last-child { display: flex; min-width: 0; flex-direction: column; gap: 0.45rem; }.landing-template-card strong { color: #173b63; font-size: 0.95rem; }.landing-template-card small { color: #60707e; }

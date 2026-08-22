@@ -231,6 +231,7 @@ export default function Home() {
   // catches up at a lower priority.
   const previewData = useDeferredValue(data);
   const previewPaperRef = useRef<HTMLElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const skills = useFieldArray({ control, name: "skills" });
   const languages = useFieldArray({ control, name: "languages" });
   const experiences = useFieldArray({ control, name: "experiences" });
@@ -776,7 +777,7 @@ export default function Home() {
         </Box>
 
         <Stack className="editor-toolbar" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
-          <Typography fontWeight={800}>{t("editorHeading")}</Typography>
+          <Typography component="h2" variant="h6" fontWeight={800}>{t("editorHeading")}</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
             <Chip
               color={spaceStatus === "high" ? "warning" : "success"}
@@ -845,18 +846,19 @@ export default function Home() {
                       <Typography fontWeight={700}>{t("optionalPhoto")}</Typography>
                       <Typography variant="caption" color="text.secondary">{t("photoHelp")}</Typography>
                     </Box>
-                    <Button component="label" variant="outlined" startIcon={<UploadRounded />}>
+                    <Button type="button" variant="outlined" startIcon={<UploadRounded />} onClick={() => photoInputRef.current?.click()}>
                       {t("choose")}
-                      <input
-                        hidden
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        onChange={(event) => {
-                          onPhoto(event.target.files?.[0]);
-                          event.target.value = "";
-                        }}
-                      />
                     </Button>
+                    <input
+                      ref={photoInputRef}
+                      hidden
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={(event) => {
+                        onPhoto(event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
                     {data.photo && (
                       <>
                         <ButtonGroup size="small" aria-label={t("photoShape")}>
@@ -1448,7 +1450,7 @@ export default function Home() {
           <Box className="preview-column">
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
               <Box>
-                <Typography variant="h6">{t("preview")}</Typography>
+                <Typography component="h2" variant="h6">{t("preview")}</Typography>
                 <Typography variant="caption" color="text.secondary">{t("a4OnePage")}</Typography>
               </Box>
               <Chip size="small" label="A4" />

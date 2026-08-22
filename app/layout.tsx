@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { headers } from "next/headers";
 import { getSiteUrl } from "./site-url";
 import "./globals.css";
 
@@ -18,7 +19,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const t = await getTranslations("Metadata");
   const siteUrl = getSiteUrl();
-  const localizedUrl = `${siteUrl}/${locale}`;
+  const publicPath = (await headers()).get("x-cv-public-path");
+  const homePath = publicPath === "/es" || publicPath === "/en" ? publicPath : "";
+  const canonicalUrl = `${siteUrl}${homePath}`;
   const title = t("title");
   const description = t("description");
 
@@ -38,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ? ["crear CV gratis", "currículum gratis", "CV en PDF", "CV en Word", "generador de CV"]
       : ["free resume builder", "one-page resume", "resume PDF", "resume DOCX", "private resume builder"],
     alternates: {
-      canonical: localizedUrl,
+      canonical: canonicalUrl,
       languages: {
         es: `${siteUrl}/es`,
         en: `${siteUrl}/en`,
@@ -64,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       type: "website",
       siteName: "CV Simple",
-      url: localizedUrl,
+      url: canonicalUrl,
       locale: locale === "es" ? "es_ES" : "en_US",
       alternateLocale: locale === "es" ? ["en_US"] : ["es_ES"],
       images: [{ url: "/og.png", width: 1200, height: 630, alt: t("imageAlt") }],
@@ -84,11 +87,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const messages = await getMessages();
   const t = await getTranslations("Metadata");
   const siteUrl = getSiteUrl();
+  const publicPath = (await headers()).get("x-cv-public-path");
+  const homePath = publicPath === "/es" || publicPath === "/en" ? publicPath : "";
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "CV Simple",
-    url: `${siteUrl}/${locale}`,
+    url: `${siteUrl}${homePath}`,
     description: t("description"),
     applicationCategory: "BusinessApplication",
     operatingSystem: "Any",
