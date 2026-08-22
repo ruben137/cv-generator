@@ -30,6 +30,9 @@ const expectedTerms = [
   ["Styled Components", "es", "software-development", "styled-components"],
   ["diseño responsive", "es", "software-development", "responsive-web-design"],
   ["testeable", "es", "software-development", "software-testing"],
+  ["Google Ads", "es", "marketing", "google-ads"],
+  ["Excel", "es", "marketing", "microsoft-excel"],
+  ["análisis de datos", "es", "marketing", "data-analysis"],
 ] as const;
 
 for (const [term, language, family, expectedId] of expectedTerms) {

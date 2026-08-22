@@ -180,7 +180,9 @@ export function JobMatchClient() {
       <header className="job-match-header">
         <BrandLogo />
         <nav aria-label={t("navigationLabel")}>
-          <a href={homePath}><ArrowBackRoundedIcon fontSize="small" />{t("backToGenerator")}</a>
+          <a href={`${homePath}#generator`} target="_blank" rel="noopener noreferrer">
+            <ArrowBackRoundedIcon fontSize="small" />{t("backToGenerator")}
+          </a>
         </nav>
       </header>
 

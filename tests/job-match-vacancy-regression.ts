@@ -151,4 +151,25 @@ assert.deepEqual(
   [],
   "known frontend vocabulary and generic noise should not require manual review",
 );
+
+const commonMarketingTermsRegression = analyzeJobMatch(
+  {
+    title: "Especialista en Marketing Digital",
+    language: "es",
+    jobFamily: "marketing",
+    text: "Requisitos: Google Ads, Excel y análisis de datos.",
+  },
+  resume("Especialista en Contenidos", ["marketing digital"], ["Creé contenidos para campañas digitales."]),
+  { now: () => new Date(0) },
+);
+assert.deepEqual(
+  commonMarketingTermsRegression.unclassifiedTerms.map((item) => item.term.normalized),
+  [],
+  "common marketing and cross-functional concepts should not require manual review",
+);
+assert.deepEqual(
+  new Set(commonMarketingTermsRegression.missingRequirements.map((item) => item.term.conceptId)),
+  new Set(["google-ads", "microsoft-excel", "data-analysis"]),
+  "recognized but absent concepts should be presented as missing requirements",
+);
 console.table(rows);
