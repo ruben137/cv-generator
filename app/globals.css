@@ -127,6 +127,7 @@ body {
 
 .editor-toolbar { max-width: 1480px; margin: 0 auto 1rem; }
 .editor-notice, .autosave-panel, .workspace { width: 100%; max-width: 1480px; margin-right: auto; margin-left: auto; }
+.editor-deferred-placeholder { display: flex; align-items: center; min-height: 112px; max-width: 1480px; margin: 0 auto; padding: 1.25rem; border: 1px solid #d8e2ea; border-radius: 16px; background: #fff; }
 #generator, #landingTemplates { scroll-margin-top: 96px; }
 
 .professional-presets-cta { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; max-width: 1480px; margin: -1rem auto 2rem; padding: 1rem 1.2rem; border: 1px solid #d8e2ea; border-radius: 16px; background: #fff; }
