@@ -11,6 +11,8 @@
     "start": "next start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs && npm run test:job-match",
     "test:job-match": "tsx tests/job-match-vacancy-regression.ts",
+    "dictionary:sync": "node scripts/sync-job-match-taxonomy.mjs",
+    "dictionary:validate": "tsx tests/job-match-dictionary.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate"
   },
@@ -28,6 +30,7 @@
     "next": "16.2.6",
     "next-intl": "^4.13.6",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.2.108",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-easy-crop": "^6.2.3",

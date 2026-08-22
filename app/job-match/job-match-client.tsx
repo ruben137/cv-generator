@@ -3,6 +3,7 @@
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TipsAndUpdatesOutlinedIcon from "@mui/icons-material/TipsAndUpdatesOutlined";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -18,7 +19,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { BrandLogo } from "../brand-logo";
 import {
@@ -43,15 +44,33 @@ type FormValues = {
 };
 
 const componentIds = ["skills", "keywords", "title", "evidence"] as const;
+const MAX_PDF_BYTES = 5 * 1024 * 1024;
+const MAX_PDF_PAGES = 10;
+const MAX_RESUME_CHARACTERS = 16000;
+
+function normalizeExtractedPdfText(parts: string[]): string {
+  return parts
+    .join("\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
 
 export function JobMatchClient() {
   const t = useTranslations("JobMatch");
+  const visualTerms = t.raw("visualTerms") as string[];
   const locale = (useLocale() === "en" ? "en" : "es") as JobMatchLanguage;
   const homePath = `/${locale}`;
   const [analysis, setAnalysis] = useState<JobMatchAnalysis | null>(null);
   const [linkedResume, setLinkedResume] = useState<ResumeMatchInput | null>(null);
   const [loadedFromEditor, setLoadedFromEditor] = useState(false);
   const [resumeLanguage, setResumeLanguage] = useState<JobMatchLanguage>(locale);
+  const [pdfImporting, setPdfImporting] = useState(false);
+  const [pdfDragging, setPdfDragging] = useState(false);
+  const [pdfNotice, setPdfNotice] = useState<{ severity: "success" | "warning" | "error"; message: string } | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const pdfDragDepthRef = useRef(0);
   const { control, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
     defaultValues: { jobFamily: "general", jobTitle: "", jobDescription: "", resumeTitle: "", resumeText: "" },
   });
@@ -95,6 +114,67 @@ export function JobMatchClient() {
     requestAnimationFrame(() => document.querySelector("#job-match-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
+  const importResumePdf = async (file?: File) => {
+    if (!file) return;
+    setPdfNotice(null);
+
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setPdfNotice({ severity: "error", message: t("pdfInvalidType") });
+      return;
+    }
+    if (file.size > MAX_PDF_BYTES) {
+      setPdfNotice({ severity: "error", message: t("pdfTooLarge") });
+      return;
+    }
+
+    setPdfImporting(true);
+    try {
+      const pdfjs = await import("pdfjs-dist");
+      if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+        pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+      }
+      const loadingTask = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+      const pdf = await loadingTask.promise;
+      if (pdf.numPages > MAX_PDF_PAGES) {
+        await loadingTask.destroy();
+        setPdfNotice({ severity: "error", message: t("pdfTooManyPages") });
+        return;
+      }
+
+      const pages: string[] = [];
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+        let pageText = "";
+        for (const item of content.items) {
+          if (!("str" in item) || !item.str.trim()) continue;
+          pageText += `${item.str}${"hasEOL" in item && item.hasEOL ? "\n" : " "}`;
+        }
+        pages.push(pageText.trim());
+        page.cleanup();
+      }
+      await loadingTask.destroy();
+
+      const extractedText = normalizeExtractedPdfText(pages);
+      if (extractedText.length < 20) {
+        setPdfNotice({ severity: "error", message: t("pdfNoText") });
+        return;
+      }
+
+      const truncated = extractedText.length > MAX_RESUME_CHARACTERS;
+      setValue("resumeText", extractedText.slice(0, MAX_RESUME_CHARACTERS), { shouldDirty: true, shouldValidate: true });
+      setLinkedResume(null);
+      setLoadedFromEditor(false);
+      setAnalysis(null);
+      setPdfNotice({ severity: truncated ? "warning" : "success", message: t(truncated ? "pdfImportedTruncated" : "pdfImported", { name: file.name }) });
+    } catch {
+      setPdfNotice({ severity: "error", message: t("pdfReadError") });
+    } finally {
+      setPdfImporting(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+  };
+
   return (
     <main className="job-match-page">
       <header className="job-match-header">
@@ -112,7 +192,7 @@ export function JobMatchClient() {
           <div className="job-match-trust"><LockOutlinedIcon />{t("privacyShort")}</div>
         </div>
         <div className="job-match-hero-card" aria-hidden="true">
-          <span>React</span><span>TypeScript</span><span>Git</span><span>SEO</span>
+          {visualTerms.map((term) => <span key={term}>{term}</span>)}
           <div><SearchRoundedIcon /><strong>{t("visualLabel")}</strong></div>
         </div>
       </section>
@@ -139,6 +219,48 @@ export function JobMatchClient() {
         <section className="job-match-input-card">
           <div className="job-match-card-heading"><span>02</span><div><h2>{t("resumeSection")}</h2><p>{t("resumeSectionHelp")}</p></div></div>
           {loadedFromEditor && <Alert severity="success" onClose={() => { setLoadedFromEditor(false); setLinkedResume(null); }}>{t("editorResumeLoaded")}</Alert>}
+          <div
+            className={`job-match-pdf-import${pdfDragging ? " is-dragging" : ""}`}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              pdfDragDepthRef.current += 1;
+              setPdfDragging(true);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "copy";
+            }}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              pdfDragDepthRef.current = Math.max(0, pdfDragDepthRef.current - 1);
+              if (pdfDragDepthRef.current === 0) setPdfDragging(false);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              pdfDragDepthRef.current = 0;
+              setPdfDragging(false);
+              void importResumePdf(event.dataTransfer.files?.[0]);
+            }}
+          >
+            <input
+              ref={pdfInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              hidden
+              onChange={(event) => void importResumePdf(event.target.files?.[0])}
+            />
+            <Button
+              type="button"
+              variant="outlined"
+              startIcon={<PictureAsPdfRoundedIcon />}
+              disabled={pdfImporting}
+              onClick={() => pdfInputRef.current?.click()}
+            >
+              {pdfImporting ? t("pdfReading") : t("importPdf")}
+            </Button>
+            <span><strong>{t(pdfDragging ? "dropPdfActive" : "dropPdfTitle")}</strong>{t("importPdfHelp")}</span>
+          </div>
+          {pdfNotice && <Alert severity={pdfNotice.severity} onClose={() => setPdfNotice(null)}>{pdfNotice.message}</Alert>}
           <Controller name="resumeTitle" control={control} rules={{ maxLength: { value: 100, message: t("tooLong") } }} render={({ field }) => (
             <TextField {...field} onChange={(event) => { field.onChange(event); setLinkedResume(null); setLoadedFromEditor(false); }} label={t("resumeTitle")} fullWidth error={Boolean(errors.resumeTitle)} helperText={errors.resumeTitle?.message ?? t("resumeTitleHelp")} inputProps={{ maxLength: 100 }} />
           )} />

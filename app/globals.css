@@ -204,6 +204,12 @@ body {
 .job-match-hero-card > div { position: absolute; right: 2.2rem; bottom: 2.2rem; left: 2.2rem; display: flex; align-items: center; gap: .7rem; padding: 1rem; border-radius: 13px; background: #fff; color: #173b63; box-shadow: 0 12px 30px rgba(8,28,48,.24); }
 .job-match-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; scroll-margin-top: 2rem; }
 .job-match-input-card { display: flex; flex-direction: column; gap: 1.1rem; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #d8e1e8; border-radius: 20px; background: #fff; box-shadow: 0 12px 35px rgba(23,42,59,.05); }
+.job-match-pdf-import { display: flex; align-items: center; gap: .85rem; padding: .85rem; border: 1.5px dashed #aebfcd; border-radius: 13px; background: #f7fafc; transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.job-match-pdf-import.is-dragging { border-color: #28679c; background: #eaf4fb; box-shadow: 0 0 0 4px rgba(40,103,156,.12), 0 10px 24px rgba(23,59,99,.1); transform: translateY(-2px); }
+.job-match-pdf-import .MuiButton-root { flex: 0 0 auto; }
+.job-match-pdf-import > span { color: #607180; font-size: .78rem; line-height: 1.45; }
+.job-match-pdf-import > span strong { display: block; margin-bottom: .12rem; color: #294b68; font-size: .84rem; }
+.job-match-pdf-import.is-dragging > span strong { color: #174f7d; }
 .job-match-card-heading { display: flex; gap: 1rem; min-height: 74px; }
 .job-match-card-heading > span { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px; background: #eaf2f7; color: #3c6596; font-size: .75rem; font-weight: 850; }
 .job-match-card-heading h2 { margin: 0 0 .3rem; color: #173b63; font-size: 1.35rem; }
@@ -250,7 +256,7 @@ body {
 
 @media (max-width: 600px) {
   .job-match-page { width: min(100% - 1rem, 1240px); }.job-match-header { min-height: 72px; }.job-match-header .brand-logo-tagline { display: none; }.job-match-header nav a { font-size: .8rem; }
-  .job-match-hero { padding-top: 3rem; }.job-match-hero-card { display: none; }.job-match-input-card { padding: 1rem; border-radius: 15px; }
+  .job-match-hero { padding-top: 3rem; }.job-match-hero-card { display: none; }.job-match-input-card { padding: 1rem; border-radius: 15px; }.job-match-pdf-import { align-items: stretch; flex-direction: column; }
   .job-match-submit-row { align-items: stretch; flex-direction: column; }.job-match-result-header { grid-template-columns: 1fr; text-align: center; }.job-match-score-ring { margin: auto; }
   .job-match-editor-cta { align-items: stretch; flex-direction: column; }.job-match-editor-cta .MuiButton-root { align-self: flex-start; }
   .job-match-components, .job-match-result-grid { grid-template-columns: 1fr; }.job-match-result-card.recommendations { grid-column: auto; }.job-match-result-card ol li { grid-template-columns: 1fr; gap: .25rem; }
