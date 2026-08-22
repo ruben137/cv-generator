@@ -103,6 +103,15 @@ export function JobMatchClient() {
     };
   }, [analysis]);
 
+  const groupedRecommendations = useMemo(() => {
+    if (!analysis) return { missingTerms: [] as string[], general: [] };
+    const skillReviews = analysis.recommendations.filter((item) => item.kind === "review-skill");
+    return {
+      missingTerms: [...new Set(skillReviews.flatMap((item) => item.relatedTerms))],
+      general: analysis.recommendations.filter((item) => item.kind !== "review-skill"),
+    };
+  }, [analysis]);
+
   const onSubmit = (values: FormValues) => {
     const resume = linkedResume ?? parsePastedResume(values.resumeTitle, values.resumeText, resumeLanguage);
     setAnalysis(analyzeJobMatch({
@@ -310,7 +319,23 @@ export function JobMatchClient() {
 
             <article className="job-match-result-card recommendations">
               <div className="result-card-title"><TipsAndUpdatesOutlinedIcon /><div><h3>{t("recommendationsTitle")}</h3><p>{t("recommendationsHelp")}</p></div></div>
-              <ol>{analysis.recommendations.map((recommendation) => <li key={recommendation.id}><strong>{t(`priorities.${recommendation.priority}`)}</strong><span>{t(`recommendations.${recommendation.kind}`)}{recommendation.relatedTerms.length ? `: ${recommendation.relatedTerms.join(", ")}` : ""}</span></li>)}</ol>
+              {groupedRecommendations.missingTerms.length > 0 && (
+                <div className="job-match-missing-callout">
+                  <div>
+                    <strong>{t("termsToAddTitle")}</strong>
+                    <p>{t("termsToAddHelp")}</p>
+                  </div>
+                  <div className="job-match-missing-chips">
+                    {groupedRecommendations.missingTerms.map((term) => <Chip key={term} label={term} variant="outlined" />)}
+                  </div>
+                </div>
+              )}
+              {groupedRecommendations.general.length > 0 && (
+                <>
+                  <h4 className="job-match-other-adjustments">{t("otherAdjustmentsTitle")}</h4>
+                  <ol>{groupedRecommendations.general.map((recommendation) => <li key={recommendation.id} className={`priority-${recommendation.priority}`}><strong>{t(`priorities.${recommendation.priority}`)}</strong><span>{t(`recommendations.${recommendation.kind}`)}{recommendation.relatedTerms.length ? `: ${recommendation.relatedTerms.join(", ")}` : ""}</span></li>)}</ol>
+                </>
+              )}
             </article>
           </div>
 
