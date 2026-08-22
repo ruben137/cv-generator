@@ -1243,8 +1243,8 @@ export default function Home() {
                                 <TextField
                                   label={t("skillNumber", { number: index + 1 })}
                                   placeholder={t("skillsPlaceholder")}
-                                  inputProps={{ maxLength: 80 }}
-                                  helperText={<Counter value={data.skills[index]?.name} max={80} />}
+                                  inputProps={{ maxLength: 100 }}
+                                  helperText={<Counter value={data.skills[index]?.name} max={100} />}
                                   {...register(`skills.${index}.name`)}
                                 />
                                 <IconButton

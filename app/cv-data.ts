@@ -54,7 +54,7 @@ export function normalizeCvData(value: unknown, fallbackLocale: "es" | "en" = "e
     photo: typeof raw.photo === "string" && raw.photo.startsWith("data:image/") ? raw.photo : undefined,
     skills: (typeof raw.skills === "string" ? raw.skills.split(",") : list(raw.skills, 12))
       .slice(0, 12)
-      .map((entry) => ({ name: text(typeof entry === "string" ? entry.trim() : object(entry).name, 80) })),
+      .map((entry) => ({ name: text(typeof entry === "string" ? entry.trim() : object(entry).name, 100) })),
     languages: list(raw.languages, 5).map((entry) => {
       const item = object(entry);
       return { name: text(item.name, 40), level: text(item.level, 40) };
