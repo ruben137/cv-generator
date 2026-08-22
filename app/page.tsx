@@ -231,6 +231,7 @@ export default function Home() {
   // catches up at a lower priority.
   const previewData = useDeferredValue(data);
   const previewPaperRef = useRef<HTMLElement>(null);
+  const [editorReady, setEditorReady] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const skills = useFieldArray({ control, name: "skills" });
   const languages = useFieldArray({ control, name: "languages" });
@@ -399,6 +400,31 @@ export default function Home() {
       setSavingCv(false);
     }
   };
+
+  const activateEditor = () => setEditorReady(true);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const opensEditorDirectly =
+      window.location.hash === "#generator"
+      || searchParams.has("cv")
+      || searchParams.has("preset")
+      || searchParams.has("new");
+
+    if (opensEditorDirectly || window.scrollY > 240) {
+      const activationFrame = window.requestAnimationFrame(() => setEditorReady(true));
+      return () => window.cancelAnimationFrame(activationFrame);
+    }
+
+    const handleScroll = () => {
+      if (window.scrollY <= 240) return;
+      setEditorReady(true);
+      window.removeEventListener("scroll", handleScroll);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const analyzeCurrentCv = () => {
     if (!selectedJobFamily) return;
@@ -682,7 +708,7 @@ export default function Home() {
         <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           <BrandLogo />
           <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
-            <Button component="a" href="#generator" className="main-nav-link active">{t("generatorNav")}</Button>
+            <Button component="a" href="#generator" onClick={activateEditor} className="main-nav-link active">{t("generatorNav")}</Button>
             <Button component="a" href="#landingTemplates" className="main-nav-link">{t("templatesNav")}</Button>
             <Button component="a" href={templatesPath} className="main-nav-link">{t("professionalExamplesNav")}</Button>
             <Button component="a" href={jobMatchPath} className="main-nav-link">{t("jobMatchNav")}</Button>
@@ -738,7 +764,7 @@ export default function Home() {
               {t("heroDescription")}
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} mt={2.5}>
-              <Button variant="contained" size="large" component="a" href="#generator">
+              <Button variant="contained" size="large" component="a" href="#generator" onClick={activateEditor}>
                 {t("heroPrimaryCta")}
               </Button>
               <Button variant="outlined" size="large" component="a" href={templatesPath}>
@@ -776,6 +802,8 @@ export default function Home() {
           <Button component="a" href={templatesPath} variant="outlined">{t("exploreProfessionalPresets")}</Button>
         </Box>
 
+        <Box id="generator">
+        {editorReady ? <>
         <Stack className="editor-toolbar" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
           <Typography component="h2" variant="h6" fontWeight={800}>{t("editorHeading")}</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
@@ -808,7 +836,7 @@ export default function Home() {
           />
         </Box>
 
-        <Box className="workspace" id="generator">
+        <Box className="workspace">
           <Box className="editor-column">
             <Accordion defaultExpanded sx={sectionSx}>
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
@@ -1568,6 +1596,12 @@ export default function Home() {
             </Box>
           </Box>
         </Box>
+        </> : (
+          <Box className="editor-deferred-placeholder" aria-label={t("editorHeading")}>
+            <Typography component="h2" variant="h6" fontWeight={800}>{t("editorHeading")}</Typography>
+          </Box>
+        )}
+        </Box>
       </Container>
 
       <Box component="section" className="landing-section landing-how" id="howItWorks">
@@ -1669,7 +1703,7 @@ export default function Home() {
         <Container maxWidth="md">
           <Typography variant="h3" component="h2">{t("finalCtaTitle")}</Typography>
           <Typography>{t("finalCtaDescription")}</Typography>
-          <Button variant="contained" size="large" component="a" href="#generator">{t("heroPrimaryCta")}</Button>
+          <Button variant="contained" size="large" component="a" href="#generator" onClick={activateEditor}>{t("heroPrimaryCta")}</Button>
         </Container>
       </Box>
 
@@ -1678,7 +1712,7 @@ export default function Home() {
           <BrandLogo />
           <Typography variant="body2" color="text.secondary">{t("footerDescription")}</Typography>
           <Box className="footer-links">
-            <a href="#generator">{t("generatorNav")}</a>
+            <a href="#generator" onClick={activateEditor}>{t("generatorNav")}</a>
             <a href={templatesPath}>{t("templatesNav")}</a>
             <a href={jobMatchPath}>{t("jobMatchNav")}</a>
             <a href="/mis-cvs">{t("myCvs")}</a>
