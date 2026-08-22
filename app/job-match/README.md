@@ -40,6 +40,12 @@ El bloque 3 incorpora un diccionario inicial para las ocho familias profesionale
 
 El diccionario es deliberadamente pequeño: busca cubrir conceptos frecuentes con buena precisión antes de ampliar el catálogo. La extracción basada en reglas conserva términos desconocidos para que el motor pueda mostrarlos al usuario. La interfaz todavía no forma parte de este módulo.
 
+## Fuentes externas y actualización
+
+`npm run dictionary:sync` consulta ESCO únicamente durante el desarrollo y genera `data/job-match/esco-candidates.json`. La aplicación publicada no consulta ESCO ni otra API durante el análisis. Los candidatos deben revisarse antes de incorporarlos a `concepts/esco-curated.ts`, donde conservan el URI y la versión de origen.
+
+`npm run dictionary:validate` comprueba la estructura, los identificadores de fuente y una muestra bilingüe de conceptos. Consulta `DATA_SOURCES.md` para conocer la atribución y el criterio de adaptación.
+
 ## Motor de comparación
 
 El bloque 4 conecta extracción y taxonomía. Busca conceptos en la vacante y en cada sección del CV, prioriza coincidencias del mismo concepto y usa relaciones solamente como evidencia parcial. La similitud aproximada admite una única edición en palabras de cinco o más caracteres y nunca se utiliza como equivalencia semántica.

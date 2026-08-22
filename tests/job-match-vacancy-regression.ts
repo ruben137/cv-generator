@@ -122,4 +122,33 @@ const rows = cases.map((testCase) => {
 });
 
 assert.deepEqual(validateConceptDictionary(), []);
+
+const frontendVocabularyRegression = analyzeJobMatch(
+  {
+    title: "Desarrollador Frontend",
+    language: "es",
+    jobFamily: "software-development",
+    text: [
+      "Requisitos:",
+      "JavaScript moderno (ES6+)",
+      "Zustand u otras",
+      "herramientas de construcción",
+      "npm/yarn",
+      "ecosistema relacionado (Hooks)",
+      "Context",
+      "librerías como SASS",
+      "Styled Components",
+      "diseño responsive",
+      "código testeable",
+      "puesto",
+    ].join("\n"),
+  },
+  resume("Desarrollador Frontend", ["JavaScript", "Zustand", "npm", "React Hooks", "Sass", "Styled Components", "diseño responsive", "testing"], ["Construí interfaces responsive y testeables con JavaScript, Zustand, Sass y Styled Components."]),
+  { now: () => new Date(0) },
+);
+assert.deepEqual(
+  frontendVocabularyRegression.unclassifiedTerms.map((item) => item.term.normalized),
+  [],
+  "known frontend vocabulary and generic noise should not require manual review",
+);
 console.table(rows);

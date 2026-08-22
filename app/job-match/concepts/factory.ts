@@ -1,4 +1,4 @@
-import type { ConceptAlias, ConceptRelation, JobFamily, MatchConcept, TermCategory } from "../model";
+import type { ConceptAlias, ConceptRelation, ConceptSource, JobFamily, MatchConcept, TermCategory } from "../model";
 
 type AliasInput = string | [value: string, kind: ConceptAlias["kind"]];
 
@@ -11,6 +11,7 @@ export type ConceptInput = {
   esAliases?: AliasInput[];
   enAliases?: AliasInput[];
   relations?: Array<[targetConceptId: string, kind: ConceptRelation["kind"], confidence: number]>;
+  sources?: ConceptSource[];
 };
 
 function aliases(locale: "es" | "en", canonical: string, values: AliasInput[]): ConceptAlias[] {
@@ -31,5 +32,6 @@ export function concept(input: ConceptInput): MatchConcept {
     ],
     relations: (input.relations ?? []).map(([targetConceptId, kind, confidence]) => ({ targetConceptId, kind, confidence })),
     jobFamilies: input.families,
+    sources: input.sources ?? [],
   };
 }

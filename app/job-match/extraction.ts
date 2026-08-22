@@ -22,13 +22,13 @@ const requirementSignals: Record<JobMatchLanguage, { required: RegExp[]; preferr
 };
 
 const conjunctions: Record<JobMatchLanguage, RegExp> = {
-  es: /\s+(?:y|e|o)\s+/i,
+  es: /\s+(?:y|e|o|u)\s+/i,
   en: /\s+(?:and|or)\s+/i,
 };
 
 const repeatedTermNoise: Record<JobMatchLanguage, ReadonlySet<string>> = {
-  es: new Set(["experiencia", "equipo", "equipos", "cliente", "clientes", "proyecto", "proyectos", "sistema", "sistemas", "plataforma", "plataformas", "estado", "estados", "construyendo", "buscamos", "trabajo"]),
-  en: new Set(["experience", "team", "teams", "client", "clients", "project", "projects", "system", "systems", "platform", "platforms", "building", "work", "looking"]),
+  es: new Set(["experiencia", "equipo", "equipos", "cliente", "clientes", "proyecto", "proyectos", "sistema", "sistemas", "plataforma", "plataformas", "estado", "estados", "construyendo", "buscamos", "trabajo", "puesto", "cargo", "context", "contexto", "otra", "otras"]),
+  en: new Set(["experience", "team", "teams", "client", "clients", "project", "projects", "system", "systems", "platform", "platforms", "building", "work", "looking", "role", "position", "context", "other", "others"]),
 };
 
 const requirementSections: Record<JobMatchLanguage, { required: RegExp; preferred: RegExp; end: RegExp }> = {
@@ -69,7 +69,10 @@ function splitRequirementSegment(segment: string, language: JobMatchLanguage): s
     .split(/[,;|]/)
     .flatMap((part) => part.split(conjunctions[language]))
     .map((part) => part.trim())
-    .filter((part) => part.length >= 2 && part.length <= 100 && hasMeaningfulToken(part, language));
+    .filter((part) => part.length >= 2
+      && part.length <= 100
+      && hasMeaningfulToken(part, language)
+      && !repeatedTermNoise[language].has(normalizeText(part)));
 }
 
 export function extractExplicitRequirements(input: JobDescriptionInput): ExtractedTerm[] {

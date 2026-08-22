@@ -41,6 +41,12 @@ export type ConceptRelation = {
   confidence: number;
 };
 
+export type ConceptSource = {
+  dataset: "esco" | "onet" | "wikidata" | "curated";
+  version?: string;
+  uri: string;
+};
+
 export type MatchConcept = {
   /** Stable, language-independent identifier, for example `continuous-improvement`. */
   id: string;
@@ -49,6 +55,7 @@ export type MatchConcept = {
   aliases: ConceptAlias[];
   relations: ConceptRelation[];
   jobFamilies: JobFamily[];
+  sources: ConceptSource[];
 };
 
 export const requirementLevels = ["required", "preferred", "unknown"] as const;

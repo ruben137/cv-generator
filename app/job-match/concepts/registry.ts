@@ -3,6 +3,7 @@ import { normalizeText } from "../normalization";
 import { accountingConcepts } from "./accounting";
 import { administrationConcepts } from "./administration";
 import { customerServiceConcepts } from "./customer-service";
+import { escoCuratedConcepts } from "./esco-curated";
 import { graphicDesignConcepts } from "./graphic-design";
 import { industrialEngineeringConcepts } from "./industrial-engineering";
 import { marketingConcepts } from "./marketing";
@@ -11,14 +12,14 @@ import { sharedConcepts } from "./shared";
 import { softwareDevelopmentConcepts } from "./software-development";
 
 export const professionalConcepts: Record<Exclude<JobFamily, "general">, readonly MatchConcept[]> = {
-  "software-development": softwareDevelopmentConcepts,
-  "industrial-engineering": industrialEngineeringConcepts,
-  administration: administrationConcepts,
-  marketing: marketingConcepts,
-  sales: salesConcepts,
-  accounting: accountingConcepts,
-  "customer-service": customerServiceConcepts,
-  "graphic-design": graphicDesignConcepts,
+  "software-development": [...softwareDevelopmentConcepts, ...(escoCuratedConcepts["software-development"] ?? [])],
+  "industrial-engineering": [...industrialEngineeringConcepts, ...(escoCuratedConcepts["industrial-engineering"] ?? [])],
+  administration: [...administrationConcepts, ...(escoCuratedConcepts.administration ?? [])],
+  marketing: [...marketingConcepts, ...(escoCuratedConcepts.marketing ?? [])],
+  sales: [...salesConcepts, ...(escoCuratedConcepts.sales ?? [])],
+  accounting: [...accountingConcepts, ...(escoCuratedConcepts.accounting ?? [])],
+  "customer-service": [...customerServiceConcepts, ...(escoCuratedConcepts["customer-service"] ?? [])],
+  "graphic-design": [...graphicDesignConcepts, ...(escoCuratedConcepts["graphic-design"] ?? [])],
 };
 
 export const jobMatchConcepts: readonly MatchConcept[] = [
@@ -40,7 +41,7 @@ export function findConceptsByTerm(term: string, language?: JobMatchLanguage, jo
 
 export type ConceptDictionaryIssue = {
   conceptId: string;
-  code: "duplicate-id" | "missing-label" | "empty-alias" | "invalid-confidence" | "missing-relation-target";
+  code: "duplicate-id" | "missing-label" | "empty-alias" | "invalid-confidence" | "missing-relation-target" | "invalid-source";
   detail: string;
 };
 
@@ -59,6 +60,9 @@ export function validateConceptDictionary(concepts: readonly MatchConcept[] = jo
     for (const relation of item.relations) {
       if (relation.confidence < 0 || relation.confidence > 1) issues.push({ conceptId: item.id, code: "invalid-confidence", detail: String(relation.confidence) });
       if (!allIds.has(relation.targetConceptId)) issues.push({ conceptId: item.id, code: "missing-relation-target", detail: relation.targetConceptId });
+    }
+    for (const source of item.sources) {
+      if (!/^https?:\/\//.test(source.uri)) issues.push({ conceptId: item.id, code: "invalid-source", detail: source.uri });
     }
   }
   return issues;

@@ -1,0 +1,413 @@
+{
+  "generatedAt": "2026-08-22T11:27:08.289Z",
+  "source": {
+    "name": "European Skills, Competences, Qualifications and Occupations (ESCO)",
+    "version": "v1.2.0",
+    "url": "https://esco.ec.europa.eu/en/use-esco/download"
+  },
+  "candidates": [
+    {
+      "family": "software-development",
+      "query": "Java (computer programming)",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/19a8293b-8e95-4de3-983f-77484079c389",
+      "preferredLabel": {
+        "es": "Java (programación informática)",
+        "en": "Java (computer programming)"
+      },
+      "alternativeLabel": {
+        "es": [
+          "Javax",
+          "Java Posse"
+        ],
+        "en": [
+          "Java"
+        ]
+      }
+    },
+    {
+      "family": "software-development",
+      "query": "CSS",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/e5d1f825-60ed-4bdd-872a-e748c387f777",
+      "preferredLabel": {
+        "es": "CSS",
+        "en": "CSS"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "Cascading Style Sheets"
+        ]
+      }
+    },
+    {
+      "family": "industrial-engineering",
+      "query": "supply chain management",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/f929c89e-c363-4132-a918-e021d57b307c",
+      "preferredLabel": {
+        "es": "gestión de la cadena de suministro",
+        "en": "supply chain management"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "supply chain oversight",
+          "management of a supply chain",
+          "supply chain regulation",
+          "supply chain managing",
+          "manage a supply chain",
+          "supply chain supervision",
+          "supply chain administration"
+        ]
+      }
+    },
+    {
+      "family": "industrial-engineering",
+      "query": "schedule production",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/2a778aeb-f246-4f03-9a96-c60183001037",
+      "preferredLabel": {
+        "es": "programar la producción",
+        "en": "schedule production"
+      },
+      "alternativeLabel": {
+        "es": [
+          "programar la producción"
+        ],
+        "en": [
+          "planning production",
+          "production planning",
+          "production scheduling",
+          "scheduling production",
+          "plan production"
+        ]
+      }
+    },
+    {
+      "family": "industrial-engineering",
+      "query": "adhere to OHSAS 18001",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/2d9aaad3-a3c8-4c5b-bf67-46984d860873",
+      "preferredLabel": {
+        "es": "seguir las normas OHSAS 18001",
+        "en": "adhere to OHSAS 18001"
+      },
+      "alternativeLabel": {
+        "es": [
+          "obedecer las normas OHSAS 18001",
+          "cumplir las normas OHSAS 18001"
+        ],
+        "en": [
+          "abide by Occupational Health and Safety Assessment Series 18001",
+          "follow Occupational Health and Safety Assessment Series 18001",
+          "comply with the standards of occupational health and safety management systems",
+          "work according to occupational health and safety management system standards",
+          "adhere to OHSAS 18001",
+          "follow OHSAS 18001",
+          "abide by PHSAS 18001",
+          "adhere to Occupational Health and Safety Assessment Series 18001"
+        ]
+      }
+    },
+    {
+      "family": "administration",
+      "query": "oversee all travel arrangements",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/15b7d066-35aa-418a-b115-3460f908f997",
+      "preferredLabel": {
+        "es": "supervisar todos los preparativos de viajes",
+        "en": "oversee all travel arrangements"
+      },
+      "alternativeLabel": {
+        "es": [
+          "supervisión de todos los preparativos de viaje",
+          "organización de preparativos de viaje",
+          "supervisar los preparativos de los viajes",
+          "controlar todos los preparativos de viaje"
+        ],
+        "en": [
+          "oversee all travelling arrangements",
+          "coordinate and check all travel reservations and services",
+          "supervise travel arrangements",
+          "oversee all arrangements of travel"
+        ]
+      }
+    },
+    {
+      "family": "administration",
+      "query": "office administration",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/6a609f8f-1451-4102-ad2d-62c5270e1237",
+      "preferredLabel": {
+        "es": "administración de la oficina",
+        "en": "office administration"
+      },
+      "alternativeLabel": {
+        "es": [
+          "administración de oficinas",
+          "dirección de la oficina"
+        ],
+        "en": [
+          "office control",
+          "office organisation",
+          "office management"
+        ]
+      }
+    },
+    {
+      "family": "marketing",
+      "query": "market research",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/8770350e-746f-4adb-9556-18ca68104be6",
+      "preferredLabel": {
+        "es": "estudios de mercado",
+        "en": "market research"
+      },
+      "alternativeLabel": {
+        "es": [
+          "análisis de mercado",
+          "investigaciones de mercado"
+        ],
+        "en": [
+          "market studies",
+          "market research",
+          "market analysis"
+        ]
+      }
+    },
+    {
+      "family": "marketing",
+      "query": "supervise brand management",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/ab5c3fac-238f-4006-a122-1114082a2f46",
+      "preferredLabel": {
+        "es": "supervisar la gestión de la marca",
+        "en": "supervise brand management"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "brand management supervision",
+          "supervising brand management",
+          "supervise a brand management",
+          "manage brand management",
+          "watch over brand management",
+          "monitor brand management",
+          "oversee brand management"
+        ]
+      }
+    },
+    {
+      "family": "sales",
+      "query": "relationship marketing",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/0e54cc0e-6cef-41ec-bd8c-e8e8778969ec",
+      "preferredLabel": {
+        "es": "marketing de relaciones",
+        "en": "relationship marketing"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "relationship marketing strategies"
+        ]
+      }
+    },
+    {
+      "family": "sales",
+      "query": "manage contracts",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/92721092-fe7c-4689-96bd-4f02385bc0e7",
+      "preferredLabel": {
+        "es": "gestionar contratos",
+        "en": "manage contracts"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "supervise manage contracts",
+          "contract management",
+          "regulate manage contracts",
+          "manage a contract",
+          "oversee manage contracts",
+          "managing a contract",
+          "maintain manage contracts"
+        ]
+      }
+    },
+    {
+      "family": "sales",
+      "query": "telemarketing",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/16132f2b-cf61-4c53-ae8d-9023a8bab90b",
+      "preferredLabel": {
+        "es": "telemarketing",
+        "en": "telemarketing"
+      },
+      "alternativeLabel": {
+        "es": [
+          "marketing telefónico",
+          "telemercadeo"
+        ],
+        "en": [
+          "telephone soliciting",
+          "cold-calling"
+        ]
+      }
+    },
+    {
+      "family": "accounting",
+      "query": "budgetary principles",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/74688c5d-2af1-4f7a-9d1c-00e808eaa1e6",
+      "preferredLabel": {
+        "es": "principios presupuestarios",
+        "en": "budgetary principles"
+      },
+      "alternativeLabel": {
+        "es": [
+          "normas presupuestarias"
+        ],
+        "en": [
+          "use of budgetary principles",
+          "theory of budgeting principles",
+          "theory of budgetary principles",
+          "principles of budgeting",
+          "theories of budgeting",
+          "scope of budgetary principles",
+          "budgeting principles",
+          "range of budgetary principles"
+        ]
+      }
+    },
+    {
+      "family": "accounting",
+      "query": "financial analysis",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/99571e68-801f-49af-a897-5f75996642e1",
+      "preferredLabel": {
+        "es": "análisis financiero",
+        "en": "financial analysis"
+      },
+      "alternativeLabel": {
+        "es": [
+          "análisis fiscal",
+          "análisis bursátil"
+        ],
+        "en": [
+          "commercial analysis",
+          "economic analysis",
+          "business analysis",
+          "fiscal analysis",
+          "fiscal audit",
+          "economic audit"
+        ]
+      }
+    },
+    {
+      "family": "customer-service",
+      "query": "guarantee customer satisfaction",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/00e53a0a-c0ba-4c9f-a2ed-4706d5832a00",
+      "preferredLabel": {
+        "es": "garantizar la satisfacción del cliente",
+        "en": "guarantee customer satisfaction"
+      },
+      "alternativeLabel": {
+        "es": [
+          "velar por la satisfacción del cliente",
+          "asegurar la satisfacción del cliente"
+        ],
+        "en": [
+          "assure customer satisfaction",
+          "provide customer satisfaction",
+          "promise customer satisfaction",
+          "ensure customer satisfaction",
+          "customer satisfaction guarantee",
+          "guaranteeing customer satisfaction"
+        ]
+      }
+    },
+    {
+      "family": "customer-service",
+      "query": "perform escalation procedure",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/946c1229-1171-40d4-82cc-fe3f483ca100",
+      "preferredLabel": {
+        "es": "seguir un procedimiento de notificación escalonada",
+        "en": "perform escalation procedure"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "complete escalation procedure",
+          "implement escalation procedure",
+          "perform an escalation procedure",
+          "undertake escalation procedure",
+          "perform escalation procedures",
+          "performing escalation procedure"
+        ]
+      }
+    },
+    {
+      "family": "graphic-design",
+      "query": "usability engineering",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/95ee5e38-5c1e-4cd2-a21d-6921390025a9",
+      "preferredLabel": {
+        "es": "ingeniería de facilidad de uso",
+        "en": "usability engineering"
+      },
+      "alternativeLabel": {
+        "es": [],
+        "en": [
+          "usability testing",
+          "usability engineering"
+        ]
+      }
+    },
+    {
+      "family": "graphic-design",
+      "query": "create prototype of user experience solutions",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/07dd856d-6141-48a7-a228-918f88494812",
+      "preferredLabel": {
+        "es": "crear prototipos de soluciones de experiencia de usuario",
+        "en": "create prototype of user experience solutions"
+      },
+      "alternativeLabel": {
+        "es": [
+          "crear prototipos para las soluciones de experiencia de usuario",
+          "desarrollar prototipos de soluciones de experiencia de usuario",
+          "construir prototipos de soluciones de experiencia de usuario",
+          "disponer prototipos de soluciones de experiencia de usuario",
+          "elaborar prototipos de soluciones de experiencia de usuario"
+        ],
+        "en": [
+          "UX"
+        ]
+      }
+    },
+    {
+      "family": "graphic-design",
+      "query": "motion graphics",
+      "status": "exact",
+      "uri": "http://data.europa.eu/esco/skill/8afe68ff-b261-4fa8-ab25-bb30b0e5c292",
+      "preferredLabel": {
+        "es": "gráficos en movimiento",
+        "en": "motion graphics"
+      },
+      "alternativeLabel": {
+        "es": [
+          "grafismo en movimiento"
+        ],
+        "en": [
+          "motion graphic",
+          "motion graphics"
+        ]
+      }
+    }
+  ]
+}
