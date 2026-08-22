@@ -409,7 +409,8 @@ export default function Home() {
       window.location.hash === "#generator"
       || searchParams.has("cv")
       || searchParams.has("preset")
-      || searchParams.has("new");
+      || searchParams.has("new")
+      || searchParams.get("openEditor") === "1";
 
     if (opensEditorDirectly || window.scrollY > 240) {
       const activationFrame = window.requestAnimationFrame(() => setEditorReady(true));
@@ -425,6 +426,20 @@ export default function Home() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!editorReady) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const shouldFocusGenerator = window.location.hash === "#generator" || searchParams.get("openEditor") === "1";
+    if (!shouldFocusGenerator) return;
+
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById("generator")?.scrollIntoView({ block: "start" });
+      });
+    });
+    return () => window.cancelAnimationFrame(firstFrame);
+  }, [editorReady]);
 
   const analyzeCurrentCv = () => {
     if (!selectedJobFamily) return;

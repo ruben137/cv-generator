@@ -180,7 +180,7 @@ export function JobMatchClient() {
       <header className="job-match-header">
         <BrandLogo />
         <nav aria-label={t("navigationLabel")}>
-          <a href={`${homePath}#generator`} target="_blank" rel="noopener noreferrer">
+          <a href={`${homePath}?openEditor=1#generator`} target="_blank" rel="noopener noreferrer">
             <ArrowBackRoundedIcon fontSize="small" />{t("backToGenerator")}
           </a>
         </nav>
@@ -339,7 +339,15 @@ export function JobMatchClient() {
 
       <section className="job-match-final-cta">
         <div><h2>{t("finalTitle")}</h2><p>{t("finalDescription")}</p></div>
-        <Button component="a" href={homePath} variant="contained">{t("backToBuilderCta")}</Button>
+        <Button
+          component="a"
+          href={`${homePath}?openEditor=1#generator`}
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="contained"
+        >
+          {t("backToBuilderCta")}
+        </Button>
       </section>
     </main>
   );
