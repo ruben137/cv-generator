@@ -1,9 +1,10 @@
 import type { CvData } from "../types";
+import { createImprovementTarget, type ImprovementTarget } from "../improvement-plan";
 import { cvDataToMatchInput } from "./cv-adapter";
 import { jobFamilies, type JobFamily, type JobMatchLanguage, type ResumeMatchInput } from "./model";
 
 export const JOB_MATCH_TRANSFER_KEY = "cv-simple-job-match-transfer";
-const TRANSFER_VERSION = 2;
+const TRANSFER_VERSION = 3;
 
 type JobMatchTransfer = {
   version: typeof TRANSFER_VERSION;
@@ -11,6 +12,7 @@ type JobMatchTransfer = {
   language: JobMatchLanguage;
   jobFamily: JobFamily;
   resume: ResumeMatchInput;
+  target: ImprovementTarget;
 };
 
 function isStringArray(value: unknown): value is string[] {
@@ -32,18 +34,19 @@ function isResumeInput(value: unknown): value is ResumeMatchInput {
     && (resume.source === undefined || resume.source === "structured" || resume.source === "text");
 }
 
-export function createJobMatchTransfer(cv: CvData, jobFamily: JobFamily): JobMatchTransfer {
+export function createJobMatchTransfer(cv: CvData, jobFamily: JobFamily, cvId?: string | null): JobMatchTransfer {
   return {
     version: TRANSFER_VERSION,
     createdAt: new Date().toISOString(),
     language: cv.documentLocale,
     jobFamily,
     resume: cvDataToMatchInput(cv),
+    target: createImprovementTarget(cv, cvId),
   };
 }
 
-export function writeJobMatchTransfer(storage: Storage, cv: CvData, jobFamily: JobFamily): void {
-  storage.setItem(JOB_MATCH_TRANSFER_KEY, JSON.stringify(createJobMatchTransfer(cv, jobFamily)));
+export function writeJobMatchTransfer(storage: Storage, cv: CvData, jobFamily: JobFamily, cvId?: string | null): void {
+  storage.setItem(JOB_MATCH_TRANSFER_KEY, JSON.stringify(createJobMatchTransfer(cv, jobFamily, cvId)));
 }
 
 export function consumeJobMatchTransfer(storage: Storage): JobMatchTransfer | null {
@@ -52,7 +55,7 @@ export function consumeJobMatchTransfer(storage: Storage): JobMatchTransfer | nu
   if (!raw) return null;
   try {
     const transfer = JSON.parse(raw) as Partial<JobMatchTransfer>;
-    if (transfer.version !== TRANSFER_VERSION || !isResumeInput(transfer.resume)) return null;
+    if (transfer.version !== TRANSFER_VERSION || !isResumeInput(transfer.resume) || !transfer.target || typeof transfer.target.fingerprint !== "string") return null;
     if (transfer.language !== "es" && transfer.language !== "en") return null;
     if (!jobFamilies.includes(transfer.jobFamily as JobFamily)) return null;
     return transfer as JobMatchTransfer;

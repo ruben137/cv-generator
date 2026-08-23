@@ -31,6 +31,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { BrandLogo } from "../brand-logo";
 import { listStoredCvs, type StoredCv } from "../cv-library";
+import { createImprovementTarget, saveImprovementPlan, type ImprovementTarget } from "../improvement-plan";
 import { cvDataToMatchInput } from "./cv-adapter";
 import {
   analyzeJobMatch,
@@ -74,6 +75,7 @@ export function JobMatchClient() {
   const homePath = `/${locale}`;
   const [analysis, setAnalysis] = useState<JobMatchAnalysis | null>(null);
   const [linkedResume, setLinkedResume] = useState<ResumeMatchInput | null>(null);
+  const [improvementTarget, setImprovementTarget] = useState<ImprovementTarget | null>(null);
   const [loadedFromEditor, setLoadedFromEditor] = useState(false);
   const [resumeLanguage, setResumeLanguage] = useState<JobMatchLanguage>(locale);
   const [pdfImporting, setPdfImporting] = useState(false);
@@ -99,6 +101,7 @@ export function JobMatchClient() {
     queueMicrotask(() => {
       if (!active) return;
       setLinkedResume(transfer.resume);
+      setImprovementTarget(transfer.target);
       setLoadedFromEditor(true);
       setResumeLanguage(transfer.language);
       setValue("jobFamily", transfer.jobFamily);
@@ -146,6 +149,7 @@ export function JobMatchClient() {
   const selectStoredCv = (stored: StoredCv) => {
     const resume = cvDataToMatchInput(stored.data);
     setLinkedResume(resume);
+    setImprovementTarget(createImprovementTarget(stored.data, stored.id));
     setLoadedFromEditor(true);
     setResumeLanguage(stored.locale);
     setValue("resumeTitle", resume.title, { shouldDirty: true });
@@ -205,6 +209,7 @@ export function JobMatchClient() {
       const truncated = extractedText.length > MAX_RESUME_CHARACTERS;
       setValue("resumeText", extractedText.slice(0, MAX_RESUME_CHARACTERS), { shouldDirty: true, shouldValidate: true });
       setLinkedResume(null);
+      setImprovementTarget(null);
       setLoadedFromEditor(false);
       setAnalysis(null);
       setPdfNotice({ severity: truncated ? "warning" : "success", message: t(truncated ? "pdfImportedTruncated" : "pdfImported", { name: file.name }) });
@@ -214,6 +219,31 @@ export function JobMatchClient() {
       setPdfImporting(false);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
     }
+  };
+
+  const sendImprovementsToGenerator = () => {
+    if (!analysis || !improvementTarget) return;
+    const missingTerms = [...new Set(analysis.missingRequirements.map((item) => item.term.original))];
+    const suggestions = [
+      ...(missingTerms.length ? [{
+        id: "job-missing-skills",
+        kind: "add-skill" as const,
+        section: "skills" as const,
+        terms: missingTerms,
+        title: t("planMissingSkillsTitle"),
+        detail: t("planMissingSkillsDetail"),
+      }] : []),
+      ...groupedRecommendations.general.map((recommendation) => ({
+        id: `job-${recommendation.id}`,
+        kind: "review-section" as const,
+        section: recommendation.kind === "review-title" ? "headline" as const : recommendation.kind === "add-evidence" || recommendation.kind === "quantify-achievement" ? "experience" as const : "general" as const,
+        title: t(`recommendations.${recommendation.kind}`),
+        detail: recommendation.relatedTerms.length ? recommendation.relatedTerms.join(", ") : t("planGeneralDetail"),
+      })),
+    ];
+    if (!suggestions.length) return;
+    saveImprovementPlan(window.localStorage, { source: "job-match", target: improvementTarget, suggestions });
+    window.location.assign(`${homePath}?openEditor=1#generator`);
   };
 
   return (
@@ -379,6 +409,7 @@ export function JobMatchClient() {
 
           {analysis.unclassifiedTerms.length > 0 && <details className="job-match-unclassified"><summary>{t("unclassifiedTitle", { count: analysis.unclassifiedTerms.length })}</summary><p>{t("unclassifiedHelp")}</p><div>{analysis.unclassifiedTerms.slice(0, 20).map((item, index) => <Chip key={`${item.term.normalized}-${index}`} label={item.term.original} variant="outlined" />)}</div></details>}
           <div className="job-match-result-actions">
+            {improvementTarget && <Button className="job-match-send-improvements" variant="contained" onClick={sendImprovementsToGenerator} startIcon={<TipsAndUpdatesOutlinedIcon />}>{t("sendToGenerator")}</Button>}
             <Button variant="outlined" onClick={() => document.querySelector(".job-match-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{t("editInputs")}</Button>
             <Button variant="text" onClick={() => { setAnalysis(null); requestAnimationFrame(() => document.querySelector(".job-match-form")?.scrollIntoView({ behavior: "smooth", block: "start" })); }}>{t("clearResult")}</Button>
           </div>
@@ -416,9 +447,9 @@ export function JobMatchClient() {
         <DialogTitle>{t("savedCvSelectorTitle")}<IconButton className="quality-dialog-close" aria-label={t("closeSavedCvSelector")} onClick={() => setCvSelectorOpen(false)}><CloseRoundedIcon /></IconButton></DialogTitle>
         <DialogContent>
           <p className="quality-selector-help">{t("savedCvSelectorHelp")}</p>
-          {storedCvsLoading ? <p>{t("loadingSavedCvs")}</p> : storedCvs.length ? <div className="quality-cv-list">{storedCvs.map((cv) => <button type="button" key={cv.id} onClick={() => selectStoredCv(cv)}><div className="quality-cv-thumbnail" style={{ "--library-primary": cv.data.primaryColor } as React.CSSProperties}><i />{cv.data.photo ? <img src={cv.data.photo} alt="" /> : <DescriptionRoundedIcon />}</div><span><strong>{cv.title}</strong><small>{cv.data.headline || t("noProfessionalTitle")}</small><em>{cv.locale.toUpperCase()}</em></span></button>)}</div> : <Alert severity="info">{t("noSavedCvs")}</Alert>}
+          {storedCvsLoading ? <p>{t("loadingSavedCvs")}</p> : storedCvs.length ? <div className="quality-cv-list">{storedCvs.map((cv) => <button type="button" key={cv.id} onClick={() => selectStoredCv(cv)}><div className="quality-cv-thumbnail" style={{ "--library-primary": cv.data.primaryColor } as React.CSSProperties}><i />{cv.data.photo ? <img src={cv.data.photo} alt="" /> : <DescriptionRoundedIcon />}</div><span><strong>{cv.title}</strong><small>{cv.data.headline || t("noProfessionalTitle")}</small><em>{cv.locale.toUpperCase()}</em></span></button>)}</div> : <Alert severity="info" className="saved-cv-tip"><strong>{t("noSavedCvs")}</strong><span>{t("saveCvTip")}</span></Alert>}
         </DialogContent>
-        <DialogActions><Button onClick={() => setCvSelectorOpen(false)}>{t("cancel")}</Button><Button component="a" href={`${homePath}?openEditor=1#generator`} target="_blank">{t("createCv")}</Button></DialogActions>
+        <DialogActions><Button onClick={() => setCvSelectorOpen(false)}>{t("cancel")}</Button><Button component="a" href={`${homePath}?openEditor=1#generator`}>{t("createCv")}</Button></DialogActions>
       </Dialog>
     </main>
   );

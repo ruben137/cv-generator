@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { BrandLogo } from "../brand-logo";
 import { listStoredCvs, type StoredCv } from "../cv-library";
+import { createImprovementTarget, saveImprovementPlan, type ImprovementTarget } from "../improvement-plan";
 import type { CvData } from "../types";
 import { reviewResumeQuality, type ResumeQualityReview } from "./engine";
 import { consumeResumeReviewTransfer } from "./transfer";
@@ -31,6 +32,7 @@ export function ResumeReviewClient() {
   const locale = useLocale() === "en" ? "en" : "es";
   const [selectedCv, setSelectedCv] = useState<CvData | null>(null);
   const [selectedName, setSelectedName] = useState("");
+  const [improvementTarget, setImprovementTarget] = useState<ImprovementTarget | null>(null);
   const [storedCvs, setStoredCvs] = useState<StoredCv[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,9 +44,10 @@ export function ResumeReviewClient() {
     if (transferred) {
       queueMicrotask(() => {
         if (!active) return;
-        setSelectedCv(transferred);
-        setSelectedName(transferred.name || t("currentCv"));
-        setReview(reviewResumeQuality(transferred));
+        setSelectedCv(transferred.cv);
+        setImprovementTarget(transferred.target);
+        setSelectedName(transferred.cv.name || t("currentCv"));
+        setReview(reviewResumeQuality(transferred.cv));
         setLoading(false);
       });
       return () => {
@@ -76,6 +79,7 @@ export function ResumeReviewClient() {
 
   const selectCv = (stored: StoredCv) => {
     setSelectedCv(stored.data);
+    setImprovementTarget(createImprovementTarget(stored.data, stored.id));
     setSelectedName(stored.title);
     setReview(null);
     setSelectorOpen(false);
@@ -83,6 +87,25 @@ export function ResumeReviewClient() {
   const analyze = () => {
     if (!selectedCv) return;
     setReview(reviewResumeQuality(selectedCv));
+  };
+  const sendImprovementsToGenerator = () => {
+    if (!review || !improvementTarget) return;
+    const suggestions = review.checks.filter((check) => check.status !== "passed").map((check) => ({
+      id: `quality-${check.id}`,
+      kind: "review-section" as const,
+      section: check.id === "contact" || check.id === "links" ? "contact" as const
+        : check.id === "title" ? "headline" as const
+        : check.id === "summary" ? "summary" as const
+        : check.id === "skills" || check.id === "skillEvidence" ? "skills" as const
+        : check.id === "experience" || check.id === "dates" || check.id === "bulletLength" || check.id === "metrics" || check.id === "actionVerbs" || check.id === "repetition" ? "experience" as const
+        : "general" as const,
+      title: t(`checks.${check.id}.title`),
+      detail: t(`checks.${check.id}.description`),
+      ...(check.values?.length ? { terms: check.values } : {}),
+    }));
+    if (!suggestions.length) return;
+    saveImprovementPlan(window.localStorage, { source: "quality-review", target: improvementTarget, suggestions });
+    window.location.assign(`/${locale}?openEditor=1#generator`);
   };
 
   return (
@@ -189,9 +212,10 @@ export function ResumeReviewClient() {
               </article>
             ))}
           </div>
-          <Button variant="outlined" onClick={() => setSelectorOpen(true)}>
-            {t("reviewAgain")}
-          </Button>
+          <div className="quality-result-actions">
+            {improvementTarget && review.checks.some((check) => check.status !== "passed") && <Button className="job-match-send-improvements" variant="contained" onClick={sendImprovementsToGenerator}>{t("sendToGenerator")}</Button>}
+            <Button variant="outlined" onClick={() => setSelectorOpen(true)}>{t("reviewAgain")}</Button>
+          </div>
         </section>
       )}
       <Dialog
@@ -238,7 +262,7 @@ export function ResumeReviewClient() {
               ))}
             </div>
           ) : (
-            <Alert severity="info">{t("noSavedCvs")}</Alert>
+            <Alert severity="info" className="saved-cv-tip"><strong>{t("noSavedCvs")}</strong><span>{t("saveCvTip")}</span></Alert>
           )}
         </DialogContent>
         <DialogActions>
@@ -246,7 +270,6 @@ export function ResumeReviewClient() {
           <Button
             component="a"
             href={`/${locale}?openEditor=1#generator`}
-            target="_blank"
           >
             {t("createCv")}
           </Button>

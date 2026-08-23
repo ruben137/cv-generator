@@ -10,6 +10,7 @@ import {
   DragIndicatorRounded,
   ExpandMoreRounded,
   FactCheckOutlined,
+  TipsAndUpdatesOutlined,
   FolderOpenRounded,
   InsertDriveFileRounded,
   LanguageRounded,
@@ -40,6 +41,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Drawer,
   FormControlLabel,
   IconButton,
   MenuItem,
@@ -90,6 +92,7 @@ import { getProfessionalPreset, isProfessionalPresetId } from "./professional-pr
 import { writeJobMatchTransfer } from "./job-match/transfer";
 import { jobFamilies, type JobFamily } from "./job-match/model";
 import { writeResumeReviewTransfer } from "./resume-review/transfer";
+import { createImprovementTarget, getImprovementPlans, removeImprovementPlan, storeImprovementPlans, type ImprovementPlan, type ImprovementSuggestion } from "./improvement-plan";
 
 const theme = createTheme({
   palette: {
@@ -129,6 +132,7 @@ const colorPresets = [
 
 const STORAGE_KEY = "cv-simple-data";
 const AUTOSAVE_KEY = "cv-simple-autosave";
+const NAVIGATION_DRAFT_KEY = "cv-simple-navigation-draft";
 
 const fontOptions = [
   { value: "sans", labelKey: "fontSans", css: "Arial, Helvetica, sans-serif" },
@@ -249,6 +253,10 @@ export default function Home() {
   const [autoSave, setAutoSave] = useState(true);
   const [storageReady, setStorageReady] = useState(false);
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
+  const [improvementPlans, setImprovementPlans] = useState<ImprovementPlan[]>([]);
+  const [improvementsOpen, setImprovementsOpen] = useState(false);
+  const [improvementUndo, setImprovementUndo] = useState<{ skills: CvData["skills"]; plans: ImprovementPlan[]; message: "improvementApplied" | "improvementReviewed" | "improvementDismissed" } | null>(null);
+  const improvementLoadKeyRef = useRef<string | null>(null);
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
@@ -312,6 +320,22 @@ export default function Home() {
           setActiveCvId(storedCv.id);
           setCvTitle(storedCv.title);
           loaded = true;
+        }
+      }
+      if (!loaded) {
+        try {
+          const navigationDraft = window.sessionStorage.getItem(NAVIGATION_DRAFT_KEY);
+          if (navigationDraft) {
+            const parsed = JSON.parse(navigationDraft) as { data?: unknown; activeCvId?: string | null; cvTitle?: string };
+            reset(normalizeCvData(parsed.data, locale as "es" | "en"));
+            setActiveCvId(typeof parsed.activeCvId === "string" ? parsed.activeCvId : null);
+            setCvTitle(typeof parsed.cvTitle === "string" ? parsed.cvTitle : "");
+            loaded = true;
+          }
+        } catch {
+          // Ignore a malformed temporary draft and fall back to regular local storage.
+        } finally {
+          window.sessionStorage.removeItem(NAVIGATION_DRAFT_KEY);
         }
       }
       if (!loaded && enabled && !forceNew) {
@@ -445,11 +469,23 @@ export default function Home() {
     return () => window.cancelAnimationFrame(firstFrame);
   }, [editorReady]);
 
+  useEffect(() => {
+    if (!storageReady) return;
+    const loadKey = activeCvId ?? "current-draft";
+    if (improvementLoadKeyRef.current === loadKey) return;
+    improvementLoadKeyRef.current = loadKey;
+    const frame = window.requestAnimationFrame(() => {
+      setImprovementPlans(getImprovementPlans(window.localStorage, createImprovementTarget(data, activeCvId)));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeCvId, data, storageReady]);
+
   const analyzeCurrentCv = () => {
     if (!selectedJobFamily) return;
     try {
-      writeJobMatchTransfer(window.localStorage, data, selectedJobFamily);
-      window.open(`${jobMatchPath}?source=editor`, "_blank", "noopener,noreferrer");
+      window.sessionStorage.setItem(NAVIGATION_DRAFT_KEY, JSON.stringify({ data, activeCvId, cvTitle }));
+      writeJobMatchTransfer(window.localStorage, data, selectedJobFamily, activeCvId);
+      window.location.assign(`${jobMatchPath}?source=editor`);
       setJobMatchDialogOpen(false);
     } catch {
       setNotice(t("jobMatchTransferError"));
@@ -457,10 +493,81 @@ export default function Home() {
     }
   };
 
+  const focusImprovementSection = (section: ImprovementSuggestion["section"]) => {
+    const targetId = section === "headline" ? "improvement-personal" : `improvement-${section}`;
+    setImprovementsOpen(false);
+    window.setTimeout(() => {
+      const target = document.getElementById(targetId) ?? document.getElementById("generator");
+      const summary = target?.querySelector<HTMLElement>(".MuiAccordionSummary-root");
+      if (summary?.getAttribute("aria-expanded") === "false") summary.click();
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.setTimeout(() => target?.querySelector<HTMLElement>("input, textarea, .MuiAccordionDetails button")?.focus(), 450);
+    }, 180);
+  };
+
+  const addSuggestedSkill = (planId: string, suggestionId: string, term: string) => {
+    const normalizedTerm = term.trim().toLocaleLowerCase();
+    if (!normalizedTerm || data.skills.some((skill) => skill.name.trim().toLocaleLowerCase() === normalizedTerm)) return;
+    if (data.skills.length >= 12) {
+      setNotice(t("improvementSkillsLimit"));
+      setNoticeSuccess(false);
+      return;
+    }
+    const previousPlans = structuredClone(improvementPlans);
+    const previousSkills = structuredClone(data.skills);
+    const nextSkills = [...data.skills, { name: term.trim() }];
+    const nextDraftTarget = createImprovementTarget({ ...data, skills: nextSkills });
+    const nextPlans = improvementPlans.flatMap((plan) => {
+      if (plan.id !== planId) return [plan];
+      const suggestions = plan.suggestions.flatMap((suggestion) => {
+        if (suggestion.id !== suggestionId) return [suggestion];
+        const terms = suggestion.terms?.filter((item) => item !== term) ?? [];
+        return terms.length ? [{ ...suggestion, terms }] : [];
+      });
+      return suggestions.length ? [{ ...plan, suggestions }] : [];
+    }).map((plan) => plan.target.cvId ? plan : { ...plan, target: nextDraftTarget });
+    setValue("skills", nextSkills, { shouldDirty: true });
+    setImprovementPlans(nextPlans);
+    storeImprovementPlans(window.localStorage, nextPlans);
+    setImprovementUndo({ skills: previousSkills, plans: previousPlans, message: "improvementApplied" });
+  };
+
+  const removeImprovementSuggestion = (
+    planId: string,
+    suggestionId: string,
+    message: "improvementReviewed" | "improvementDismissed",
+  ) => {
+    const previousPlans = structuredClone(improvementPlans);
+    const nextPlans = improvementPlans.flatMap((plan) => {
+      if (plan.id !== planId) return [plan];
+      const suggestions = plan.suggestions.filter((suggestion) => suggestion.id !== suggestionId);
+      return suggestions.length ? [{ ...plan, suggestions }] : [];
+    });
+    setImprovementPlans(nextPlans);
+    storeImprovementPlans(window.localStorage, nextPlans);
+    setImprovementUndo({ skills: structuredClone(data.skills), plans: previousPlans, message });
+  };
+
+  const dismissImprovementPlan = (planId: string) => {
+    const previousPlans = structuredClone(improvementPlans);
+    removeImprovementPlan(window.localStorage, planId);
+    setImprovementPlans((current) => current.filter((plan) => plan.id !== planId));
+    setImprovementUndo({ skills: structuredClone(data.skills), plans: previousPlans, message: "improvementDismissed" });
+  };
+
+  const undoImprovement = () => {
+    if (!improvementUndo) return;
+    setValue("skills", improvementUndo.skills, { shouldDirty: true });
+    setImprovementPlans(improvementUndo.plans);
+    storeImprovementPlans(window.localStorage, improvementUndo.plans);
+    setImprovementUndo(null);
+  };
+
   const reviewCurrentCv = () => {
     try {
-      writeResumeReviewTransfer(window.localStorage, data);
-      window.open(`${resumeReviewPath}?source=editor`, "_blank", "noopener,noreferrer");
+      window.sessionStorage.setItem(NAVIGATION_DRAFT_KEY, JSON.stringify({ data, activeCvId, cvTitle }));
+      writeResumeReviewTransfer(window.localStorage, data, activeCvId);
+      window.location.assign(`${resumeReviewPath}?source=editor`);
     } catch {
       setNotice(t("resumeReviewTransferError"));
       setNoticeSuccess(false);
@@ -835,6 +942,17 @@ export default function Home() {
         <Stack className="editor-toolbar" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
           <Typography component="h2" variant="h6" fontWeight={800}>{t("editorHeading")}</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
+            {improvementPlans.length > 0 && (
+              <Button
+                type="button"
+                variant="contained"
+                size="small"
+                startIcon={<TipsAndUpdatesOutlined />}
+                onClick={() => setImprovementsOpen(true)}
+              >
+                {t("pendingImprovements", { count: improvementPlans.reduce((total, plan) => total + plan.suggestions.length, 0) })}
+              </Button>
+            )}
             <Chip
               color={spaceStatus === "high" ? "warning" : "success"}
               variant="outlined"
@@ -866,7 +984,7 @@ export default function Home() {
 
         <Box className="workspace">
           <Box className="editor-column">
-            <Accordion defaultExpanded sx={sectionSx}>
+            <Accordion defaultExpanded sx={sectionSx} id="improvement-personal">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t("personalInfo")}</Typography>
               </AccordionSummary>
@@ -1201,7 +1319,7 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
-            <Accordion defaultExpanded sx={sectionSx}>
+            <Accordion defaultExpanded sx={sectionSx} id="improvement-contact">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t("contact")} <Typography component="span" variant="caption" color="text.secondary">({t("allOptional")})</Typography></Typography>
               </AccordionSummary>
@@ -1215,7 +1333,7 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
-            <Accordion defaultExpanded sx={sectionSx}>
+            <Accordion defaultExpanded sx={sectionSx} id="improvement-summary">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t("cvSummary")}</Typography>
               </AccordionSummary>
@@ -1242,7 +1360,7 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
-            <Accordion defaultExpanded sx={sectionSx}>
+            <Accordion defaultExpanded sx={sectionSx} id="improvement-skills">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t("skills")} ({skills.fields.length}/12)</Typography>
               </AccordionSummary>
@@ -1321,7 +1439,7 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
-            <Accordion defaultExpanded sx={sectionSx}>
+            <Accordion defaultExpanded sx={sectionSx} id="improvement-experience">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t("experience")} ({experiences.fields.length}/4)</Typography>
               </AccordionSummary>
@@ -1581,7 +1699,16 @@ export default function Home() {
                 </Button>
               </Stack>
               <Divider sx={{ my: 2 }} />
-              <Box className="job-match-editor-cta">
+              <Box className="job-match-editor-cta job-match-editor-cta-quality">
+                <Box>
+                  <Typography fontWeight={750} variant="body2">{t("reviewCurrentCv")}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">{t("reviewCurrentCvHelp")}</Typography>
+                </Box>
+                <Button type="button" onClick={reviewCurrentCv} startIcon={<FactCheckOutlined />} variant="outlined" size="small" sx={{ whiteSpace: "nowrap" }}>
+                  {t("openResumeReview")}
+                </Button>
+              </Box>
+              <Box className="job-match-editor-cta job-match-editor-cta-match" sx={{ mt: 1.25 }}>
                 <Box>
                   <Typography fontWeight={750} variant="body2">{t("analyzeCurrentCv")}</Typography>
                   <Typography variant="caption" color="text.secondary" display="block">{t("analyzeCurrentCvHelp")}</Typography>
@@ -1595,15 +1722,6 @@ export default function Home() {
                   sx={{ whiteSpace: "nowrap" }}
                 >
                   {t("openJobMatch")}
-                </Button>
-              </Box>
-              <Box className="job-match-editor-cta" sx={{ mt: 1.25 }}>
-                <Box>
-                  <Typography fontWeight={750} variant="body2">{t("reviewCurrentCv")}</Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">{t("reviewCurrentCvHelp")}</Typography>
-                </Box>
-                <Button type="button" onClick={reviewCurrentCv} startIcon={<FactCheckOutlined />} variant="outlined" size="small" sx={{ whiteSpace: "nowrap" }}>
-                  {t("openResumeReview")}
                 </Button>
               </Box>
               <Divider sx={{ my: 2 }} />
@@ -1828,6 +1946,91 @@ export default function Home() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Drawer
+        className="improvement-drawer"
+        anchor="right"
+        open={improvementsOpen}
+        onClose={() => setImprovementsOpen(false)}
+        ModalProps={{ disableRestoreFocus: true }}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 430 }, maxWidth: "100%", p: 3 } }}
+      >
+        <Stack spacing={0.75} sx={{ mb: 2 }}>
+          <Typography variant="h6" fontWeight={800}>{t("improvementsTitle")}</Typography>
+          <Typography variant="body2" color="text.secondary">{t("improvementsHelp")}</Typography>
+        </Stack>
+        {improvementUndo && (
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            action={<Button color="inherit" size="small" onClick={undoImprovement}>{t("undoImprovement")}</Button>}
+            onClose={() => setImprovementUndo(null)}
+          >
+            {t(improvementUndo.message)}
+          </Alert>
+        )}
+        <Stack spacing={2}>
+          {improvementPlans.map((plan) => (
+            <Box key={plan.id} className={`improvement-plan improvement-plan-${plan.source}`}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
+                <Chip size="small" color={plan.source === "job-match" ? "warning" : "info"} label={t(plan.source === "job-match" ? "improvementSourceJob" : "improvementSourceQuality")} />
+                <Typography variant="caption" color="text.secondary">{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(plan.createdAt))}</Typography>
+              </Stack>
+              <Stack component="ul" spacing={1.25} className="improvement-suggestion-list">
+                {plan.suggestions.map((suggestion) => (
+                  <Box component="li" key={suggestion.id} className="improvement-suggestion">
+                    <Typography variant="body2" fontWeight={750}>{suggestion.title}</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">{suggestion.detail}</Typography>
+                    {suggestion.terms?.length ? (
+                      <Stack direction="row" useFlexGap flexWrap="wrap" gap={0.75} sx={{ mt: 1 }}>
+                        {suggestion.terms.map((term) => {
+                          const alreadyAdded = data.skills.some((skill) => skill.name.trim().toLocaleLowerCase() === term.trim().toLocaleLowerCase());
+                          return suggestion.kind === "add-skill" ? (
+                            <Button
+                              key={term}
+                              type="button"
+                              size="small"
+                              variant="outlined"
+                              startIcon={<AddRounded />}
+                              disabled={alreadyAdded || data.skills.length >= 12}
+                              onClick={() => addSuggestedSkill(plan.id, suggestion.id, term)}
+                            >
+                              {alreadyAdded ? t("skillAlreadyAdded", { skill: term }) : t("addSuggestedSkill", { skill: term })}
+                            </Button>
+                          ) : <Chip key={term} size="small" variant="outlined" label={term} />;
+                        })}
+                      </Stack>
+                    ) : null}
+                    {suggestion.kind === "review-section" && (
+                      <Stack className="improvement-suggestion-actions" direction="row" useFlexGap flexWrap="wrap" sx={{ mt: 0.65 }}>
+                        <Button className="improvement-section-button" type="button" size="small" variant="text" onClick={() => focusImprovementSection(suggestion.section)}>
+                          {t("openRecommendedSection")}
+                        </Button>
+                        <Button className="improvement-reviewed-button" type="button" size="small" color="inherit" onClick={() => removeImprovementSuggestion(plan.id, suggestion.id, "improvementReviewed")}>
+                          {t("markImprovementReviewed")}
+                        </Button>
+                      </Stack>
+                    )}
+                    {suggestion.kind === "add-skill" && (
+                      <Button type="button" size="small" color="inherit" sx={{ mt: 0.65 }} onClick={() => removeImprovementSuggestion(plan.id, suggestion.id, "improvementDismissed")}>
+                        {t("dismissSuggestion")}
+                      </Button>
+                    )}
+                  </Box>
+                ))}
+              </Stack>
+              <Button
+                type="button"
+                size="small"
+                color="inherit"
+                sx={{ mt: 1.5 }}
+                onClick={() => dismissImprovementPlan(plan.id)}
+              >
+                {t("dismissImprovementPlan")}
+              </Button>
+            </Box>
+          ))}
+        </Stack>
+      </Drawer>
       <Dialog open={Boolean(pendingPhoto)} onClose={() => setPendingPhoto(null)} fullWidth maxWidth="xs">
         <DialogTitle>{t("cropPhotoTitle")}</DialogTitle>
         <DialogContent>
