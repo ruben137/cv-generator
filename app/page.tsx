@@ -9,6 +9,7 @@ import {
   DeleteOutlineRounded,
   DragIndicatorRounded,
   ExpandMoreRounded,
+  FactCheckOutlined,
   FolderOpenRounded,
   InsertDriveFileRounded,
   LanguageRounded,
@@ -88,6 +89,7 @@ import { BrandLogo } from "./brand-logo";
 import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
 import { writeJobMatchTransfer } from "./job-match/transfer";
 import { jobFamilies, type JobFamily } from "./job-match/model";
+import { writeResumeReviewTransfer } from "./resume-review/transfer";
 
 const theme = createTheme({
   palette: {
@@ -221,6 +223,8 @@ export default function Home() {
   const locale = useLocale();
   const templatesPath = locale === "en" ? "/en/templates" : "/es/plantillas";
   const jobMatchPath = locale === "en" ? "/en/job-match" : "/es/analizar-vacante";
+  const toolsPath = locale === "en" ? "/en/tools" : "/es/herramientas";
+  const resumeReviewPath = locale === "en" ? "/en/resume-review" : "/es/revisar-cv";
   const initialCv = useMemo(() => getInitialCv(locale), [locale]);
   const { control, register, reset, setValue } = useForm<CvData>({
     defaultValues: initialCv,
@@ -449,6 +453,16 @@ export default function Home() {
       setJobMatchDialogOpen(false);
     } catch {
       setNotice(t("jobMatchTransferError"));
+      setNoticeSuccess(false);
+    }
+  };
+
+  const reviewCurrentCv = () => {
+    try {
+      writeResumeReviewTransfer(window.localStorage, data);
+      window.open(`${resumeReviewPath}?source=editor`, "_blank", "noopener,noreferrer");
+    } catch {
+      setNotice(t("resumeReviewTransferError"));
       setNoticeSuccess(false);
     }
   };
@@ -724,9 +738,8 @@ export default function Home() {
           <BrandLogo />
           <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
             <Button component="a" href="#generator" onClick={activateEditor} className="main-nav-link active">{t("generatorNav")}</Button>
-            <Button component="a" href="#landingTemplates" className="main-nav-link">{t("templatesNav")}</Button>
-            <Button component="a" href={templatesPath} className="main-nav-link">{t("professionalExamplesNav")}</Button>
-            <Button component="a" href={jobMatchPath} className="main-nav-link">{t("jobMatchNav")}</Button>
+            <Button component="a" href={templatesPath} className="main-nav-link">{t("templatesNav")}</Button>
+            <Button component="a" href={toolsPath} className="main-nav-link">{t("toolsNav")}</Button>
             <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
           </Box>
           <Box className="topbar-actions">
@@ -1584,6 +1597,15 @@ export default function Home() {
                   {t("openJobMatch")}
                 </Button>
               </Box>
+              <Box className="job-match-editor-cta" sx={{ mt: 1.25 }}>
+                <Box>
+                  <Typography fontWeight={750} variant="body2">{t("reviewCurrentCv")}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">{t("reviewCurrentCvHelp")}</Typography>
+                </Box>
+                <Button type="button" onClick={reviewCurrentCv} startIcon={<FactCheckOutlined />} variant="outlined" size="small" sx={{ whiteSpace: "nowrap" }}>
+                  {t("openResumeReview")}
+                </Button>
+              </Box>
               <Divider sx={{ my: 2 }} />
               <Box className="reconvert-box">
                 <Box>
@@ -1729,7 +1751,7 @@ export default function Home() {
           <Box className="footer-links">
             <a href="#generator" onClick={activateEditor}>{t("generatorNav")}</a>
             <a href={templatesPath}>{t("templatesNav")}</a>
-            <a href={jobMatchPath}>{t("jobMatchNav")}</a>
+            <a href={toolsPath}>{t("toolsNav")}</a>
             <a href="/mis-cvs">{t("myCvs")}</a>
             <a href={locale === "en" ? "/en/about" : "/es/acerca-de"}>{t("aboutLink")}</a>
             <a href={locale === "en" ? "/en/privacy" : "/es/privacidad"}>{t("privacyLink")}</a>

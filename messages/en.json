@@ -13,10 +13,15 @@
     "templatesNav": "Templates",
     "professionalExamplesNav": "Professional examples",
     "jobMatchNav": "Job match",
+    "toolsNav": "Tools",
     "analyzeCurrentCv": "Compare this resume with a job",
     "analyzeCurrentCvHelp": "We will open the analyzer in another tab with the current content, without including your photo.",
     "openJobMatch": "Analyze resume",
     "jobMatchTransferError": "The resume could not be prepared for local analysis.",
+    "reviewCurrentCv": "Review this resume's quality",
+    "reviewCurrentCvHelp": "We will open the reviewer in another tab using the current resume's structured fields.",
+    "openResumeReview": "Review quality",
+    "resumeReviewTransferError": "The resume could not be prepared for local review.",
     "jobMatchAreaTitle": "Which area does this resume belong to?",
     "jobMatchAreaHelp": "Choose the area that best represents your target role. This determines the professional vocabulary used in the analysis.",
     "jobMatchAreaLabel": "Professional area",
@@ -392,6 +397,25 @@
       ]
     }
   },
+  "Tools": {
+    "metaTitle": "Free tools to improve your resume",
+    "metaDescription": "Analyze a job and review your resume quality for free, without an account and directly in your browser.",
+    "generator": "Generator", "templates": "Templates", "myCvs": "My resumes",
+    "eyebrow": "Improve before applying", "title": "Tools to strengthen your resume", "description": "Find concrete opportunities without uploading your data or relying on mysterious scores.",
+    "privacy": "All processing happens locally in your browser. We do not store your resume content.",
+    "match": { "eyebrow": "Resume + job", "title": "Analyze a job", "description": "Compare requirements, skills, and keywords to see what you already demonstrate and what deserves review.", "cta": "Open matcher" },
+    "quality": { "eyebrow": "Document review", "title": "Review resume quality", "description": "Check structure, clarity, evidence, length, and essential details with transparent rules.", "cta": "Review my resume" }
+  },
+  "ResumeReview": {
+    "metaTitle": "Free resume quality reviewer", "metaDescription": "Review your resume's clarity, structure, and evidence for free and locally, without AI or an account.",
+    "navigationLabel": "Reviewer navigation", "backToTools": "Back to tools", "eyebrow": "Local, explainable review", "title": "Review your resume quality", "description": "Find concrete issues in clarity, structure, and evidence before applying. Every check explains what to review; this is not an ATS score.",
+    "visualTitle": "Clear checks", "visualText": "Structure · evidence · readability", "inputTitle": "Select your resume", "structuredHelp": "We read CV Simple's structured fields directly to review every section more accurately. Your data never leaves the browser.",
+    "loadingCvs": "Looking for your saved resumes…", "selectedCv": "Selected resume", "currentCv": "Current resume", "noProfessionalTitle": "No professional title", "changeCv": "Change", "chooseSavedCv": "Choose from My resumes", "selectCvPrompt": "Select one of your saved resumes to start the review.", "noSavedCvs": "You do not have any resumes saved in this browser yet.", "selectorTitle": "Choose a saved resume", "selectorHelp": "Select the version you want to review. The analysis will use its structured data.", "closeSelector": "Close resume selector", "cancel": "Cancel", "createCv": "Create a resume", "reviewButton": "Review quality", "resultEyebrow": "Guidance only", "resultTitle": "Quality checks", "resultDisclaimer": "The percentage represents rules passed in this review. It is not an ATS score and does not predict hiring decisions.", "checksPassed": "rules passed", "reviewAgain": "Choose another resume",
+    "status": { "passed": "Looks good", "warning": "Review this", "info": "Suggestion" },
+    "checks": {
+      "contact": { "title": "Contact information", "description": "Include at least a recognizable email address and phone number." }, "links": { "title": "Professional links", "description": "A portfolio or professional profile can make your work easier to verify." }, "title": { "title": "Professional title", "description": "Clearly state the role or specialty you are targeting." }, "summary": { "title": "Summary length", "description": "A 35–100 word summary often provides context without crowding out experience." }, "experience": { "title": "Experience content", "description": "Include concrete responsibilities or achievements, not just employer names." }, "dates": { "title": "Experience dates", "description": "Dates make your career path easier to understand and should use a consistent format." }, "skills": { "title": "Number of skills", "description": "Prioritize 5–12 relevant skills and avoid lists that are difficult to support." }, "bulletLength": { "title": "Readable bullets", "description": "Split bullets longer than 35 words so the action and result are easier to spot." }, "metrics": { "title": "Measurable results", "description": "When possible, support your contribution with quantities, percentages, time, or scope." }, "actionVerbs": { "title": "Action language", "description": "Start some achievements with concrete verbs that make your contribution visible." }, "skillEvidence": { "title": "Supported skills", "description": "Try to demonstrate your main listed skills within your experience." }, "repetition": { "title": "No duplicate content", "description": "Avoid repeating the same bullet or responsibility across roles." }, "length": { "title": "Overall length", "description": "For a one-page resume, 180–850 words is a useful reference, not an absolute rule." }
+    }
+  },
   "JobMatch": {
     "metaTitle": "Compare your resume with a job description",
     "metaDescription": "Compare your resume with a job description for free and review matching skills, missing requirements, and improvement opportunities directly in your browser.",
@@ -406,8 +430,19 @@
     "jobSection": "The job",
     "jobSectionHelp": "Paste the complete posting to preserve required and preferred qualifications.",
     "resumeSection": "Your resume",
-    "resumeSectionHelp": "Paste your resume text. Keeping headings such as Experience and Skills helps us interpret it.",
-    "editorResumeLoaded": "We loaded the resume you were editing. Analyze it directly or edit the text to use a manual copy.",
+    "resumeSectionHelp": "Drop a PDF anywhere on this card, choose it manually, or paste your resume text.",
+    "editorResumeLoaded": "We loaded the structured fields from the resume you were editing. Declared skills, work context, and experience evidence will be evaluated separately.",
+    "savedCvTitle": "Already have a resume in CV Simple?",
+    "savedCvHelp": "Select it to use its structured fields and get a more accurate comparison.",
+    "chooseSavedCv": "Choose from My resumes",
+    "savedCvSelectorTitle": "Choose a saved resume",
+    "savedCvSelectorHelp": "We will use the resume's internal structure. Your photo is not included in the analysis.",
+    "closeSavedCvSelector": "Close resume selector",
+    "loadingSavedCvs": "Looking for your saved resumes…",
+    "noSavedCvs": "You do not have any resumes saved in this browser yet.",
+    "noProfessionalTitle": "No professional title",
+    "cancel": "Cancel",
+    "createCv": "Create a resume",
     "importPdf": "Import resume PDF",
     "dropPdfTitle": "Drag and drop your PDF here",
     "dropPdfActive": "Drop the PDF to import it",

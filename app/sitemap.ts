@@ -42,6 +42,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
     alternates: { languages: jobMatchLanguages },
   }));
+  const toolGroups = [
+    { es: "es/herramientas", en: "en/tools", priority: 0.9 },
+    { es: "es/revisar-cv", en: "en/resume-review", priority: 0.9 },
+  ];
+  const toolPages = toolGroups.flatMap((paths) => {
+    const languages = { es: `${siteUrl}/${paths.es}`, en: `${siteUrl}/${paths.en}` };
+    return (["es", "en"] as const).map((locale) => ({
+      url: languages[locale], lastModified: new Date(), changeFrequency: "weekly" as const,
+      priority: paths.priority, alternates: { languages },
+    }));
+  });
   const institutionalGroups = [
     { es: "es/acerca-de", en: "en/about" },
     { es: "es/privacidad", en: "en/privacy" },
@@ -57,5 +68,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages },
     }));
   });
-  return [...homePages, ...catalogPages, ...professionalPages, ...jobMatchPages, ...institutionalPages];
+  return [...homePages, ...catalogPages, ...professionalPages, ...toolPages, ...jobMatchPages, ...institutionalPages];
 }
