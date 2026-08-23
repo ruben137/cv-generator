@@ -8,6 +8,7 @@ import {
   CropRounded,
   DeleteOutlineRounded,
   DragIndicatorRounded,
+  EditRounded,
   ExpandMoreRounded,
   FactCheckOutlined,
   TipsAndUpdatesOutlined,
@@ -20,6 +21,8 @@ import {
   PictureAsPdfRounded,
   RestartAltRounded,
   SaveRounded,
+  ContentCopyRounded,
+  AutoAwesomeRounded,
   UploadRounded,
   WorkOutlineRounded,
 } from "@mui/icons-material";
@@ -83,7 +86,6 @@ import {
   getInitialCv,
   mainSectionIds,
   normalizeContentOrder,
-  sidebarLabelIds,
   type MainSectionId,
 } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
@@ -151,42 +153,76 @@ function Counter({ value, max }: { value?: string; max: number }) {
   );
 }
 
-function SortableSectionItem({ id, label }: { id: string; label: string }) {
+function SortableEditorSection({ id, order, label, children }: { id: string; order: number; label: string; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
     <Box
       ref={setNodeRef}
-      className={`sortable-section${isDragging ? " dragging" : ""}`}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      sx={{
-        position: "relative",
-        zIndex: isDragging ? 2 : 0,
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        minHeight: 48,
-        px: 1.25,
-        py: 0.5,
-        border: "1px solid",
-        borderColor: isDragging ? "primary.main" : "divider",
-        borderRadius: 2,
-        bgcolor: "background.paper",
-        boxShadow: isDragging ? "0 8px 22px rgba(23, 42, 59, 0.16)" : "0 1px 2px rgba(23, 42, 59, 0.04)",
-        opacity: isDragging ? 0.92 : 1,
-      }}
+      className={`sortable-editor-section${isDragging ? " dragging" : ""}`}
+      style={{ order, transform: CSS.Transform.toString(transform), transition }}
     >
       <IconButton
+        className="accordion-drag-handle"
         {...attributes}
         {...listeners}
         aria-label={label}
         size="small"
-        className="drag-handle"
-        sx={{ flex: "0 0 auto", cursor: isDragging ? "grabbing" : "grab", touchAction: "none", color: "text.secondary" }}
       >
-        <DragIndicatorRounded />
+        <DragIndicatorRounded fontSize="small" />
       </IconButton>
-      <Typography fontWeight={700} sx={{ flexGrow: 1 }}>{label}</Typography>
+      {children}
     </Box>
+  );
+}
+
+function EditableSectionTitle({
+  value,
+  fallback,
+  editLabel,
+  onChange,
+  suffix,
+}: {
+  value?: string;
+  fallback: string;
+  editLabel: string;
+  onChange: (value: string) => void;
+  suffix?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  return (
+    <Stack className="editable-section-title" direction="row" alignItems="center" spacing={0.5}>
+      {editing ? (
+        <TextField
+          autoFocus
+          size="small"
+          value={value ?? ""}
+          placeholder={fallback}
+          inputProps={{ maxLength: 50, "aria-label": editLabel }}
+          onChange={(event) => onChange(event.target.value)}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === "Enter" || event.key === "Escape") setEditing(false);
+          }}
+          onBlur={() => setEditing(false)}
+        />
+      ) : (
+        <Typography fontWeight={750}>{value?.trim() || fallback}{suffix ?? ""}</Typography>
+      )}
+      {!editing && (
+        <IconButton
+          className="section-title-edit-button"
+          size="small"
+          aria-label={editLabel}
+          onClick={(event) => {
+            event.stopPropagation();
+            setEditing(true);
+          }}
+        >
+          <EditRounded fontSize="small" />
+        </IconButton>
+      )}
+    </Stack>
   );
 }
 
@@ -260,6 +296,8 @@ export default function Home() {
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [translationPromptOpen, setTranslationPromptOpen] = useState(false);
+  const [translationTarget, setTranslationTarget] = useState("");
   const [jobMatchDialogOpen, setJobMatchDialogOpen] = useState(false);
   const [selectedJobFamily, setSelectedJobFamily] = useState<JobFamily | "">("");
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
@@ -492,6 +530,17 @@ export default function Home() {
       setNoticeSuccess(false);
     }
   };
+  const translationPrompt = translationTarget.trim() ? t("translationPromptTemplate", {
+    language: translationTarget.trim(),
+    json: JSON.stringify({ ...data, photo: undefined }, null, 2),
+  }) : "";
+
+  const copyTranslationPrompt = async () => {
+    if (!translationPrompt) return;
+    await navigator.clipboard.writeText(translationPrompt);
+    setNotice(t("translationPromptCopied"));
+    setNoticeSuccess(true);
+  };
 
   const focusImprovementSection = (section: ImprovementSuggestion["section"]) => {
     const targetId = section === "headline" ? "improvement-personal" : `improvement-${section}`;
@@ -595,17 +644,7 @@ export default function Home() {
     return data.customSections.find((item) => item.id === section)?.title.trim() || t("untitledSection");
   };
 
-  const sectionHasContent = (section: string) => {
-    if (section === "summary") return Boolean(data.summary.trim());
-    if (section === "experience") return data.experiences.some((item) => item.company.trim() || item.role.trim());
-    if (section === "education") return data.education.some((item) => item.institution.trim() || item.degree.trim());
-    if (section === "certifications") return data.certifications.some((item) => item.name.trim() || item.issuer.trim());
-    if (section === "skills") return data.skills.some((item) => item.name.trim());
-    const custom = data.customSections.find((item) => item.id === section);
-    return Boolean(custom && (custom.type === "text" ? custom.text.trim() : custom.items.some((item) => item.text.trim())));
-  };
   const fullContentOrder = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections);
-  const visibleSectionOrder = fullContentOrder.filter(sectionHasContent);
   const previewContentOrder = normalizeContentOrder(
     previewData.contentOrder,
     previewData.sectionOrder,
@@ -778,7 +817,7 @@ export default function Home() {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", handleResize);
     };
-  }, [previewData]);
+  }, [previewData, editorReady]);
   const contrastHeadingStyle: CSSProperties | undefined = previewData.template === "contrast"
     ? {
         marginTop: "calc(12px * var(--scale))",
@@ -983,6 +1022,8 @@ export default function Home() {
         </Box>
 
         <Box className="workspace">
+          <DndContext id="editor-sections-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+          <SortableContext items={fullContentOrder} strategy={verticalListSortingStrategy}>
           <Box className="editor-column">
             <Accordion defaultExpanded sx={sectionSx} id="improvement-personal">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
@@ -1059,44 +1100,12 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
-            <Accordion sx={sectionSx}>
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("sectionCustomization")}</Typography>
+            <Accordion className="custom-sections-panel" sx={{ ...sectionSx, order: 90 }}>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <Typography fontWeight={750}>{t("customSections")}</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                <Typography variant="body2" color="text.secondary" mb={2}>{t("sectionCustomizationHelp")}</Typography>
-                <Typography fontWeight={700} mb={1}>{t("editSectionTitles")}</Typography>
-                <Box className="form-grid">
-                  {mainSectionIds.map((section) => (
-                    <TextField
-                      key={section}
-                      label={sectionLabel(section)}
-                      placeholder={documentLabels[section]}
-                      inputProps={{ maxLength: 50 }}
-                      helperText={<Counter value={data.sectionTitles[section]} max={50} />}
-                      {...register(`sectionTitles.${section}`)}
-                    />
-                  ))}
-                </Box>
-
-                <Typography fontWeight={700} mt={2} mb={1}>{t("editSidebarLabels")}</Typography>
-                <Box className="form-grid">
-                  {sidebarLabelIds.map((label) => {
-                    const fallback = documentLabels[label];
-                    return (
-                      <TextField
-                        key={label}
-                        label={fallback}
-                        placeholder={fallback}
-                        inputProps={{ maxLength: 50 }}
-                        helperText={<Counter value={data.sectionTitles[label]} max={50} />}
-                        {...register(`sectionTitles.${label}`)}
-                      />
-                    );
-                  })}
-                </Box>
-
-                <Divider sx={{ my: 2 }} />
+                <Typography variant="body2" color="text.secondary" mb={2}>{t("customSectionsHelp")}</Typography>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
                   <Box>
                     <Typography fontWeight={700}>{t("customSections")}</Typography>
@@ -1106,134 +1115,99 @@ export default function Home() {
                     {t("addCustomSection")}
                   </Button>
                 </Stack>
-
-                <Stack spacing={2}>
-                  {customSections.fields.map((field, index) => {
-                    const section = data.customSections[index];
-                    if (!section) return null;
-                    return (
-                      <Box className="experience-form" key={field.id}>
-                        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
-                          <Typography fontWeight={750}>{section.title.trim() || t("customSectionNumber", { number: index + 1 })}</Typography>
-                          <IconButton aria-label={t("removeCustomSection", { number: index + 1 })} onClick={() => removeCustomSection(index)}>
-                            <DeleteOutlineRounded />
-                          </IconButton>
-                        </Stack>
-                        <Stack spacing={1.5}>
-                          <TextField
-                            label={t("sectionTitle")}
-                            inputProps={{ maxLength: 50 }}
-                            helperText={<Counter value={section.title} max={50} />}
-                            {...register(`customSections.${index}.title`)}
-                          />
-                          <TextField
-                            select
-                            label={t("sectionType")}
-                            value={section.type}
-                            onChange={(event) => setValue(`customSections.${index}.type`, event.target.value as "text" | "list", { shouldDirty: true })}
-                          >
-                            <MenuItem value="text">{t("textSection")}</MenuItem>
-                            <MenuItem value="list">{t("listSection")}</MenuItem>
-                          </TextField>
-                          {section.type === "text" ? (
-                            <Box>
-                              <Typography component="label" variant="caption" color="text.secondary">
-                                {t("sectionContent")}
-                              </Typography>
-                              <Box
-                                component="textarea"
-                                aria-label={t("sectionContent")}
-                                rows={3}
-                                maxLength={500}
-                                {...register(`customSections.${index}.text`)}
-                                sx={{
-                                  display: "block", width: "100%", mt: 0.5, p: 1.5,
-                                  resize: "vertical", font: "inherit", color: "text.primary",
-                                  bgcolor: "background.paper", border: "1px solid", borderColor: "divider",
-                                  borderRadius: 1, outline: 0, "&:focus": { borderColor: "primary.main", boxShadow: "0 0 0 1px", color: "primary.main" },
-                                }}
-                              />
-                              <Counter value={section.text} max={500} />
-                            </Box>
-                          ) : (
-                            <>
-                              <DndContext
-                                id={`custom-section-items-${index}`}
-                                sensors={dndSensors}
-                                collisionDetection={closestCenter}
-                                onDragEnd={({ active, over }) => {
-                                  if (!over || active.id === over.id) return;
-                                  const ids = section.items.map((item) => item.id);
-                                  const oldIndex = ids.indexOf(String(active.id));
-                                  const newIndex = ids.indexOf(String(over.id));
-                                  if (oldIndex >= 0 && newIndex >= 0) {
-                                    setValue(`customSections.${index}.items`, arrayMove(section.items, oldIndex, newIndex), { shouldDirty: true });
-                                  }
-                                }}
-                              >
-                                <SortableContext items={section.items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-                                  <Stack spacing={1}>
-                                    {section.items.map((item, itemIndex) => (
-                                      <SortableFormItem key={item.id} id={item.id} label={t("reorderItem", { item: t("listItemNumber", { number: itemIndex + 1 }) })}>
-                                        <Stack direction="row" spacing={1} alignItems="flex-start">
-                                          <TextField
-                                            label={t("listItemNumber", { number: itemIndex + 1 })}
-                                            inputProps={{ maxLength: 120 }}
-                                            helperText={<Counter value={item.text} max={120} />}
-                                            {...register(`customSections.${index}.items.${itemIndex}.text`)}
-                                          />
-                                          <IconButton
-                                            aria-label={t("removeListItem", { number: itemIndex + 1 })}
-                                            onClick={() => setValue(`customSections.${index}.items`, section.items.filter((_, currentIndex) => currentIndex !== itemIndex), { shouldDirty: true })}
-                                          >
-                                            <DeleteOutlineRounded />
-                                          </IconButton>
-                                        </Stack>
-                                      </SortableFormItem>
-                                    ))}
-                                  </Stack>
-                                </SortableContext>
-                              </DndContext>
-                              <Button
-                                startIcon={<AddRounded />}
-                                disabled={section.items.length >= 8}
-                                onClick={() => setValue(`customSections.${index}.items`, [...section.items, { id: crypto.randomUUID(), text: "" }], { shouldDirty: true })}
-                                sx={{ alignSelf: "flex-start" }}
-                              >
-                                {t("addListItem")}
-                              </Button>
-                            </>
-                          )}
-                        </Stack>
-                      </Box>
-                    );
-                  })}
-                </Stack>
               </AccordionDetails>
             </Accordion>
 
-            <Accordion defaultExpanded sx={sectionSx}>
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("sectionOrder")}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography variant="body2" color="text.secondary" mb={1.5}>
-                  {t("sectionOrderHelp")}
-                </Typography>
-                <DndContext id="section-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
-                  <SortableContext items={visibleSectionOrder} strategy={verticalListSortingStrategy}>
-                    <Stack spacing={1}>
-                      {visibleSectionOrder.map((section) => (
-                        <SortableSectionItem key={section} id={section} label={sectionLabel(section)} />
-                      ))}
-                      {!visibleSectionOrder.length && (
-                        <Typography variant="body2" color="text.secondary">{t("noSectionsToOrder")}</Typography>
-                      )}
-                    </Stack>
-                  </SortableContext>
-                </DndContext>
-              </AccordionDetails>
-            </Accordion>
+            {customSections.fields.map((field, index) => {
+              const section = data.customSections[index];
+              if (!section) return null;
+              const fallbackTitle = t("customSectionNumber", { number: index + 1 });
+              return (
+                <SortableEditorSection
+                  key={field.id}
+                  id={section.id}
+                  order={10 + fullContentOrder.indexOf(section.id)}
+                  label={t("reorderItem", { item: section.title.trim() || fallbackTitle })}
+                >
+                  <Accordion sx={sectionSx}>
+                    <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                      <EditableSectionTitle
+                        value={section.title}
+                        fallback={fallbackTitle}
+                        editLabel={t("editSectionTitle", { title: section.title.trim() || fallbackTitle })}
+                        onChange={(value) => setValue(`customSections.${index}.title`, value, { shouldDirty: true })}
+                      />
+                      <IconButton
+                        aria-label={t("removeCustomSection", { number: index + 1 })}
+                        onClick={(event) => { event.stopPropagation(); removeCustomSection(index); }}
+                      >
+                        <DeleteOutlineRounded />
+                      </IconButton>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Stack spacing={1.5}>
+                        <TextField
+                          select
+                          label={t("sectionType")}
+                          value={section.type}
+                          onChange={(event) => setValue(`customSections.${index}.type`, event.target.value as "text" | "list", { shouldDirty: true })}
+                        >
+                          <MenuItem value="text">{t("textSection")}</MenuItem>
+                          <MenuItem value="list">{t("listSection")}</MenuItem>
+                        </TextField>
+                        {section.type === "text" ? (
+                          <Box>
+                            <Typography component="label" variant="caption" color="text.secondary">{t("sectionContent")}</Typography>
+                            <Box
+                              component="textarea"
+                              aria-label={t("sectionContent")}
+                              rows={3}
+                              maxLength={500}
+                              {...register(`customSections.${index}.text`)}
+                              sx={{ display: "block", width: "100%", mt: 0.5, p: 1.5, resize: "vertical", font: "inherit", color: "text.primary", bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1, outline: 0, "&:focus": { borderColor: "primary.main", boxShadow: "0 0 0 1px", color: "primary.main" } }}
+                            />
+                            <Counter value={section.text} max={500} />
+                          </Box>
+                        ) : (
+                          <>
+                            <DndContext
+                              id={`custom-section-items-${index}`}
+                              sensors={dndSensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={({ active, over }) => {
+                                if (!over || active.id === over.id) return;
+                                const ids = section.items.map((item) => item.id);
+                                const oldIndex = ids.indexOf(String(active.id));
+                                const newIndex = ids.indexOf(String(over.id));
+                                if (oldIndex >= 0 && newIndex >= 0) setValue(`customSections.${index}.items`, arrayMove(section.items, oldIndex, newIndex), { shouldDirty: true });
+                              }}
+                            >
+                              <SortableContext items={section.items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                                <Stack spacing={1}>
+                                  {section.items.map((item, itemIndex) => (
+                                    <SortableFormItem key={item.id} id={item.id} label={t("reorderItem", { item: t("listItemNumber", { number: itemIndex + 1 }) })}>
+                                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                                        <TextField label={t("listItemNumber", { number: itemIndex + 1 })} inputProps={{ maxLength: 120 }} helperText={<Counter value={item.text} max={120} />} {...register(`customSections.${index}.items.${itemIndex}.text`)} />
+                                        <IconButton aria-label={t("removeListItem", { number: itemIndex + 1 })} onClick={() => setValue(`customSections.${index}.items`, section.items.filter((_, currentIndex) => currentIndex !== itemIndex), { shouldDirty: true })}>
+                                          <DeleteOutlineRounded />
+                                        </IconButton>
+                                      </Stack>
+                                    </SortableFormItem>
+                                  ))}
+                                </Stack>
+                              </SortableContext>
+                            </DndContext>
+                            <Button startIcon={<AddRounded />} disabled={section.items.length >= 8} onClick={() => setValue(`customSections.${index}.items`, [...section.items, { id: crypto.randomUUID(), text: "" }], { shouldDirty: true })} sx={{ alignSelf: "flex-start" }}>
+                              {t("addListItem")}
+                            </Button>
+                          </>
+                        )}
+                      </Stack>
+                    </AccordionDetails>
+                  </Accordion>
+                </SortableEditorSection>
+              );
+            })}
 
             <Accordion defaultExpanded sx={{ ...sectionSx, scrollMarginTop: "88px" }} id="templates">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
@@ -1320,22 +1294,46 @@ export default function Home() {
             </Accordion>
 
             <Accordion defaultExpanded sx={sectionSx} id="improvement-contact">
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("contact")} <Typography component="span" variant="caption" color="text.secondary">({t("allOptional")})</Typography></Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.contact}
+                  fallback={documentLabels.contact}
+                  suffix={` (${t("allOptional")})`}
+                  editLabel={t("editSectionTitle", { title: data.sectionTitles.contact?.trim() || documentLabels.contact })}
+                  onChange={(value) => setValue("sectionTitles.contact", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <Box className="form-grid">
-                  <TextField label={t("phone")} inputProps={{ maxLength: 25 }} {...register("phone")} />
-                  <TextField label={t("email")} type="email" inputProps={{ maxLength: 100 }} {...register("email")} />
-                  <TextField label={t("portfolio")} inputProps={{ maxLength: 150 }} {...register("portfolio")} />
-                  <TextField label={t("location")} inputProps={{ maxLength: 80 }} {...register("location")} />
+                  <TextField label={data.sectionTitles.phone?.trim() || documentLabels.phone} inputProps={{ maxLength: 25 }} {...register("phone")} />
+                  <TextField label={data.sectionTitles.email?.trim() || documentLabels.email} type="email" inputProps={{ maxLength: 100 }} {...register("email")} />
+                  <TextField label={data.sectionTitles.portfolio?.trim() || documentLabels.portfolio} inputProps={{ maxLength: 150 }} {...register("portfolio")} />
+                  <TextField label={data.sectionTitles.location?.trim() || documentLabels.location} inputProps={{ maxLength: 80 }} {...register("location")} />
+                </Box>
+                <Typography variant="caption" color="text.secondary" display="block" mt={2} mb={1}>{t("editContactLabels")}</Typography>
+                <Box className="form-grid compact-label-grid">
+                  {(["phone", "email", "portfolio", "location"] as const).map((label) => (
+                    <TextField
+                      key={label}
+                      label={documentLabels[label]}
+                      placeholder={documentLabels[label]}
+                      inputProps={{ maxLength: 50 }}
+                      {...register(`sectionTitles.${label}`)}
+                    />
+                  ))}
                 </Box>
               </AccordionDetails>
             </Accordion>
 
+            <SortableEditorSection id="summary" order={10 + fullContentOrder.indexOf("summary")} label={t("reorderItem", { item: sectionLabel("summary") })}>
             <Accordion defaultExpanded sx={sectionSx} id="improvement-summary">
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("cvSummary")}</Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.summary}
+                  fallback={documentLabels.summary}
+                  editLabel={t("editSectionTitle", { title: sectionLabel("summary") })}
+                  onChange={(value) => setValue("sectionTitles.summary", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <Box>
@@ -1359,10 +1357,18 @@ export default function Home() {
                 </Box>
               </AccordionDetails>
             </Accordion>
+            </SortableEditorSection>
 
+            <SortableEditorSection id="skills" order={10 + fullContentOrder.indexOf("skills")} label={t("reorderItem", { item: sectionLabel("skills") })}>
             <Accordion defaultExpanded sx={sectionSx} id="improvement-skills">
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("skills")} ({skills.fields.length}/12)</Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.skills}
+                  fallback={documentLabels.skills}
+                  suffix={` (${skills.fields.length}/12)`}
+                  editLabel={t("editSectionTitle", { title: sectionLabel("skills") })}
+                  onChange={(value) => setValue("sectionTitles.skills", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <DndContext id="skills-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(skills.fields.map((field) => field.id), skills.move)}>
@@ -1403,10 +1409,17 @@ export default function Home() {
                 </Stack>
               </AccordionDetails>
             </Accordion>
+            </SortableEditorSection>
 
             <Accordion sx={sectionSx}>
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("languages")} ({languages.fields.length}/5)</Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.languages}
+                  fallback={documentLabels.languages}
+                  suffix={` (${languages.fields.length}/5)`}
+                  editLabel={t("editSectionTitle", { title: data.sectionTitles.languages?.trim() || documentLabels.languages })}
+                  onChange={(value) => setValue("sectionTitles.languages", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <Stack spacing={1.5}>
@@ -1439,9 +1452,16 @@ export default function Home() {
               </AccordionDetails>
             </Accordion>
 
+            <SortableEditorSection id="experience" order={10 + fullContentOrder.indexOf("experience")} label={t("reorderItem", { item: sectionLabel("experience") })}>
             <Accordion defaultExpanded sx={sectionSx} id="improvement-experience">
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("experience")} ({experiences.fields.length}/4)</Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.experience}
+                  fallback={documentLabels.experience}
+                  suffix={` (${experiences.fields.length}/4)`}
+                  editLabel={t("editSectionTitle", { title: sectionLabel("experience") })}
+                  onChange={(value) => setValue("sectionTitles.experience", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <DndContext id="experiences-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(experiences.fields.map((field) => field.id), experiences.move)}>
@@ -1531,10 +1551,18 @@ export default function Home() {
                 </Stack>
               </AccordionDetails>
             </Accordion>
+            </SortableEditorSection>
 
+            <SortableEditorSection id="education" order={10 + fullContentOrder.indexOf("education")} label={t("reorderItem", { item: sectionLabel("education") })}>
             <Accordion sx={sectionSx}>
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("education")} ({education.fields.length}/3)</Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.education}
+                  fallback={documentLabels.education}
+                  suffix={` (${education.fields.length}/3)`}
+                  editLabel={t("editSectionTitle", { title: sectionLabel("education") })}
+                  onChange={(value) => setValue("sectionTitles.education", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <DndContext id="education-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(education.fields.map((field) => field.id), education.move)}>
@@ -1576,10 +1604,18 @@ export default function Home() {
                 </Stack>
               </AccordionDetails>
             </Accordion>
+            </SortableEditorSection>
 
+            <SortableEditorSection id="certifications" order={10 + fullContentOrder.indexOf("certifications")} label={t("reorderItem", { item: sectionLabel("certifications") })}>
             <Accordion sx={sectionSx}>
-              <AccordionSummary expandIcon={<ExpandMoreRounded />}>
-                <Typography fontWeight={750}>{t("certifications")} ({certifications.fields.length}/4)</Typography>
+              <AccordionSummary component="div" expandIcon={<ExpandMoreRounded />}>
+                <EditableSectionTitle
+                  value={data.sectionTitles.certifications}
+                  fallback={documentLabels.certifications}
+                  suffix={` (${certifications.fields.length}/4)`}
+                  editLabel={t("editSectionTitle", { title: sectionLabel("certifications") })}
+                  onChange={(value) => setValue("sectionTitles.certifications", value, { shouldDirty: true })}
+                />
               </AccordionSummary>
               <AccordionDetails>
                 <DndContext id="certifications-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={moveFieldArrayItem(certifications.fields.map((field) => field.id), certifications.move)}>
@@ -1617,9 +1653,12 @@ export default function Home() {
                 </Stack>
               </AccordionDetails>
             </Accordion>
+            </SortableEditorSection>
 
-            <Alert icon={<LockOutlined />} severity="info" sx={{ mt: 2 }}>{t("localPrivacyReminder")}</Alert>
+            <Alert icon={<LockOutlined />} severity="info" sx={{ mt: 2, order: 100 }}>{t("localPrivacyReminder")}</Alert>
           </Box>
+          </SortableContext>
+          </DndContext>
 
           <Box className="preview-column">
             <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
@@ -1698,6 +1737,21 @@ export default function Home() {
                   {exporting === "docx" ? t("generating") : t("downloadDocx")}
                 </Button>
               </Stack>
+              <Box className="translation-prompt-cta">
+                <Box>
+                  <Typography fontWeight={750} variant="body2">{t("translationPromptTitle")}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">{t("translationPromptHelp")}</Typography>
+                </Box>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AutoAwesomeRounded />}
+                  onClick={() => setTranslationPromptOpen(true)}
+                >
+                  {t("generateTranslationPrompt")}
+                </Button>
+              </Box>
               <Divider sx={{ my: 2 }} />
               <Box className="job-match-editor-cta job-match-editor-cta-quality">
                 <Box>
@@ -1898,6 +1952,41 @@ export default function Home() {
           <Button onClick={() => setJobMatchDialogOpen(false)}>{t("cancel")}</Button>
           <Button variant="contained" onClick={analyzeCurrentCv} disabled={!selectedJobFamily} startIcon={<ManageSearchRounded />}>
             {t("continueToJobMatch")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={translationPromptOpen} onClose={() => setTranslationPromptOpen(false)} fullWidth maxWidth="md">
+        <DialogTitle>{t("translationPromptDialogTitle")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>{t("translationPromptDialogHelp")}</DialogContentText>
+          <TextField
+            label={t("translationTargetLanguage")}
+            placeholder={t("translationTargetPlaceholder")}
+            value={translationTarget}
+            onChange={(event) => setTranslationTarget(event.target.value)}
+            inputProps={{ maxLength: 60 }}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            multiline
+            minRows={10}
+            maxRows={18}
+            label={t("generatedPrompt")}
+            value={translationPrompt}
+            placeholder={t("translationPromptPlaceholder")}
+            InputProps={{ readOnly: true }}
+          />
+          <Alert severity="info" sx={{ mt: 2 }}>{t("translationPromptPrivacy")}</Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setTranslationPromptOpen(false)}>{t("cancel")}</Button>
+          <Button
+            variant="contained"
+            startIcon={<ContentCopyRounded />}
+            disabled={!translationPrompt}
+            onClick={() => void copyTranslationPrompt()}
+          >
+            {t("copyTranslationPrompt")}
           </Button>
         </DialogActions>
       </Dialog>
