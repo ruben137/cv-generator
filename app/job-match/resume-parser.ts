@@ -35,9 +35,11 @@ export function parsePastedResume(
     "resume-summary": [],
     "resume-skill": [],
     "resume-experience": [],
+    "resume-experience-context": [],
     "resume-education": [],
     "resume-certification": [],
     "resume-language": [],
+    "resume-custom": [],
   };
   let currentSource: TermSource = "resume-summary";
 
@@ -53,6 +55,7 @@ export function parsePastedResume(
   }
 
   return {
+    source: "text",
     title: title.trim(),
     summary: grouped["resume-summary"].join("\n"),
     skills: grouped["resume-skill"],

@@ -162,9 +162,11 @@ export function extractResumeTerms(resume: ResumeMatchInput): ExtractedTerm[] {
     ...extractFieldTerms([resume.summary], "resume-summary"),
     ...extractFieldTerms(resume.skills, "resume-skill"),
     ...extractFieldTerms(resume.experience, "resume-experience"),
+    ...extractFieldTerms(resume.experienceContext ?? [], "resume-experience-context"),
     ...extractFieldTerms(resume.education, "resume-education"),
     ...extractFieldTerms(resume.certifications, "resume-certification"),
     ...extractFieldTerms(resume.languages, "resume-language"),
+    ...extractFieldTerms(resume.customSections ?? [], "resume-custom"),
   ];
 }
 

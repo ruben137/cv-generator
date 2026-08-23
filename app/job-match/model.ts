@@ -70,13 +70,19 @@ export type JobDescriptionInput = {
 
 /** A UI-independent projection of a CV. An adapter from CvData will be added later. */
 export type ResumeMatchInput = {
+  /** Structured inputs come from CV Simple; text inputs are parsed from pasted text or a PDF. */
+  source?: "structured" | "text";
   title: string;
   summary: string;
   skills: string[];
+  /** Achievement and responsibility bullets. These are the strongest evidence source. */
   experience: string[];
+  /** Roles, companies, locations and dates, kept separate from achievement evidence. */
+  experienceContext?: string[];
   education: string[];
   certifications: string[];
   languages: string[];
+  customSections?: string[];
 };
 
 export type TermSource =
@@ -86,9 +92,11 @@ export type TermSource =
   | "resume-summary"
   | "resume-skill"
   | "resume-experience"
+  | "resume-experience-context"
   | "resume-education"
   | "resume-certification"
-  | "resume-language";
+  | "resume-language"
+  | "resume-custom";
 
 export type ExtractedTerm = {
   original: string;

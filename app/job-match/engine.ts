@@ -33,9 +33,11 @@ function resumeSections(resume: ResumeMatchInput): Array<readonly [TermSource, s
     ["resume-summary", resume.summary],
     ...resume.skills.map((value) => ["resume-skill", value] as const),
     ...resume.experience.map((value) => ["resume-experience", value] as const),
+    ...(resume.experienceContext ?? []).map((value) => ["resume-experience-context", value] as const),
     ...resume.education.map((value) => ["resume-education", value] as const),
     ...resume.certifications.map((value) => ["resume-certification", value] as const),
     ...resume.languages.map((value) => ["resume-language", value] as const),
+    ...(resume.customSections ?? []).map((value) => ["resume-custom", value] as const),
   ];
 }
 
@@ -84,8 +86,10 @@ function locateJobConcepts(input: JobDescriptionInput, concepts: MatchConcept[])
 function locateResumeConcepts(resume: ResumeMatchInput, concepts: MatchConcept[]): LocatedConcept[] {
   const sections = resumeSections(resume);
   const sourcePriority: Partial<Record<TermSource, number>> = {
-    "resume-experience": 2,
-    "resume-skill": 1,
+    "resume-experience": 3,
+    "resume-skill": 2,
+    "resume-experience-context": 1,
+    "resume-custom": 1,
   };
   const results: LocatedConcept[] = [];
   for (const concept of concepts) {
@@ -157,7 +161,7 @@ function compareConcepts(jobConcepts: LocatedConcept[], resumeConcepts: LocatedC
 }
 
 function resumeText(resume: ResumeMatchInput): string {
-  return [resume.title, resume.summary, ...resume.skills, ...resume.experience, ...resume.education, ...resume.certifications, ...resume.languages].join("\n");
+  return [resume.title, resume.summary, ...resume.skills, ...resume.experience, ...(resume.experienceContext ?? []), ...resume.education, ...resume.certifications, ...resume.languages, ...(resume.customSections ?? [])].join("\n");
 }
 
 function meaningfulTitleCoverage(jobTitle: string, resumeTitle: string, language: JobDescriptionInput["language"]): number {

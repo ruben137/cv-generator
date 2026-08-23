@@ -3,7 +3,7 @@ import { cvDataToMatchInput } from "./cv-adapter";
 import { jobFamilies, type JobFamily, type JobMatchLanguage, type ResumeMatchInput } from "./model";
 
 export const JOB_MATCH_TRANSFER_KEY = "cv-simple-job-match-transfer";
-const TRANSFER_VERSION = 1;
+const TRANSFER_VERSION = 2;
 
 type JobMatchTransfer = {
   version: typeof TRANSFER_VERSION;
@@ -26,7 +26,10 @@ function isResumeInput(value: unknown): value is ResumeMatchInput {
     && isStringArray(resume.experience)
     && isStringArray(resume.education)
     && isStringArray(resume.certifications)
-    && isStringArray(resume.languages);
+    && isStringArray(resume.languages)
+    && (resume.experienceContext === undefined || isStringArray(resume.experienceContext))
+    && (resume.customSections === undefined || isStringArray(resume.customSections))
+    && (resume.source === undefined || resume.source === "structured" || resume.source === "text");
 }
 
 export function createJobMatchTransfer(cv: CvData, jobFamily: JobFamily): JobMatchTransfer {
@@ -65,10 +68,11 @@ export function resumeMatchInputToText(resume: ResumeMatchInput, language: JobMa
   const sections: Array<[string, string[]]> = [
     [labels.summary, resume.summary ? [resume.summary] : []],
     [labels.skills, resume.skills],
-    [labels.experience, resume.experience],
+    [labels.experience, [...(resume.experienceContext ?? []), ...resume.experience]],
     [labels.education, resume.education],
     [labels.certifications, resume.certifications],
     [labels.languages, resume.languages],
+    [language === "en" ? "ADDITIONAL SECTIONS" : "SECCIONES ADICIONALES", resume.customSections ?? []],
   ];
   return sections.filter(([, items]) => items.length).map(([label, items]) => `${label}\n${items.join("\n")}`).join("\n\n");
 }

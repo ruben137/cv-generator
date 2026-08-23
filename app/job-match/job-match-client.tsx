@@ -2,6 +2,9 @@
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import FolderOpenRoundedIcon from "@mui/icons-material/FolderOpenRounded";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -11,8 +14,13 @@ import {
   Alert,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
+  IconButton,
   LinearProgress,
   MenuItem,
   Select,
@@ -22,6 +30,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { BrandLogo } from "../brand-logo";
+import { listStoredCvs, type StoredCv } from "../cv-library";
+import { cvDataToMatchInput } from "./cv-adapter";
 import {
   analyzeJobMatch,
   consumeJobMatchTransfer,
@@ -69,6 +79,9 @@ export function JobMatchClient() {
   const [pdfImporting, setPdfImporting] = useState(false);
   const [pdfDragging, setPdfDragging] = useState(false);
   const [pdfNotice, setPdfNotice] = useState<{ severity: "success" | "warning" | "error"; message: string } | null>(null);
+  const [cvSelectorOpen, setCvSelectorOpen] = useState(false);
+  const [storedCvs, setStoredCvs] = useState<StoredCv[]>([]);
+  const [storedCvsLoading, setStoredCvsLoading] = useState(false);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const pdfDragDepthRef = useRef(0);
   const { control, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>({
@@ -121,6 +134,25 @@ export function JobMatchClient() {
       jobFamily: values.jobFamily,
     }, resume));
     requestAnimationFrame(() => document.querySelector("#job-match-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  const openStoredCvSelector = async () => {
+    setCvSelectorOpen(true);
+    setStoredCvsLoading(true);
+    try { setStoredCvs(await listStoredCvs()); }
+    finally { setStoredCvsLoading(false); }
+  };
+
+  const selectStoredCv = (stored: StoredCv) => {
+    const resume = cvDataToMatchInput(stored.data);
+    setLinkedResume(resume);
+    setLoadedFromEditor(true);
+    setResumeLanguage(stored.locale);
+    setValue("resumeTitle", resume.title, { shouldDirty: true });
+    setValue("resumeText", resumeMatchInputToText(resume, stored.locale), { shouldDirty: true });
+    setAnalysis(null);
+    setPdfNotice(null);
+    setCvSelectorOpen(false);
   };
 
   const importResumePdf = async (file?: File) => {
@@ -189,7 +221,7 @@ export function JobMatchClient() {
       <header className="job-match-header">
         <BrandLogo />
         <nav aria-label={t("navigationLabel")}>
-          <a href={`${homePath}?openEditor=1#generator`} target="_blank" rel="noopener noreferrer">
+          <a href={`${homePath}?openEditor=1#generator`} rel="noopener noreferrer">
             <ArrowBackRoundedIcon fontSize="small" />{t("backToGenerator")}
           </a>
         </nav>
@@ -227,31 +259,37 @@ export function JobMatchClient() {
           )} />
         </section>
 
-        <section className="job-match-input-card">
+        <section
+          className={`job-match-input-card pdf-drop-card${pdfDragging ? " is-dragging" : ""}`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            pdfDragDepthRef.current += 1;
+            setPdfDragging(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(event) => {
+            event.preventDefault();
+            pdfDragDepthRef.current = Math.max(0, pdfDragDepthRef.current - 1);
+            if (pdfDragDepthRef.current === 0) setPdfDragging(false);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            pdfDragDepthRef.current = 0;
+            setPdfDragging(false);
+            void importResumePdf(event.dataTransfer.files?.[0]);
+          }}
+        >
           <div className="job-match-card-heading"><span>02</span><div><h2>{t("resumeSection")}</h2><p>{t("resumeSectionHelp")}</p></div></div>
           {loadedFromEditor && <Alert severity="success" onClose={() => { setLoadedFromEditor(false); setLinkedResume(null); }}>{t("editorResumeLoaded")}</Alert>}
+          <div className="job-match-source-choice">
+            <div><strong>{t("savedCvTitle")}</strong><span>{t("savedCvHelp")}</span></div>
+            <Button type="button" variant="outlined" startIcon={<FolderOpenRoundedIcon />} onClick={() => void openStoredCvSelector()}>{t("chooseSavedCv")}</Button>
+          </div>
           <div
             className={`job-match-pdf-import${pdfDragging ? " is-dragging" : ""}`}
-            onDragEnter={(event) => {
-              event.preventDefault();
-              pdfDragDepthRef.current += 1;
-              setPdfDragging(true);
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "copy";
-            }}
-            onDragLeave={(event) => {
-              event.preventDefault();
-              pdfDragDepthRef.current = Math.max(0, pdfDragDepthRef.current - 1);
-              if (pdfDragDepthRef.current === 0) setPdfDragging(false);
-            }}
-            onDrop={(event) => {
-              event.preventDefault();
-              pdfDragDepthRef.current = 0;
-              setPdfDragging(false);
-              void importResumePdf(event.dataTransfer.files?.[0]);
-            }}
           >
             <input
               ref={pdfInputRef}
@@ -374,6 +412,14 @@ export function JobMatchClient() {
           {t("backToBuilderCta")}
         </Button>
       </section>
+      <Dialog open={cvSelectorOpen} onClose={() => setCvSelectorOpen(false)} fullWidth className="quality-selector-dialog">
+        <DialogTitle>{t("savedCvSelectorTitle")}<IconButton className="quality-dialog-close" aria-label={t("closeSavedCvSelector")} onClick={() => setCvSelectorOpen(false)}><CloseRoundedIcon /></IconButton></DialogTitle>
+        <DialogContent>
+          <p className="quality-selector-help">{t("savedCvSelectorHelp")}</p>
+          {storedCvsLoading ? <p>{t("loadingSavedCvs")}</p> : storedCvs.length ? <div className="quality-cv-list">{storedCvs.map((cv) => <button type="button" key={cv.id} onClick={() => selectStoredCv(cv)}><div className="quality-cv-thumbnail" style={{ "--library-primary": cv.data.primaryColor } as React.CSSProperties}><i />{cv.data.photo ? <img src={cv.data.photo} alt="" /> : <DescriptionRoundedIcon />}</div><span><strong>{cv.title}</strong><small>{cv.data.headline || t("noProfessionalTitle")}</small><em>{cv.locale.toUpperCase()}</em></span></button>)}</div> : <Alert severity="info">{t("noSavedCvs")}</Alert>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setCvSelectorOpen(false)}>{t("cancel")}</Button><Button component="a" href={`${homePath}?openEditor=1#generator`} target="_blank">{t("createCv")}</Button></DialogActions>
+      </Dialog>
     </main>
   );
 }
