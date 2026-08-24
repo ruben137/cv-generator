@@ -13,6 +13,7 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import {
   Alert,
   Button,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
@@ -31,6 +32,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { BrandLogo } from "../brand-logo";
 import { listStoredCvs, type StoredCv } from "../cv-library";
+import { getJobApplication, listJobApplications, putJobApplication } from "../job-application-library";
+import { updateJobApplication, type JobApplication } from "../job-application";
 import { createImprovementTarget, saveImprovementPlan, type ImprovementTarget } from "../improvement-plan";
 import { cvDataToMatchInput } from "./cv-adapter";
 import {
@@ -68,6 +71,27 @@ function normalizeExtractedPdfText(parts: string[]): string {
     .trim();
 }
 
+async function persistApplicationAnalysis(applicationId: string, result: JobMatchAnalysis) {
+  const application = await getJobApplication(applicationId);
+  if (!application) return;
+  await putJobApplication(updateJobApplication(application, {
+    lastAnalysis: {
+      analyzedAt: result.analyzedAt,
+      score: result.score.percentage,
+      matchingTerms: [...new Set(result.matches.map((item) => item.jobTerm.original))],
+      missingTerms: [...new Set(result.missingRequirements.map((item) => item.term.original))],
+    },
+  }, { type: "analysis", detail: "", metadata: { score: result.score.percentage } }));
+}
+
+async function persistSelectedImprovements(applicationId: string, selectedImprovements: string[]) {
+  const application = await getJobApplication(applicationId);
+  if (!application) return;
+  await putJobApplication(updateJobApplication(application, { selectedImprovements }, {
+    type: "improvements", detail: "", metadata: { count: selectedImprovements.length },
+  }));
+}
+
 export function JobMatchClient() {
   const t = useTranslations("JobMatch");
   const visualTerms = t.raw("visualTerms") as string[];
@@ -77,7 +101,13 @@ export function JobMatchClient() {
   const [linkedResume, setLinkedResume] = useState<ResumeMatchInput | null>(null);
   const [improvementTarget, setImprovementTarget] = useState<ImprovementTarget | null>(null);
   const [loadedFromEditor, setLoadedFromEditor] = useState(false);
+  const [linkedApplicationId, setLinkedApplicationId] = useState<string | null>(null);
+  const [storedApplications, setStoredApplications] = useState<JobApplication[]>([]);
+  const [storedApplicationsLoading, setStoredApplicationsLoading] = useState(true);
+  const [applicationSelectorOpen, setApplicationSelectorOpen] = useState(false);
+  const [selectedImprovementItems, setSelectedImprovementItems] = useState<string[]>([]);
   const [resumeLanguage, setResumeLanguage] = useState<JobMatchLanguage>(locale);
+  const [jobLanguage, setJobLanguage] = useState<JobMatchLanguage>(locale);
   const [pdfImporting, setPdfImporting] = useState(false);
   const [pdfDragging, setPdfDragging] = useState(false);
   const [pdfNotice, setPdfNotice] = useState<{ severity: "success" | "warning" | "error"; message: string } | null>(null);
@@ -94,7 +124,17 @@ export function JobMatchClient() {
   const faqItems = t.raw("faqItems") as Array<{ question: string; answer: string }>;
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("source") !== "editor") return;
+    let active = true;
+    void listJobApplications()
+      .then((applications) => { if (active) setStoredApplications(applications); })
+      .catch(() => { if (active) setStoredApplications([]); })
+      .finally(() => { if (active) setStoredApplicationsLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const source = new URLSearchParams(window.location.search).get("source");
+    if (!source || !["editor", "library", "application"].includes(source)) return;
     const transfer = consumeJobMatchTransfer(window.localStorage);
     if (!transfer) return;
     let active = true;
@@ -107,6 +147,23 @@ export function JobMatchClient() {
       setValue("jobFamily", transfer.jobFamily);
       setValue("resumeTitle", transfer.resume.title);
       setValue("resumeText", resumeMatchInputToText(transfer.resume, transfer.language));
+      if (transfer.job) {
+        setLinkedApplicationId(transfer.job.applicationId);
+        setJobLanguage(transfer.job.language);
+        setValue("jobTitle", transfer.job.title);
+        setValue("jobDescription", transfer.job.description);
+        if (transfer.job.description.trim().length >= 80) {
+          const result = analyzeJobMatch({
+            title: transfer.job.title,
+            text: transfer.job.description,
+            language: transfer.job.language,
+            jobFamily: transfer.jobFamily,
+          }, transfer.resume);
+          setAnalysis(result);
+          void persistApplicationAnalysis(transfer.job.applicationId, result);
+          requestAnimationFrame(() => document.querySelector("#job-match-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        }
+      }
     });
     return () => { active = false; };
   }, [setValue]);
@@ -130,13 +187,33 @@ export function JobMatchClient() {
 
   const onSubmit = (values: FormValues) => {
     const resume = linkedResume ?? parsePastedResume(values.resumeTitle, values.resumeText, resumeLanguage);
-    setAnalysis(analyzeJobMatch({
+    const result = analyzeJobMatch({
       title: values.jobTitle,
       text: values.jobDescription,
-      language: locale,
+      language: jobLanguage,
       jobFamily: values.jobFamily,
-    }, resume));
+    }, resume);
+    setAnalysis(result);
+    if (linkedApplicationId) void persistApplicationAnalysis(linkedApplicationId, result);
+    setSelectedImprovementItems([]);
     requestAnimationFrame(() => document.querySelector("#job-match-results")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  const selectStoredApplication = (applicationId: string) => {
+    if (!applicationId) {
+      setLinkedApplicationId(null);
+      setApplicationSelectorOpen(false);
+      return;
+    }
+    const application = storedApplications.find((item) => item.id === applicationId);
+    if (!application) return;
+    setLinkedApplicationId(application.id);
+    setJobLanguage(application.language);
+    setValue("jobFamily", application.jobFamily, { shouldDirty: true, shouldValidate: true });
+    setValue("jobTitle", application.role, { shouldDirty: true, shouldValidate: true });
+    setValue("jobDescription", application.description, { shouldDirty: true, shouldValidate: true });
+    setAnalysis(null);
+    setApplicationSelectorOpen(false);
   };
 
   const openStoredCvSelector = async () => {
@@ -221,8 +298,14 @@ export function JobMatchClient() {
     }
   };
 
-  const sendImprovementsToGenerator = () => {
+  const sendImprovementsToGenerator = async () => {
     if (!analysis || !improvementTarget) return;
+    if (linkedApplicationId) {
+      await persistSelectedImprovements(linkedApplicationId, selectedImprovementDescriptions);
+      const applicationsPath = locale === "en" ? "/en/applications" : "/es/mis-postulaciones";
+      window.location.assign(`${applicationsPath}?adapt=${encodeURIComponent(linkedApplicationId)}`);
+      return;
+    }
     const missingTerms = [...new Set(analysis.missingRequirements.map((item) => item.term.original))];
     const suggestions = [
       ...(missingTerms.length ? [{
@@ -245,6 +328,27 @@ export function JobMatchClient() {
     saveImprovementPlan(window.localStorage, { source: "job-match", target: improvementTarget, suggestions });
     window.location.assign(`${homePath}?openEditor=1#generator`);
   };
+
+  const toggleImprovementItem = (id: string) => {
+    setSelectedImprovementItems((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
+
+  const selectedImprovementDescriptions = analysis ? [
+    ...groupedRecommendations.missingTerms
+      .filter((term) => selectedImprovementItems.includes(`skill:${term}`))
+      .map((term) => t("selectedSkillImprovement", { term })),
+    ...groupedRecommendations.general
+      .filter((recommendation) => selectedImprovementItems.includes(`general:${recommendation.id}`))
+      .map((recommendation) => `${t(`recommendations.${recommendation.kind}`)}${recommendation.relatedTerms.length ? `: ${recommendation.relatedTerms.join(", ")}` : ""}`),
+  ] : [];
+  const selectedImprovementsKey = JSON.stringify(selectedImprovementDescriptions);
+  useEffect(() => {
+    if (!linkedApplicationId || !analysis) return;
+    const timeout = window.setTimeout(() => {
+      void persistSelectedImprovements(linkedApplicationId, JSON.parse(selectedImprovementsKey) as string[]);
+    }, 120);
+    return () => window.clearTimeout(timeout);
+  }, [analysis, linkedApplicationId, selectedImprovementsKey]);
 
   return (
     <main className="job-match-page">
@@ -273,6 +377,15 @@ export function JobMatchClient() {
       <form className="job-match-form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <section className="job-match-input-card">
           <div className="job-match-card-heading"><span>01</span><div><h2>{t("jobSection")}</h2><p>{t("jobSectionHelp")}</p></div></div>
+          <div className="job-match-source-choice saved-application-choice">
+            <div>
+              <strong>{linkedApplicationId ? t("selectedStoredApplication") : t("storedApplicationTitle")}</strong>
+              <span>{storedApplications.find((item) => item.id === linkedApplicationId) ? `${storedApplications.find((item) => item.id === linkedApplicationId)?.role} · ${storedApplications.find((item) => item.id === linkedApplicationId)?.company}` : t("storedApplicationHelp")}</span>
+            </div>
+            <Button type="button" variant="outlined" startIcon={<FolderOpenRoundedIcon />} disabled={storedApplicationsLoading} onClick={() => setApplicationSelectorOpen(true)}>
+              {linkedApplicationId ? t("changeStoredApplication") : t("chooseStoredApplication")}
+            </Button>
+          </div>
           <Controller name="jobFamily" control={control} render={({ field }) => (
             <FormControl fullWidth>
               <InputLabel id="job-family-label">{t("jobFamily")}</InputLabel>
@@ -394,22 +507,45 @@ export function JobMatchClient() {
                     <p>{t("termsToAddHelp")}</p>
                   </div>
                   <div className="job-match-missing-chips">
-                    {groupedRecommendations.missingTerms.map((term) => <Chip key={term} label={term} variant="outlined" />)}
+                    {groupedRecommendations.missingTerms.map((term) => {
+                      const selected = selectedImprovementItems.includes(`skill:${term}`);
+                      return (
+                        <Chip
+                          key={term}
+                          label={term}
+                          variant={selected ? "filled" : "outlined"}
+                          color={selected ? "warning" : "default"}
+                          clickable={Boolean(improvementTarget)}
+                          onClick={improvementTarget ? () => toggleImprovementItem(`skill:${term}`) : undefined}
+                          icon={selected ? <CheckCircleRoundedIcon fontSize="small" /> : undefined}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}
               {groupedRecommendations.general.length > 0 && (
                 <>
                   <h4 className="job-match-other-adjustments">{t("otherAdjustmentsTitle")}</h4>
-                  <ol>{groupedRecommendations.general.map((recommendation) => <li key={recommendation.id} className={`priority-${recommendation.priority}`}><strong>{t(`priorities.${recommendation.priority}`)}</strong><span>{t(`recommendations.${recommendation.kind}`)}{recommendation.relatedTerms.length ? `: ${recommendation.relatedTerms.join(", ")}` : ""}</span></li>)}</ol>
+                  <ol>{groupedRecommendations.general.map((recommendation) => {
+                    const selected = selectedImprovementItems.includes(`general:${recommendation.id}`);
+                    return <li key={recommendation.id} className={`priority-${recommendation.priority}${selected ? " selected-for-adaptation" : ""}`}>
+                      {improvementTarget && <Checkbox checked={selected} onChange={() => toggleImprovementItem(`general:${recommendation.id}`)} inputProps={{ "aria-label": t("selectImprovementRecommendation", { recommendation: t(`recommendations.${recommendation.kind}`) }) }} />}
+                      <strong>{t(`priorities.${recommendation.priority}`)}</strong>
+                      <span>{t(`recommendations.${recommendation.kind}`)}{recommendation.relatedTerms.length ? `: ${recommendation.relatedTerms.join(", ")}` : ""}</span>
+                    </li>;
+                  })}</ol>
                 </>
+              )}
+              {improvementTarget && (groupedRecommendations.missingTerms.length > 0 || groupedRecommendations.general.length > 0) && (
+                <Alert severity="info" className="analysis-selection-help">{t("improvementSelectionHelp")}</Alert>
               )}
             </article>
           </div>
 
           {analysis.unclassifiedTerms.length > 0 && <details className="job-match-unclassified"><summary>{t("unclassifiedTitle", { count: analysis.unclassifiedTerms.length })}</summary><p>{t("unclassifiedHelp")}</p><div>{analysis.unclassifiedTerms.slice(0, 20).map((item, index) => <Chip key={`${item.term.normalized}-${index}`} label={item.term.original} variant="outlined" />)}</div></details>}
           <div className="job-match-result-actions">
-            {improvementTarget && <Button className="job-match-send-improvements" variant="contained" onClick={sendImprovementsToGenerator} startIcon={<TipsAndUpdatesOutlinedIcon />}>{t("sendToGenerator")}</Button>}
+            {improvementTarget && <Button className="job-match-send-improvements" variant="contained" onClick={() => void sendImprovementsToGenerator()} startIcon={<TipsAndUpdatesOutlinedIcon />}>{t(linkedApplicationId ? "createAdaptedVersion" : "sendToGenerator")}</Button>}
             <Button variant="outlined" onClick={() => document.querySelector(".job-match-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{t("editInputs")}</Button>
             <Button variant="text" onClick={() => { setAnalysis(null); requestAnimationFrame(() => document.querySelector(".job-match-form")?.scrollIntoView({ behavior: "smooth", block: "start" })); }}>{t("clearResult")}</Button>
           </div>
@@ -450,6 +586,27 @@ export function JobMatchClient() {
           {storedCvsLoading ? <p>{t("loadingSavedCvs")}</p> : storedCvs.length ? <div className="quality-cv-list">{storedCvs.map((cv) => <button type="button" key={cv.id} onClick={() => selectStoredCv(cv)}><div className="quality-cv-thumbnail" style={{ "--library-primary": cv.data.primaryColor } as React.CSSProperties}><i />{cv.data.photo ? <img src={cv.data.photo} alt="" /> : <DescriptionRoundedIcon />}</div><span><strong>{cv.title}</strong><small>{cv.data.headline || t("noProfessionalTitle")}</small><em>{cv.locale.toUpperCase()}</em></span></button>)}</div> : <Alert severity="info" className="saved-cv-tip"><strong>{t("noSavedCvs")}</strong><span>{t("saveCvTip")}</span></Alert>}
         </DialogContent>
         <DialogActions><Button onClick={() => setCvSelectorOpen(false)}>{t("cancel")}</Button><Button component="a" href={`${homePath}?openEditor=1#generator`}>{t("createCv")}</Button></DialogActions>
+      </Dialog>
+      <Dialog open={applicationSelectorOpen} onClose={() => setApplicationSelectorOpen(false)} fullWidth className="quality-selector-dialog application-selector-dialog">
+        <DialogTitle>{t("storedApplicationSelectorTitle")}<IconButton className="quality-dialog-close" aria-label={t("closeStoredApplicationSelector")} onClick={() => setApplicationSelectorOpen(false)}><CloseRoundedIcon /></IconButton></DialogTitle>
+        <DialogContent>
+          <p className="quality-selector-help">{t("storedApplicationSelectorHelp")}</p>
+          {storedApplicationsLoading ? <p>{t("loadingStoredApplications")}</p> : storedApplications.length ? (
+            <div className="quality-cv-list application-selector-list">
+              {storedApplications.map((application) => (
+                <button type="button" key={application.id} onClick={() => selectStoredApplication(application.id)}>
+                  <div className="quality-cv-thumbnail application-selector-thumbnail" style={{ "--library-primary": "#674787" } as React.CSSProperties}><i /><DescriptionRoundedIcon /></div>
+                  <span><strong>{application.role}</strong><small>{application.company}</small><em>{t(`applicationStatuses.${application.status}`)}</em></span>
+                </button>
+              ))}
+            </div>
+          ) : <Alert severity="info">{t("noStoredApplications")}</Alert>}
+        </DialogContent>
+        <DialogActions>
+          {linkedApplicationId ? <Button onClick={() => selectStoredApplication("")}>{t("storedApplicationManual")}</Button> : null}
+          <Button onClick={() => setApplicationSelectorOpen(false)}>{t("cancel")}</Button>
+          <Button component="a" href={locale === "en" ? "/applications" : "/mis-postulaciones"}>{t("manageStoredApplications")}</Button>
+        </DialogActions>
       </Dialog>
     </main>
   );

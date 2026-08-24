@@ -17,7 +17,7 @@ import {
 } from "./model";
 import { calculateJobMatchScore } from "./scoring";
 import { containsExactTerm, countExactTermOccurrences, isStopWord, normalizeText, tokenize } from "./normalization";
-import { isApproximateSpellingMatch } from "./similarity";
+import { findApproximatePhraseOccurrence, isApproximateSpellingMatch } from "./similarity";
 
 type LocatedConcept = {
   concept: MatchConcept;
@@ -96,14 +96,23 @@ function locateResumeConcepts(resume: ResumeMatchInput, concepts: MatchConcept[]
     let best: LocatedConcept | undefined;
     for (const alias of concept.aliases) {
       for (const [source, value] of sections) {
-        const frequency = countExactTermOccurrences(value, alias.value);
+        const exactFrequency = countExactTermOccurrences(value, alias.value);
+        const approximateOccurrence = exactFrequency ? null : findApproximatePhraseOccurrence(value, alias.value);
+        const frequency = exactFrequency || (approximateOccurrence ? 1 : 0);
         const currentPriority = sourcePriority[source] ?? 0;
         const bestPriority = best ? sourcePriority[best.term.source] ?? 0 : -1;
         if (!frequency || (best && (best.term.frequency > frequency || (best.term.frequency === frequency && bestPriority >= currentPriority)))) continue;
         best = {
           concept,
           matchedAlias: alias.value,
-          term: { original: alias.value, normalized: normalizeText(alias.value), source, frequency, conceptId: concept.id, category: concept.category },
+          term: {
+            original: approximateOccurrence ?? alias.value,
+            normalized: normalizeText(approximateOccurrence ?? alias.value),
+            source,
+            frequency,
+            conceptId: concept.id,
+            category: concept.category,
+          },
         };
       }
     }

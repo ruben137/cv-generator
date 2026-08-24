@@ -27,8 +27,8 @@ const conjunctions: Record<JobMatchLanguage, RegExp> = {
 };
 
 const repeatedTermNoise: Record<JobMatchLanguage, ReadonlySet<string>> = {
-  es: new Set(["experiencia", "equipo", "equipos", "cliente", "clientes", "proyecto", "proyectos", "sistema", "sistemas", "plataforma", "plataformas", "estado", "estados", "construyendo", "buscamos", "trabajo", "puesto", "cargo", "context", "contexto", "otra", "otras"]),
-  en: new Set(["experience", "team", "teams", "client", "clients", "project", "projects", "system", "systems", "platform", "platforms", "building", "work", "looking", "role", "position", "context", "other", "others"]),
+  es: new Set(["experiencia", "equipo", "equipos", "cliente", "clientes", "proyecto", "proyectos", "sistema", "sistemas", "plataforma", "plataformas", "estado", "estados", "construyendo", "buscamos", "trabajo", "puesto", "cargo", "context", "contexto", "otra", "otras", "desarrollar", "diferentes", "usuario", "multi", "interfaces", "fidelidad", "consideraciones de distribucion"]),
+  en: new Set(["experience", "team", "teams", "client", "clients", "project", "projects", "system", "systems", "platform", "platforms", "building", "work", "looking", "role", "position", "context", "other", "others", "develop", "different", "user", "multi", "interfaces", "fidelity", "distribution considerations"]),
 };
 
 const requirementSections: Record<JobMatchLanguage, { required: RegExp; preferred: RegExp; end: RegExp }> = {

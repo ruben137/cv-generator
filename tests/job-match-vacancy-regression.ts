@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { analyzeJobMatch } from "../app/job-match/engine";
-import { validateConceptDictionary } from "../app/job-match/concepts/registry";
+import { findConceptsByTerm, validateConceptDictionary } from "../app/job-match/concepts/registry";
 import type { JobDescriptionInput, JobFamily, ResumeMatchInput } from "../app/job-match/model";
 
 type Case = {
@@ -122,6 +122,13 @@ const rows = cases.map((testCase) => {
 });
 
 assert.deepEqual(validateConceptDictionary(), []);
+for (const variant of ["Node.js", "NodeJS", "Node JS", "node-js"]) {
+  assert.equal(
+    findConceptsByTerm(variant, "en", "software-development")[0]?.id,
+    "nodejs",
+    `${variant} should resolve to the Node.js concept`,
+  );
+}
 
 const frontendVocabularyRegression = analyzeJobMatch(
   {
@@ -131,6 +138,7 @@ const frontendVocabularyRegression = analyzeJobMatch(
     text: [
       "Requisitos:",
       "JavaScript moderno (ES6+)",
+      "Node.js",
       "Zustand u otras",
       "herramientas de construcción",
       "npm/yarn",
@@ -150,6 +158,22 @@ assert.deepEqual(
   frontendVocabularyRegression.unclassifiedTerms.map((item) => item.term.normalized),
   [],
   "known frontend vocabulary and generic noise should not require manual review",
+);
+
+const expandedFrontendVocabularyRegression = analyzeJobMatch(
+  {
+    title: "Senior Frontend Developer",
+    language: "es",
+    jobFamily: "software-development",
+    text: "Requisitos: aplicaciones multi-locale, monedas, librerías de dashboards, visualización de datos, consideraciones de distribución, plataformas empresariales, Vue, Angular, componentes reutilizables, UX UI, desarrollar, fidelidad, GraphQL, interfaces, diferentes, usuario y multi.",
+  },
+  resume("Frontend Developer", ["React"], ["Desarrollé interfaces con React."]),
+  { now: () => new Date(0) },
+);
+assert.deepEqual(
+  expandedFrontendVocabularyRegression.unclassifiedTerms.map((item) => item.term.normalized),
+  [],
+  "common frontend architecture vocabulary should be recognized while isolated generic words are ignored",
 );
 
 const commonMarketingTermsRegression = analyzeJobMatch(

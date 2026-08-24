@@ -107,7 +107,6 @@ export function ResumeReviewClient() {
     saveImprovementPlan(window.localStorage, { source: "quality-review", target: improvementTarget, suggestions });
     window.location.assign(`/${locale}?openEditor=1#generator`);
   };
-
   return (
     <main className="job-match-page quality-page">
       <header className="job-match-header">
@@ -201,6 +200,17 @@ export function ResumeReviewClient() {
                   <span>{t(`status.${check.status}`)}</span>
                   <h3>{t(`checks.${check.id}.title`)}</h3>
                   <p>{t(`checks.${check.id}.description`)}</p>
+                  {(check.id === "metrics" || check.id === "actionVerbs") && typeof check.matched === "number" && typeof check.total === "number" ? (
+                    <>
+                      <p className="quality-check-evidence">
+                        {t(check.id === "metrics" ? "metricsEvidence" : "actionVerbsEvidence", { matched: check.matched, total: check.total })}
+                      </p>
+                      <div className="quality-check-example">
+                        <span className="quality-check-example-label">{t("exampleLabel")}</span>
+                        <p>{t(check.id === "metrics" ? "metricsExample" : "actionVerbsExample")}</p>
+                      </div>
+                    </>
+                  ) : null}
                   {check.values?.length ? (
                     <ul>
                       {check.values.map((value) => (
