@@ -94,6 +94,7 @@ import { getProfessionalPreset, isProfessionalPresetId } from "./professional-pr
 import { writeJobMatchTransfer } from "./job-match/transfer";
 import { jobFamilies, type JobFamily } from "./job-match/model";
 import { writeResumeReviewTransfer } from "./resume-review/transfer";
+import { PromptJsonDropzone } from "./prompt-json-dropzone";
 import { createImprovementTarget, getImprovementPlans, removeImprovementPlan, storeImprovementPlans, type ImprovementPlan, type ImprovementSuggestion } from "./improvement-plan";
 
 const theme = createTheme({
@@ -291,8 +292,10 @@ export default function Home() {
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
   const [improvementPlans, setImprovementPlans] = useState<ImprovementPlan[]>([]);
   const [improvementsOpen, setImprovementsOpen] = useState(false);
+  const [showFloatingImprovements, setShowFloatingImprovements] = useState(false);
   const [improvementUndo, setImprovementUndo] = useState<{ skills: CvData["skills"]; plans: ImprovementPlan[]; message: "improvementApplied" | "improvementReviewed" | "improvementDismissed" } | null>(null);
   const improvementLoadKeyRef = useRef<string | null>(null);
+  const improvementsTriggerRef = useRef<HTMLButtonElement>(null);
   const [cvTitle, setCvTitle] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
@@ -324,6 +327,20 @@ export default function Home() {
     email: data.sectionTitles.email?.trim() || documentLabels.email,
     portfolio: data.sectionTitles.portfolio?.trim() || documentLabels.portfolio,
   };
+  const pendingImprovementCount = improvementPlans.reduce((total, plan) => total + plan.suggestions.length, 0);
+
+  useEffect(() => {
+    const trigger = improvementsTriggerRef.current;
+    if (!trigger || pendingImprovementCount === 0) {
+      queueMicrotask(() => setShowFloatingImprovements(false));
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      setShowFloatingImprovements(!entry.isIntersecting && entry.boundingClientRect.top < 80);
+    }, { rootMargin: "-72px 0px 0px" });
+    observer.observe(trigger);
+    return () => observer.disconnect();
+  }, [pendingImprovementCount]);
 
   useEffect(() => {
     const storedAutoSave = window.localStorage.getItem(AUTOSAVE_KEY);
@@ -546,11 +563,15 @@ export default function Home() {
     const targetId = section === "headline" ? "improvement-personal" : `improvement-${section}`;
     setImprovementsOpen(false);
     window.setTimeout(() => {
-      const target = document.getElementById(targetId) ?? document.getElementById("generator");
+      const target = document.getElementById(targetId);
+      if (!target) return;
       const summary = target?.querySelector<HTMLElement>(".MuiAccordionSummary-root");
-      if (summary?.getAttribute("aria-expanded") === "false") summary.click();
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => target?.querySelector<HTMLElement>("input, textarea, .MuiAccordionDetails button")?.focus(), 450);
+      const wasCollapsed = summary?.getAttribute("aria-expanded") === "false";
+      if (wasCollapsed) summary.click();
+      window.setTimeout(() => {
+        target.querySelector<HTMLElement>("input, textarea, .MuiAccordionDetails button")?.focus({ preventScroll: true });
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, wasCollapsed ? 220 : 0);
     }, 180);
   };
 
@@ -983,13 +1004,14 @@ export default function Home() {
           <Stack direction="row" spacing={1} alignItems="center">
             {improvementPlans.length > 0 && (
               <Button
+                ref={improvementsTriggerRef}
                 type="button"
                 variant="contained"
                 size="small"
                 startIcon={<TipsAndUpdatesOutlined />}
                 onClick={() => setImprovementsOpen(true)}
               >
-                {t("pendingImprovements", { count: improvementPlans.reduce((total, plan) => total + plan.suggestions.length, 0) })}
+                {t("pendingImprovements", { count: pendingImprovementCount })}
               </Button>
             )}
             <Chip
@@ -1977,6 +1999,7 @@ export default function Home() {
             InputProps={{ readOnly: true }}
           />
           <Alert severity="info" sx={{ mt: 2 }}>{t("translationPromptPrivacy")}</Alert>
+          <PromptJsonDropzone />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setTranslationPromptOpen(false)}>{t("cancel")}</Button>
@@ -2035,6 +2058,17 @@ export default function Home() {
           </Button>
         </DialogActions>
       </Dialog>
+      {pendingImprovementCount > 0 && showFloatingImprovements && !improvementsOpen && (
+        <Button
+          type="button"
+          className="floating-improvements-button"
+          variant="contained"
+          startIcon={<TipsAndUpdatesOutlined />}
+          onClick={() => setImprovementsOpen(true)}
+        >
+          {t("pendingImprovements", { count: pendingImprovementCount })}
+        </Button>
+      )}
       <Drawer
         className="improvement-drawer"
         anchor="right"
@@ -2091,9 +2125,11 @@ export default function Home() {
                     ) : null}
                     {suggestion.kind === "review-section" && (
                       <Stack className="improvement-suggestion-actions" direction="row" useFlexGap flexWrap="wrap" sx={{ mt: 0.65 }}>
-                        <Button className="improvement-section-button" type="button" size="small" variant="text" onClick={() => focusImprovementSection(suggestion.section)}>
-                          {t("openRecommendedSection")}
-                        </Button>
+                        {suggestion.section !== "general" && (
+                          <Button className="improvement-section-button" type="button" size="small" variant="text" onClick={() => focusImprovementSection(suggestion.section)}>
+                            {t("openRecommendedSection")}
+                          </Button>
+                        )}
                         <Button className="improvement-reviewed-button" type="button" size="small" color="inherit" onClick={() => removeImprovementSuggestion(plan.id, suggestion.id, "improvementReviewed")}>
                           {t("markImprovementReviewed")}
                         </Button>

@@ -1,9 +1,6 @@
 import type { CvData } from "./types";
 import { normalizeCvData } from "./cv-data";
-
-const DATABASE_NAME = "cv-simple";
-const STORE_NAME = "cvs";
-const DATABASE_VERSION = 1;
+import { CV_STORE_NAME, runStoreRequest } from "./local-database";
 
 export type StoredCv = {
   id: string;
@@ -14,34 +11,8 @@ export type StoredCv = {
   data: CvData;
 };
 
-function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
-    request.onupgradeneeded = () => {
-      const database = request.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function runRequest<T>(mode: IDBTransactionMode, operation: (store: IDBObjectStore) => IDBRequest<T>) {
-  const database = await openDatabase();
-  return new Promise<T>((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, mode);
-    const request = operation(transaction.objectStore(STORE_NAME));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-    transaction.oncomplete = () => database.close();
-    transaction.onerror = () => reject(transaction.error);
-  });
-}
-
 export async function listStoredCvs(): Promise<StoredCv[]> {
-  const items = await runRequest<StoredCv[]>("readonly", (store) => store.getAll());
+  const items = await runStoreRequest<StoredCv[]>(CV_STORE_NAME, "readonly", (store) => store.getAll());
   return items.map((item) => {
     const locale = item.locale === "en" ? "en" : "es";
     const data = normalizeCvData(item.data, locale);
@@ -50,7 +21,7 @@ export async function listStoredCvs(): Promise<StoredCv[]> {
 }
 
 export function getStoredCv(id: string): Promise<StoredCv | undefined> {
-  return runRequest<StoredCv | undefined>("readonly", (store) => store.get(id)).then((item) => {
+  return runStoreRequest<StoredCv | undefined>(CV_STORE_NAME, "readonly", (store) => store.get(id)).then((item) => {
     if (!item) return undefined;
     const locale = item.locale === "en" ? "en" : "es";
     const data = normalizeCvData(item.data, locale);
@@ -59,11 +30,11 @@ export function getStoredCv(id: string): Promise<StoredCv | undefined> {
 }
 
 export function putStoredCv(cv: StoredCv): Promise<IDBValidKey> {
-  return runRequest<IDBValidKey>("readwrite", (store) => store.put(cv));
+  return runStoreRequest<IDBValidKey>(CV_STORE_NAME, "readwrite", (store) => store.put(cv));
 }
 
 export function deleteStoredCv(id: string): Promise<undefined> {
-  return runRequest<undefined>("readwrite", (store) => store.delete(id));
+  return runStoreRequest<undefined>(CV_STORE_NAME, "readwrite", (store) => store.delete(id));
 }
 
 export function createStoredCv(data: CvData, locale: "es" | "en", title?: string): StoredCv {

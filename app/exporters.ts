@@ -105,7 +105,7 @@ async function cropPhoto(dataUrl: string, shape: CvData["photoShape"]) {
   return canvas.toDataURL(shape === "round" ? "image/png" : "image/jpeg", 0.9);
 }
 
-export async function exportDocx(data: CvData, labels: ExportLabels) {
+export async function exportDocx(data: CvData, labels: ExportLabels, filename?: string) {
   const {
     BorderStyle,
     Document,
@@ -465,7 +465,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels) {
     ],
   });
   const blob = await Packer.toBlob(doc);
-  download(blob, `${slugName(data.name)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+  download(blob, `${slugName(filename || data.name)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
 
 export async function exportPdf(data: CvData, labels: ExportLabels, filename?: string) {
