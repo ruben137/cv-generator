@@ -71,8 +71,8 @@ export function normalizeContentOrder(
 
 export type CvData = {
   documentLocale: "es" | "en";
-  template: "classic" | "modern" | "minimal" | "right" | "compact" | "contrast" | "editorial";
-  fontFamily: "sans" | "serif" | "humanist";
+  template: "classic" | "modern" | "minimal" | "right" | "compact" | "contrast" | "editorial" | "harvard";
+  fontFamily: "sans" | "serif" | "times" | "humanist";
   photoShape: "square" | "round";
   primaryColor: string;
   accentColor: string;

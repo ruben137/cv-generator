@@ -108,6 +108,7 @@ async function cropPhoto(dataUrl: string, shape: CvData["photoShape"]) {
 export async function exportDocx(data: CvData, labels: ExportLabels, filename?: string) {
   const {
     BorderStyle,
+    AlignmentType,
     Document,
     HeadingLevel,
     HeightRule,
@@ -123,7 +124,8 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
   } = await import("docx");
   const primary = docxColor(data.primaryColor, "173B63");
   const accent = docxColor(data.accentColor, "3C6596");
-  const docxFont = data.fontFamily === "serif" ? "Georgia" : data.fontFamily === "humanist" ? "Calibri" : "Arial";
+  const isHarvard = data.template === "harvard";
+  const docxFont = isHarvard || data.fontFamily === "times" ? "Times New Roman" : data.fontFamily === "serif" ? "Georgia" : data.fontFamily === "humanist" ? "Calibri" : "Arial";
   const isModern = data.template === "modern";
   const isMinimal = data.template === "minimal";
   const isRight = data.template === "right";
@@ -136,12 +138,14 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
   const heading = (text: string, textColor = primary, borderColor = primary, main = false) =>
     new Paragraph({
       heading: HeadingLevel.HEADING_2,
-      spacing: { before: 220, after: 80 },
-      border: isEditorial && main
+      spacing: { before: isHarvard ? 170 : 220, after: isHarvard ? 55 : 80 },
+      border: isHarvard
+        ? { bottom: { color: "222222", size: 8, style: BorderStyle.SINGLE } }
+        : isEditorial && main
         ? { left: { color: accent, size: 22, space: 8, style: BorderStyle.SINGLE } }
         : { bottom: { color: borderColor, size: 8, style: BorderStyle.SINGLE } },
       shading: isEditorial && main ? { fill: "E8EDF2", type: ShadingType.CLEAR } : undefined,
-      children: [new TextRun({ text, bold: true, color: textColor, size: 27 })],
+      children: [new TextRun({ text: isHarvard ? text.toUpperCase() : text, bold: true, color: isHarvard ? "171717" : textColor, size: isHarvard ? 22 : 27 })],
     });
 
   const left: InstanceType<typeof Paragraph>[] = [
@@ -162,7 +166,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
     }),
   ];
 
-  if (data.photo) {
+  if (data.photo && !isHarvard) {
     const image = await dataUrlBytes(await cropPhoto(data.photo, data.photoShape));
     left.push(
       new Paragraph({
@@ -354,6 +358,55 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
   const orderedRight = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections)
     .flatMap((section) => sectionParagraphs[section] ?? []);
 
+  if (isHarvard) {
+    const contactLine = contacts.map(([, value]) => safe(value)).join("  |  ");
+    const languageLine = data.languages
+      .filter((item) => safe(item.name))
+      .map((item) => `${item.name}: ${item.level}`)
+      .join("  |  ");
+    const harvardHeader = [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 70 },
+        children: [new TextRun({ text: safe(data.name).toUpperCase() || "TU NOMBRE", bold: true, size: 38, font: "Times New Roman" })],
+      }),
+      ...(safe(data.headline) ? [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 55 },
+        children: [new TextRun({ text: safe(data.headline), size: 20, font: "Times New Roman" })],
+      })] : []),
+      ...(contactLine ? [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 45 },
+        children: [new TextRun({ text: contactLine, size: 17, font: "Arial" })],
+      })] : []),
+      ...(languageLine ? [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
+        border: { bottom: { color: "222222", size: 12, style: BorderStyle.SINGLE } },
+        children: [new TextRun({ text: languageLine, size: 17, font: "Arial" })],
+      })] : [new Paragraph({ border: { bottom: { color: "222222", size: 12, style: BorderStyle.SINGLE } }, children: [new TextRun("")] })]),
+    ];
+    const harvardDoc = new Document({
+      styles: {
+        default: { document: { run: { font: "Times New Roman", size: 18 } } },
+        paragraphStyles: [{ id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: "Arial", bold: true, color: "171717" } }],
+      },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 560, right: 720, bottom: 560, left: 720 },
+          },
+        },
+        children: [...harvardHeader, ...(orderedRight.length ? orderedRight : [new Paragraph("")])],
+      }],
+    });
+    const harvardBlob = await Packer.toBlob(harvardDoc);
+    download(harvardBlob, `${slugName(filename || data.name)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    return;
+  }
+
   const pageWidthTwips = 11906;
   const pageHeightTwips = 16838;
   const topRowHeight = isMinimal ? 40 : isModern ? 180 : 500;
@@ -472,7 +525,7 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]);
-  const pdfFonts = data.fontFamily === "serif"
+  const pdfFonts = data.fontFamily === "serif" || data.fontFamily === "times"
     ? [StandardFonts.TimesRoman, StandardFonts.TimesRomanBold, StandardFonts.TimesRomanItalic]
     : [StandardFonts.Helvetica, StandardFonts.HelveticaBold, StandardFonts.HelveticaOblique];
   const regular = await pdf.embedFont(pdfFonts[0]);
@@ -485,23 +538,24 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   const white = rgb(1, 1, 1);
   const isContrastPdf = data.template === "contrast";
   const isEditorialPdf = data.template === "editorial";
+  const isHarvardPdf = data.template === "harvard";
   const hasDarkSidebarPdf = isContrastPdf || isEditorialPdf;
   const sidebarInk = hasDarkSidebarPdf ? white : dark;
   const pageWidth = 595.28;
-  const sidebarWidth = data.template === "compact" ? 167 : isEditorialPdf ? 226 : 202;
+  const sidebarWidth = isHarvardPdf ? 0 : data.template === "compact" ? 167 : isEditorialPdf ? 226 : 202;
   const mainWidth = pageWidth - sidebarWidth;
   const isRight = data.template === "right";
   const sidebarX = isRight ? mainWidth : 0;
   const mainX = isRight ? 0 : sidebarWidth;
   const sidebarContentX = sidebarX + 20;
   const sidebarContentWidth = sidebarWidth - 40;
-  const mainContentX = mainX + 24;
-  const mainContentWidth = mainWidth - 48;
+  const mainContentX = isHarvardPdf ? 42 : mainX + 24;
+  const mainContentWidth = isHarvardPdf ? pageWidth - 84 : mainWidth - 48;
   const bulletX = mainContentX + 5;
   const bulletTextX = mainContentX + 15;
   const columnBoundary = isRight ? mainWidth : sidebarWidth;
 
-  if (data.template !== "minimal") {
+  if (!isHarvardPdf && data.template !== "minimal") {
     page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: hasDarkSidebarPdf ? color : muted });
     if (isEditorialPdf) {
       page.drawRectangle({ x: sidebarContentX, y: 806, width: 34, height: 6, color: accent });
@@ -512,7 +566,7 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
     if (isEditorialPdf) {
       page.drawRectangle({ x: sidebarWidth - 5, y: 0, width: 5, height: 841.89, color: accent });
     }
-  } else {
+  } else if (!isHarvardPdf) {
     page.drawLine({ start: { x: columnBoundary, y: 26 }, end: { x: columnBoundary, y: 816 }, thickness: 0.6, color: muted });
   }
 
@@ -552,7 +606,15 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
     page.drawLine({ start: { x, y: y - 5 }, end: { x: x + width, y: y - 5 }, thickness: 0.7, color: lineColor });
     return y - 22;
   };
+  const contacts = [
+    [labels.location, data.location],
+    [labels.phone, data.phone],
+    [labels.email, data.email],
+    [labels.portfolio, data.portfolio],
+  ].filter(([, value]) => safe(value));
+  const languages = data.languages.filter((item) => safe(item.name));
 
+  if (!isHarvardPdf) {
   let leftY = 775;
   wrap(safe(data.name).toUpperCase() || "TU NOMBRE", bold, 20, sidebarContentWidth + 2)
     .slice(0, 2)
@@ -574,12 +636,6 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
     }
   }
 
-  const contacts = [
-    [labels.location, data.location],
-    [labels.phone, data.phone],
-    [labels.email, data.email],
-    [labels.portfolio, data.portfolio],
-  ].filter(([, value]) => safe(value));
   if (contacts.length) {
     leftY = heading(labels.contact, sidebarContentX, leftY, sidebarContentWidth, hasDarkSidebarPdf ? white : color, hasDarkSidebarPdf ? accent : color);
     contacts.forEach(([label, value]) => {
@@ -587,7 +643,6 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
       leftY = textBlock(value, sidebarContentX, leftY - 12, sidebarContentWidth, 8.2, 10, regular, 2, sidebarInk) - 7;
     });
   }
-  const languages = data.languages.filter((item) => safe(item.name));
   if (languages.length) {
     leftY = heading(labels.languages, sidebarContentX, leftY - 3, sidebarContentWidth, hasDarkSidebarPdf ? white : color, hasDarkSidebarPdf ? accent : color);
     languages.forEach((item) => {
@@ -595,12 +650,46 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
       leftY = textBlock(item.level, sidebarContentX, leftY - 11, sidebarContentWidth, 8.2, 10, regular, 2, sidebarInk) - 5;
     });
   }
+  }
 
-  let rightY = 775;
+  let rightY = isHarvardPdf ? 790 : 775;
+  if (isHarvardPdf) {
+    const centeredText = (text: string, y: number, size: number, font = regular) => {
+      const width = font.widthOfTextAtSize(text, size);
+      page.drawText(text, { x: Math.max(42, (pageWidth - width) / 2), y, size, font, color: dark });
+    };
+    centeredText(safe(data.name).toUpperCase() || "TU NOMBRE", rightY, 21, bold);
+    rightY -= 25;
+    if (safe(data.headline)) {
+      centeredText(safe(data.headline), rightY, 10, regular);
+      rightY -= 16;
+    }
+    const harvardContact = contacts.map(([, value]) => safe(value)).join("  |  ");
+    if (harvardContact) {
+      wrap(harvardContact, regular, 8.2, mainContentWidth).slice(0, 2).forEach((line) => {
+        centeredText(line, rightY, 8.2, regular);
+        rightY -= 11;
+      });
+    }
+    const harvardLanguages = languages.map((item) => `${item.name}: ${item.level}`).join("  |  ");
+    if (harvardLanguages) {
+      wrap(harvardLanguages, regular, 8, mainContentWidth).slice(0, 2).forEach((line) => {
+        centeredText(line, rightY, 8, regular);
+        rightY -= 10;
+      });
+    }
+    page.drawLine({ start: { x: mainContentX, y: rightY - 2 }, end: { x: mainContentX + mainContentWidth, y: rightY - 2 }, thickness: 1.1, color: dark });
+    rightY -= 18;
+  }
   let drawnMainSections = 0;
   const mainHeading = (label: string) => {
     if (drawnMainSections > 0) rightY -= 12;
     drawnMainSections += 1;
+    if (isHarvardPdf) {
+      page.drawText(label.toUpperCase(), { x: mainContentX, y: rightY, size: 10.5, font: bold, color: dark });
+      page.drawLine({ start: { x: mainContentX, y: rightY - 3 }, end: { x: mainContentX + mainContentWidth, y: rightY - 3 }, thickness: 0.7, color: dark });
+      return rightY - 16;
+    }
     if (isEditorialPdf) {
       page.drawRectangle({ x: mainContentX, y: rightY - 5, width: mainContentWidth, height: 21, color: muted });
       page.drawRectangle({ x: mainContentX, y: rightY - 5, width: 4, height: 21, color: accent });

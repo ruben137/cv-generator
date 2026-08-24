@@ -582,6 +582,12 @@ body {
 .template-thumbnail-editorial i { background: #173b63; }
 .template-thumbnail-editorial b { width: 5px; height: 100%; left: 38%; background: #c99a42; }
 .template-thumbnail-editorial em { width: 62%; height: 8px; background: #e7ebef; }
+.template-thumbnail-harvard { display: block; padding: 9px 7px; background: #fff; }
+.template-thumbnail-harvard i { display: block; width: 72%; height: 5px; margin: 0 auto 4px; background: #20252a; }
+.template-thumbnail-harvard::before { display: block; width: 48%; height: 3px; margin: 0 auto 8px; background: #8d969d; content: ""; }
+.template-thumbnail-harvard::after { display: block; height: 1px; margin-top: 7px; background: #20252a; box-shadow: 0 14px 0 #20252a, 0 28px 0 #20252a; content: ""; }
+.template-thumbnail-harvard b,
+.template-thumbnail-harvard em { display: none; }
 
 .autosave-panel {
   display: flex;
@@ -1009,6 +1015,54 @@ body {
   .cv-paper { --paper-scale: 0.55; }
   .floating-improvements-button.MuiButton-root { right: 1rem; bottom: 1rem; max-width: calc(100vw - 2rem); }
 }
+
+.cv-paper.template-harvard {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  color: #171717;
+  background: #fff;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.cv-paper.template-harvard > .cv-sidebar {
+  position: static;
+  padding: calc(38px * var(--scale)) calc(50px * var(--scale)) calc(15px * var(--scale));
+  border-bottom: calc(2px * var(--scale)) solid #222;
+  background: #fff;
+  color: #171717;
+  text-align: center;
+}
+.cv-paper.template-harvard > .cv-sidebar .top-accent,
+.cv-paper.template-harvard > .cv-sidebar .cv-photo,
+.cv-paper.template-harvard > .bottom-accent { display: none; }
+.cv-paper.template-harvard > .cv-sidebar h2 {
+  margin: 0 0 calc(5px * var(--scale));
+  color: #171717;
+  font-size: calc(27px * var(--scale));
+  letter-spacing: calc(.7px * var(--scale));
+}
+.cv-paper.template-harvard > .cv-sidebar .cv-headline { margin-bottom: calc(8px * var(--scale)); color: #333; font-family: Arial, sans-serif; font-weight: 400; }
+.cv-paper.template-harvard > .cv-sidebar section { display: flex; justify-content: center; flex-wrap: wrap; gap: calc(3px * var(--scale)) calc(14px * var(--scale)); margin: calc(6px * var(--scale)) 0 0; font-family: Arial, sans-serif; }
+.cv-paper.template-harvard > .cv-sidebar section h3 { width: 100%; margin: 0; padding: 0; border: 0; color: #171717; font-size: calc(10px * var(--scale)); }
+.cv-paper.template-harvard > .cv-sidebar section p { margin: 0; font-size: calc(10px * var(--scale)); }
+.cv-paper.template-harvard > .cv-sidebar .cv-contact-section h3,
+.cv-paper.template-harvard > .cv-sidebar .cv-contact-section b,
+.cv-paper.template-harvard > .cv-sidebar .cv-contact-section br { display: none; }
+.cv-paper.template-harvard > .cv-main { padding: calc(13px * var(--scale)) calc(50px * var(--scale)) calc(34px * var(--scale)); }
+.cv-paper.template-harvard > .cv-main h3 {
+  margin-top: calc(11px * var(--scale));
+  margin-bottom: calc(6px * var(--scale));
+  padding: 0 0 calc(3px * var(--scale));
+  border-bottom: calc(1px * var(--scale)) solid #222;
+  background: transparent;
+  color: #171717;
+  font-family: Arial, sans-serif;
+  font-size: calc(13px * var(--scale));
+  letter-spacing: calc(.8px * var(--scale));
+  text-transform: uppercase;
+}
+.cv-paper.template-harvard > .cv-main > section:first-child h3 { margin-top: 0; }
+.cv-paper.template-harvard .cv-experience { margin-bottom: calc(10px * var(--scale)); }
 
 @media (max-width: 760px) {
   .cv-preview-dialog .MuiDialogContent-root { padding: .6rem; }

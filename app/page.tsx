@@ -141,9 +141,10 @@ const fontOptions = [
   { value: "sans", labelKey: "fontSans", css: "Arial, Helvetica, sans-serif" },
   { value: "humanist", labelKey: "fontHumanist", css: "Calibri, Candara, Arial, sans-serif" },
   { value: "serif", labelKey: "fontSerif", css: "Georgia, 'Times New Roman', serif" },
+  { value: "times", labelKey: "fontTimes", css: "'Times New Roman', Times, serif" },
 ] as const;
 
-const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial"] as const;
+const templateOptions = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial", "harvard"] as const;
 
 function Counter({ value, max }: { value?: string; max: number }) {
   const length = value?.length ?? 0;
@@ -1710,7 +1711,7 @@ export default function Home() {
                   {previewData.headline && <p className="cv-headline">{previewData.headline}</p>}
                   {previewData.photo && <img className={`cv-photo photo-${previewData.photoShape}`} src={previewData.photo} alt="" />}
                   {hasContact && (
-                    <section>
+                    <section className="cv-contact-section">
                       <h3>{previewData.sectionTitles.contact?.trim() || previewDocumentLabels.contact}</h3>
                       {previewData.location && <p><b>{previewData.sectionTitles.location?.trim() || previewDocumentLabels.location}:</b><br />{previewData.location}</p>}
                       {previewData.phone && <p><b>{previewData.sectionTitles.phone?.trim() || previewDocumentLabels.phone}:</b><br />{previewData.phone}</p>}
@@ -1719,7 +1720,7 @@ export default function Home() {
                     </section>
                   )}
                   {previewData.languages.some((language) => language.name) && (
-                    <section>
+                    <section className="cv-language-section">
                       <h3>{previewData.sectionTitles.languages?.trim() || previewDocumentLabels.languages}</h3>
                       {previewData.languages.filter((language) => language.name).map((language, index) => (
                         <p className="compact" key={`${language.name}-${index}`}><b>{language.name}:</b> {language.level}</p>

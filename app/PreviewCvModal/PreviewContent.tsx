@@ -23,6 +23,11 @@ const fontOptions = [
     labelKey: "fontSerif",
     css: "Georgia, 'Times New Roman', serif",
   },
+  {
+    value: "times",
+    labelKey: "fontTimes",
+    css: "'Times New Roman', Times, serif",
+  },
 ] as const;
 const PreviewContent = ({ previewData }: IPreviewContentProps) => {
   const t = useTranslations("App");
@@ -290,7 +295,7 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
             />
           )}
           {hasContact && (
-            <section>
+            <section className="cv-contact-section">
               <h3>
                 {previewData.sectionTitles.contact?.trim() ||
                   previewDocumentLabels.contact}
@@ -342,7 +347,7 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
             </section>
           )}
           {previewData.languages.some((language) => language.name) && (
-            <section>
+            <section className="cv-language-section">
               <h3>
                 {previewData.sectionTitles.languages?.trim() ||
                   previewDocumentLabels.languages}

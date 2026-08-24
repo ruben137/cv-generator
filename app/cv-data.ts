@@ -6,8 +6,8 @@ import {
   normalizeSectionOrder,
 } from "./types";
 
-const templates: CvData["template"][] = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial"];
-const fonts: CvData["fontFamily"][] = ["sans", "serif", "humanist"];
+const templates: CvData["template"][] = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial", "harvard"];
+const fonts: CvData["fontFamily"][] = ["sans", "serif", "times", "humanist"];
 
 const text = (value: unknown, max: number) => (typeof value === "string" ? value.slice(0, max) : "");
 const id = (value: unknown, prefix: string) => text(value, 100) || `${prefix}-${crypto.randomUUID()}`;

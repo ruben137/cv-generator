@@ -32,7 +32,7 @@ export default function PreviewCvModal({ children, cv, title, disabledPreview = 
   const [open, setOpen] = React.useState(false);
   const [temporaryTemplate, setTemporaryTemplate] = React.useState<CvData["template"]>(cv.template);
   const previewCv = React.useMemo(() => ({ ...cv, template: temporaryTemplate }), [cv, temporaryTemplate]);
-  const templateOptions: CvData["template"][] = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial"];
+  const templateOptions: CvData["template"][] = ["classic", "modern", "minimal", "right", "compact", "contrast", "editorial", "harvard"];
 
   const openPreview = () => {
     setTemporaryTemplate(cv.template);
