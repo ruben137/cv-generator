@@ -46,7 +46,7 @@ import {
   Typography,
   createTheme,
 } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   createStoredCv,
@@ -103,6 +103,8 @@ export default function MyCvsPage() {
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
   const [bulkExporting, setBulkExporting] = useState(false);
+  const importCvInputRef = useRef<HTMLInputElement>(null);
+  const restoreBackupInputRef = useRef<HTMLInputElement>(null);
   const [languageFilter, setLanguageFilter] = useState<"all" | "es" | "en">(
     "all",
   );
@@ -541,18 +543,36 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
               </Button>
             </Stack>
             <Menu className="library-data-menu" anchorEl={libraryMenuAnchor} open={Boolean(libraryMenuAnchor)} onClose={() => setLibraryMenuAnchor(null)}>
-              <MenuItem component="label" onClick={() => setLibraryMenuAnchor(null)}>
+              <MenuItem onClick={() => { setLibraryMenuAnchor(null); importCvInputRef.current?.click(); }}>
                 <UploadFileRounded fontSize="small" />{t("importCvJson")}
-                <input hidden type="file" accept="application/json,.json" onChange={(event) => { void importFile(event.target.files?.[0], false); event.target.value = ""; }} />
               </MenuItem>
-              <MenuItem component="label" onClick={() => setLibraryMenuAnchor(null)}>
+              <MenuItem onClick={() => { setLibraryMenuAnchor(null); restoreBackupInputRef.current?.click(); }}>
                 <SaveAltRounded fontSize="small" />{t("restoreBackup")}
-                <input hidden type="file" accept="application/json,.json" onChange={(event) => { void importFile(event.target.files?.[0], true); event.target.value = ""; }} />
               </MenuItem>
               <MenuItem onClick={() => { void exportBackup(); setLibraryMenuAnchor(null); }}>
                 <DownloadRounded fontSize="small" />{t("downloadBackup")}
               </MenuItem>
             </Menu>
+            <input
+              ref={importCvInputRef}
+              hidden
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => {
+                void importFile(event.target.files?.[0], false);
+                event.target.value = "";
+              }}
+            />
+            <input
+              ref={restoreBackupInputRef}
+              hidden
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => {
+                void importFile(event.target.files?.[0], true);
+                event.target.value = "";
+              }}
+            />
           </Stack>
         </Box>
         {disablePreview && (
