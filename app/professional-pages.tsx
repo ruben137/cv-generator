@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { BrandLogo } from "./brand-logo";
+import { MobileNavigationMenu } from "./mobile-navigation-menu";
 import {
   getProfessionalPreset,
   getProfessionalPresetIdBySlug,
@@ -77,6 +78,7 @@ export async function ProfessionalCatalogPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
       <header className="preset-page-header">
         <BrandLogo />
+        <MobileNavigationMenu locale={locale} active="templates" />
         <nav aria-label={t("navigationLabel")}>
           <a href={homePath}>{t("generatorLink")}</a>
           <a href={`${homePath}/mis-cvs`}>{t("savedCvsLink")}</a>
@@ -173,6 +175,7 @@ export async function ProfessionalPresetDetailPage({ slug }: { slug: string }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
       <header className="preset-page-header">
         <BrandLogo />
+        <MobileNavigationMenu locale={locale} active="templates" />
         <nav aria-label={t("navigationLabel")}>
           <a href={catalogPath}>{t("allExamplesLink")}</a>
           <a href={homePath}>{t("generatorLink")}</a>

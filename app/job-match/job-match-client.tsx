@@ -31,6 +31,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { BrandLogo } from "../brand-logo";
+import { MobileNavigationMenu } from "../mobile-navigation-menu";
 import { listStoredCvs, type StoredCv } from "../cv-library";
 import { getJobApplication, listJobApplications, putJobApplication } from "../job-application-library";
 import { updateJobApplication, type JobApplication } from "../job-application";
@@ -354,6 +355,7 @@ export function JobMatchClient() {
     <main className="job-match-page">
       <header className="job-match-header">
         <BrandLogo />
+        <MobileNavigationMenu locale={locale} active="tools" />
         <nav aria-label={t("navigationLabel")}>
           <a href={`${homePath}?openEditor=1#generator`} rel="noopener noreferrer">
             <ArrowBackRoundedIcon fontSize="small" />{t("backToGenerator")}

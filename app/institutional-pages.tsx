@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { BrandLogo } from "./brand-logo";
+import { MobileNavigationMenu } from "./mobile-navigation-menu";
 import { getSiteUrl } from "./site-url";
 
 export type InstitutionalPageKind = "about" | "privacy" | "terms";
@@ -71,6 +72,7 @@ export async function InstitutionalPage({ kind }: { kind: InstitutionalPageKind 
       />
       <header className="preset-page-header institutional-header">
         <BrandLogo />
+        <MobileNavigationMenu locale={locale} />
         <nav aria-label={t("navigationLabel")}>
           <a href={homePath}>{t("generatorLink")}</a>
           <a href={catalogPath}>{t("templatesLink")}</a>

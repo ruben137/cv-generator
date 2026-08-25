@@ -21,6 +21,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { BrandLogo } from "../brand-logo";
+import { MobileNavigationMenu } from "../mobile-navigation-menu";
 import { listStoredCvs, type StoredCv } from "../cv-library";
 import { createImprovementTarget, saveImprovementPlan, type ImprovementTarget } from "../improvement-plan";
 import type { CvData } from "../types";
@@ -111,6 +112,7 @@ export function ResumeReviewClient() {
     <main className="job-match-page quality-page">
       <header className="job-match-header">
         <BrandLogo />
+        <MobileNavigationMenu locale={locale} active="tools" />
         <nav aria-label={t("navigationLabel")}>
           <a href={`/${locale}/tools`}>
             <ArrowBackRoundedIcon fontSize="small" />

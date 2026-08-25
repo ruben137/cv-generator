@@ -12,7 +12,6 @@ import {
   ExpandMoreRounded,
   FactCheckOutlined,
   TipsAndUpdatesOutlined,
-  FolderOpenRounded,
   InsertDriveFileRounded,
   LanguageRounded,
   LockOutlined,
@@ -90,6 +89,7 @@ import {
 } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
+import { MobileNavigationMenu } from "./mobile-navigation-menu";
 import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
 import { writeJobMatchTransfer } from "./job-match/transfer";
 import { jobFamilies, type JobFamily } from "./job-match/model";
@@ -901,7 +901,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData).replace(/</g, "\\u003c") }}
       />
-      <AppBar position="sticky" color="inherit" elevation={0} className="topbar">
+      <AppBar position="sticky" color="inherit" elevation={0} className="topbar generator-topbar">
         <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
           <BrandLogo />
           <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
@@ -911,15 +911,6 @@ export default function Home() {
             <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
           </Box>
           <Box className="topbar-actions">
-            <Button
-              component="a"
-              href="/mis-cvs"
-              variant="outlined"
-              startIcon={<FolderOpenRounded />}
-              sx={{ whiteSpace: "nowrap", display: { md: "none" } }}
-            >
-              {t("myCvs")}
-            </Button>
           <Button
               variant="contained"
               className="save-cv-button"
@@ -948,6 +939,14 @@ export default function Home() {
           </ButtonGroup>
           <Chip className="privacy-chip" icon={<CloudOffRounded />} label={t("noStorage")} variant="outlined" />
           </Box>
+          <MobileNavigationMenu
+            locale={locale}
+            active="generator"
+            onSave={openSaveDialog}
+            saveLabel={savingCv ? t("savingCv") : activeCvId ? t("updateCv") : t("saveCv")}
+            saveDisabled={savingCv}
+            onLocaleChange={changeLocale}
+          />
         </Toolbar>
       </AppBar>
 

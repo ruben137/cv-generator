@@ -56,6 +56,7 @@ import {
   type StoredCv,
 } from "../cv-library";
 import { BrandLogo } from "../brand-logo";
+import { MobileNavigationMenu } from "../mobile-navigation-menu";
 import {
   parseBackupFile,
   parseCvFile,
@@ -413,12 +414,15 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
         <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: 2 }}>
           <BrandLogo />
           <Box sx={{ flexGrow: 1 }} />
-          <Button component="a" href="/" startIcon={<ArrowBackRounded />}>
-            {t("backToEditor")}
-          </Button>
-          <Button component="a" href={locale === "en" ? "/en/applications" : "/es/mis-postulaciones"} startIcon={<WorkOutlineRounded />}>
-            {t("myApplications")}
-          </Button>
+          <Box className="desktop-page-actions">
+            <Button component="a" href="/" startIcon={<ArrowBackRounded />}>
+              {t("backToEditor")}
+            </Button>
+            <Button component="a" href={locale === "en" ? "/en/applications" : "/es/mis-postulaciones"} startIcon={<WorkOutlineRounded />}>
+              {t("myApplications")}
+            </Button>
+          </Box>
+          <MobileNavigationMenu locale={locale} active="cvs" />
         </Toolbar>
       </AppBar>
 
@@ -437,7 +441,7 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
               {t("myCvsDescription")}
             </Typography>
           </Box>
-          <ButtonGroup variant="contained" sx={{ alignSelf: { sm: "center" } }}>
+          <ButtonGroup className="library-create-actions" variant="contained" sx={{ alignSelf: { sm: "center" } }}>
             <Button startIcon={<AddRounded />} onClick={() => createNew("es")}>
               {t("newCvEs")}
             </Button>
