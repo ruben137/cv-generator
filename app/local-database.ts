@@ -1,8 +1,9 @@
 const DATABASE_NAME = "cv-simple";
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export const CV_STORE_NAME = "cvs";
 export const APPLICATION_STORE_NAME = "applications";
+export const COVER_LETTER_STORE_NAME = "cover-letters";
 
 export function openLocalDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -17,6 +18,12 @@ export function openLocalDatabase(): Promise<IDBDatabase> {
         store.createIndex("status", "status", { unique: false });
         store.createIndex("updatedAt", "updatedAt", { unique: false });
         store.createIndex("cvId", "cvId", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(COVER_LETTER_STORE_NAME)) {
+        const store = database.createObjectStore(COVER_LETTER_STORE_NAME, { keyPath: "id" });
+        store.createIndex("updatedAt", "updatedAt", { unique: false });
+        store.createIndex("cvId", "cvId", { unique: false });
+        store.createIndex("applicationId", "applicationId", { unique: false });
       }
     };
     request.onsuccess = () => {

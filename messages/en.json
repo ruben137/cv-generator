@@ -470,13 +470,25 @@
   },
   "Tools": {
     "metaTitle": "Free tools to improve your resume",
-    "metaDescription": "Analyze a job and review your resume quality for free, without an account and directly in your browser.",
+    "metaDescription": "Analyze jobs, review your resume, and create cover letters for free, without an account and directly in your browser.",
     "generator": "Generator", "templates": "Templates", "myCvs": "My resumes",
     "eyebrow": "Improve before applying", "title": "Tools to strengthen your resume", "description": "Find concrete opportunities without uploading your data or relying on mysterious scores.",
     "privacy": "All processing happens locally in your browser. We do not store your resume content.",
     "match": { "eyebrow": "Resume + job", "title": "Analyze a job", "description": "Compare requirements, skills, and keywords to see what you already demonstrate and what deserves review.", "cta": "Open matcher" },
     "quality": { "eyebrow": "Document review", "title": "Review resume quality", "description": "Check structure, clarity, evidence, length, and essential details with transparent rules.", "cta": "Review my resume" },
-    "applications": { "eyebrow": "Local tracking", "title": "Manage applications", "description": "Organize jobs, statuses, and resume versions without accounts or external spreadsheets.", "cta": "View my applications" }
+    "applications": { "eyebrow": "Local tracking", "title": "Manage applications", "description": "Organize jobs, statuses, and resume versions without accounts or external spreadsheets.", "cta": "View my applications" },
+    "coverLetter": { "eyebrow": "Resume + application", "title": "Create a cover letter", "description": "Prepare an editable letter from a saved resume and job without inventing information.", "cta": "Create my letter" }
+  },
+  "CoverLetter": {
+    "metaTitle": "Free cover letter generator",
+    "metaDescription": "Create an editable cover letter from your resume and a job for free, directly in your browser.",
+    "navigationLabel": "Cover letter generator navigation", "backToTools": "Back to tools",
+    "eyebrow": "A letter based on your experience", "title": "Create a cover letter without starting from scratch", "description": "Combine a saved resume and application to prepare an editable foundation. We only use information that already exists in your data.", "privacy": "The letter and its sources stay in this browser", "loading": "Looking for your saved resumes and applications…", "libraryEyebrow": "Saved locally", "libraryTitle": "Your letters", "libraryHelp": "Continue editing previous drafts without starting over.", "libraryCount": "{count, plural, one {# letter} other {# letters}}", "sourceUnavailable": "The linked application is no longer available", "openDraft": "Continue", "deleteDraft": "Delete", "deleteDialogTitle": "Delete letter", "deleteDialogWarning": "This action cannot be undone", "deleteDialogMessage": "“{title}” will be removed only from this browser.", "cancelDelete": "Cancel", "confirmDelete": "Delete letter", "closeDelete": "Close confirmation", "deleteError": "We could not delete the letter. Try again.",
+    "cvTitle": "Select your resume", "cvHelp": "We will use your summary and experience as source material.", "jobTitle": "Select the job", "jobHelp": "We will use the company, role, and language from the application.", "noHeadline": "No professional title", "noCvs": "You do not have any saved resumes yet. Save one from the builder to use it here.", "noApplications": "You do not have any saved applications yet. Create one from My applications.",
+    "toneTitle": "Choose the tone", "toneHelp": "Tone changes the opening wording, not the facts included.", "tones": { "professional": { "title": "Professional", "description": "Formal, clear, and suitable for most applications." }, "direct": { "title": "Direct", "description": "Concise and quickly focused on the role." }, "warm": { "title": "Warm", "description": "Expresses interest with a more personal voice." } }, "prepare": "Prepare draft", "languageMismatch": "The resume and job must use the same language to avoid producing a mixed-language letter.", "loadError": "We could not read your saved resumes and applications. Reload the page and try again.", "saveError": "We could not save the draft in this browser. Check the available storage and try again.",
+    "editorEyebrow": "Editable draft", "editorTitle": "Review every paragraph before using it", "editorHelp": "The foundation comes from your data, but you should adjust it to reflect your real motivation.", "save": "Save draft", "saving": "Saving…", "saved": "Draft saved locally in this browser.", "previewTitle": "Preview", "previewFormat": "A4 format", "downloadPdf": "Download PDF", "downloadDocx": "Download DOCX", "exportError": "We could not generate the file. Review the content and try again.",
+    "fields": { "recipient": "Recipient", "subject": "Subject", "greeting": "Greeting", "opening": "Opening", "evidence": "Experience and evidence", "motivation": "Motivation", "closing": "Closing", "signature": "Signature" },
+    "status": { "saved": "Saved", "preparing": "Preparing resume", "applied": "Applied", "interview": "Interview", "offer": "Offer", "rejected": "Rejected" }
   },
   "ResumeReview": {
     "metaTitle": "Free resume quality reviewer", "metaDescription": "Review your resume's clarity, structure, and evidence for free and locally, without AI or an account.",
@@ -644,7 +656,7 @@
     "createHelp": "Save the job, link the resume version you plan to use, and update its status as the process progresses.",
     "company": "Company", "role": "Role", "location": "Location or work mode", "url": "Job posting link", "urlHelp": "Optional. Use a link beginning with https://", "invalidUrl": "Enter a valid web address beginning with http:// or https://.",
     "statusLabel": "Status", "appliedAt": "Application date", "professionalArea": "Professional area", "language": "Job language",
-    "linkedResume": "Linked resume", "jobDescription": "Job description", "notes": "Personal notes", "edit": "Edit", "analyzeApplication": "Analyze", "openLinkedCv": "Open resume", "openJob": "View job",
+    "linkedResume": "Linked resume", "jobDescription": "Job description", "notes": "Personal notes", "edit": "Edit", "analyzeApplication": "Analyze", "openLinkedCv": "Open resume", "openJob": "View job", "coverLetterSaved": "Cover letter saved", "createCoverLetter": "Create letter", "openCoverLetter": "Open letter",
     "quickStatus": "Update status", "delete": "Delete", "deleteTitle": "Delete application", "deleteWarning": "This action cannot be undone.",
     "savedImprovements": "Selected improvements",
     "adaptCv": "Tailor resume", "createAnotherVersion": "Create another version", "openAdaptedCv": "Open tailored", "openOriginalCv": "Open original",

@@ -470,13 +470,25 @@
   },
   "Tools": {
     "metaTitle": "Herramientas gratuitas para mejorar tu CV",
-    "metaDescription": "Analiza una vacante y revisa la calidad de tu currículum gratis, sin registro y directamente en tu navegador.",
+    "metaDescription": "Analiza vacantes, revisa tu currículum y crea cartas de presentación gratis, sin registro y directamente en tu navegador.",
     "generator": "Generador", "templates": "Plantillas", "myCvs": "Mis CVs",
     "eyebrow": "Mejora antes de enviar", "title": "Herramientas para fortalecer tu CV", "description": "Detecta oportunidades concretas sin subir tus datos ni depender de resultados misteriosos.",
     "privacy": "Todo el procesamiento ocurre localmente en tu navegador. No almacenamos el contenido de tu CV.",
     "match": { "eyebrow": "CV + vacante", "title": "Analizar una vacante", "description": "Compara requisitos, habilidades y palabras clave para descubrir qué ya demuestras y qué conviene revisar.", "cta": "Abrir analizador" },
     "quality": { "eyebrow": "Revisión del documento", "title": "Revisar calidad del CV", "description": "Comprueba estructura, claridad, evidencia, extensión y datos esenciales mediante reglas transparentes.", "cta": "Revisar mi CV" },
-    "applications": { "eyebrow": "Seguimiento local", "title": "Gestionar postulaciones", "description": "Organiza vacantes, estados y versiones de tu CV sin cuentas ni hojas de cálculo externas.", "cta": "Ver mis postulaciones" }
+    "applications": { "eyebrow": "Seguimiento local", "title": "Gestionar postulaciones", "description": "Organiza vacantes, estados y versiones de tu CV sin cuentas ni hojas de cálculo externas.", "cta": "Ver mis postulaciones" },
+    "coverLetter": { "eyebrow": "CV + postulación", "title": "Crear carta de presentación", "description": "Prepara una carta editable a partir de un CV y una vacante guardados, sin inventar información.", "cta": "Crear mi carta" }
+  },
+  "CoverLetter": {
+    "metaTitle": "Generador gratuito de cartas de presentación",
+    "metaDescription": "Crea una carta de presentación editable a partir de tu CV y una vacante, gratis y directamente en tu navegador.",
+    "navigationLabel": "Navegación del generador de cartas", "backToTools": "Volver a herramientas",
+    "eyebrow": "Carta basada en tu experiencia", "title": "Crea una carta de presentación sin empezar de cero", "description": "Combina un CV y una postulación guardados para preparar una base editable. Utilizamos únicamente información que ya existe en tus datos.", "privacy": "La carta y sus fuentes permanecen en este navegador", "loading": "Buscando tus CVs y postulaciones guardados…", "libraryEyebrow": "Guardado local", "libraryTitle": "Tus cartas", "libraryHelp": "Continúa editando borradores anteriores sin volver a empezar.", "libraryCount": "{count, plural, one {# carta} other {# cartas}}", "sourceUnavailable": "La postulación asociada ya no está disponible", "openDraft": "Continuar", "deleteDraft": "Eliminar", "deleteDialogTitle": "Eliminar carta", "deleteDialogWarning": "Esta acción no se puede deshacer", "deleteDialogMessage": "Se eliminará «{title}» únicamente de este navegador.", "cancelDelete": "Cancelar", "confirmDelete": "Eliminar carta", "closeDelete": "Cerrar confirmación", "deleteError": "No pudimos eliminar la carta. Inténtalo de nuevo.",
+    "cvTitle": "Selecciona tu CV", "cvHelp": "Usaremos tu resumen y experiencia como fuente.", "jobTitle": "Selecciona la vacante", "jobHelp": "Tomaremos la empresa, el puesto y el idioma de la postulación.", "noHeadline": "Sin título profesional", "noCvs": "Todavía no tienes CVs guardados. Guarda uno desde el generador para utilizarlo aquí.", "noApplications": "Todavía no tienes postulaciones guardadas. Crea una desde Mis postulaciones.",
+    "toneTitle": "Elige el tono", "toneHelp": "El tono cambia la redacción inicial, no los hechos incluidos.", "tones": { "professional": { "title": "Profesional", "description": "Formal, claro y apropiado para la mayoría de las postulaciones." }, "direct": { "title": "Directo", "description": "Breve y centrado rápidamente en el puesto." }, "warm": { "title": "Cercano", "description": "Expresa interés con una voz más personal." } }, "prepare": "Preparar borrador", "languageMismatch": "El CV y la vacante deben utilizar el mismo idioma para evitar una carta con contenido mezclado.", "loadError": "No pudimos leer tus CVs y postulaciones guardados. Recarga la página e inténtalo de nuevo.", "saveError": "No pudimos guardar el borrador en este navegador. Comprueba el espacio disponible e inténtalo de nuevo.",
+    "editorEyebrow": "Borrador editable", "editorTitle": "Revisa cada párrafo antes de utilizarlo", "editorHelp": "La base se construye con tus datos, pero debes ajustar el contenido para que refleje tu motivación real.", "save": "Guardar borrador", "saving": "Guardando…", "saved": "Borrador guardado localmente en este navegador.", "previewTitle": "Vista previa", "previewFormat": "Formato A4", "downloadPdf": "Descargar PDF", "downloadDocx": "Descargar DOCX", "exportError": "No pudimos generar el archivo. Revisa el contenido e inténtalo de nuevo.",
+    "fields": { "recipient": "Destinatario", "subject": "Asunto", "greeting": "Saludo", "opening": "Introducción", "evidence": "Experiencia y evidencia", "motivation": "Motivación", "closing": "Cierre", "signature": "Firma" },
+    "status": { "saved": "Guardada", "preparing": "Preparando CV", "applied": "Postulado", "interview": "Entrevista", "offer": "Oferta", "rejected": "Descartada" }
   },
   "ResumeReview": {
     "metaTitle": "Revisor gratuito de calidad del CV",
@@ -657,7 +669,7 @@
     "createHelp": "Guarda la vacante, vincula la versión del CV que utilizarás y actualiza el estado a medida que avanza el proceso.",
     "company": "Empresa", "role": "Puesto", "location": "Ubicación o modalidad", "url": "Enlace de la vacante", "urlHelp": "Opcional. Usa un enlace que comience por https://", "invalidUrl": "Introduce una dirección web válida que comience por http:// o https://.",
     "statusLabel": "Estado", "appliedAt": "Fecha de postulación", "professionalArea": "Área profesional", "language": "Idioma de la vacante",
-    "linkedResume": "CV vinculado", "jobDescription": "Descripción de la vacante", "notes": "Notas personales", "edit": "Editar", "analyzeApplication": "Analizar", "openLinkedCv": "Abrir CV", "openJob": "Ver vacante",
+    "linkedResume": "CV vinculado", "jobDescription": "Descripción de la vacante", "notes": "Notas personales", "edit": "Editar", "analyzeApplication": "Analizar", "openLinkedCv": "Abrir CV", "openJob": "Ver vacante", "coverLetterSaved": "Carta de presentación guardada", "createCoverLetter": "Crear carta", "openCoverLetter": "Abrir carta",
     "quickStatus": "Actualizar estado", "delete": "Eliminar", "deleteTitle": "Eliminar postulación", "deleteWarning": "Esta acción no se puede deshacer.",
     "savedImprovements": "Mejoras seleccionadas",
     "adaptCv": "Adaptar CV", "createAnotherVersion": "Crear otra versión", "openAdaptedCv": "Abrir adaptado", "openOriginalCv": "Abrir original",

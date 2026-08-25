@@ -45,6 +45,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const toolGroups = [
     { es: "es/herramientas", en: "en/tools", priority: 0.9 },
     { es: "es/revisar-cv", en: "en/resume-review", priority: 0.9 },
+    { es: "es/carta-presentacion", en: "en/cover-letter", priority: 0.9 },
   ];
   const toolPages = toolGroups.flatMap((paths) => {
     const languages = { es: `${siteUrl}/${paths.es}`, en: `${siteUrl}/${paths.en}` };

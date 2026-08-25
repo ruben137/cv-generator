@@ -2,6 +2,7 @@
 
 import {
   AddRounded,
+  ArticleOutlined,
   ArrowBackRounded,
   AssignmentTurnedInRounded,
   BusinessRounded,
@@ -46,7 +47,10 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "./brand-logo";
+import { MobileNavigationMenu } from "./mobile-navigation-menu";
 import ConfirmModal from "./ConfirmModal";
+import { listCoverLetters } from "./cover-letter-library";
+import type { CoverLetterDraft } from "./cover-letter";
 import { createStoredCv, listStoredCvs, putStoredCv, type StoredCv } from "./cv-library";
 import { jobApplicationStatuses, updateJobApplication, type JobApplication, type JobApplicationEvent, type JobApplicationStatus, type NewJobApplicationEvent } from "./job-application";
 import { addJobApplication, deleteJobApplication, listJobApplications, putJobApplication } from "./job-application-library";
@@ -88,6 +92,7 @@ export function ApplicationsPage() {
   const locale = useLocale();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [cvs, setCvs] = useState<StoredCv[]>([]);
+  const [coverLetters, setCoverLetters] = useState<CoverLetterDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -109,9 +114,10 @@ export function ApplicationsPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const [nextApplications, nextCvs] = await Promise.all([listJobApplications(), listStoredCvs()]);
+      const [nextApplications, nextCvs, nextCoverLetters] = await Promise.all([listJobApplications(), listStoredCvs(), listCoverLetters()]);
       setApplications(nextApplications);
       setCvs(nextCvs);
+      setCoverLetters(nextCoverLetters);
       setError("");
     } catch {
       setError(t("loadError"));
@@ -133,6 +139,11 @@ export function ApplicationsPage() {
   }, [refresh]);
 
   const cvById = useMemo(() => new Map(cvs.map((cv) => [cv.id, cv])), [cvs]);
+  const coverLetterByApplication = useMemo(() => {
+    const result = new Map<string, CoverLetterDraft>();
+    for (const letter of coverLetters) if (!result.has(letter.applicationId)) result.set(letter.applicationId, letter);
+    return result;
+  }, [coverLetters]);
   const counts = useMemo(() => {
     const result = Object.fromEntries(jobApplicationStatuses.map((item) => [item, 0])) as Record<JobApplicationStatus, number>;
     for (const application of applications) result[application.status] += 1;
@@ -321,7 +332,10 @@ export function ApplicationsPage() {
         <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: 2 }}>
           <BrandLogo />
           <Box sx={{ flexGrow: 1 }} />
-          <Button component="a" href="/mis-cvs" startIcon={<ArrowBackRounded />}>{t("backToCvs")}</Button>
+          <Box className="desktop-page-actions">
+            <Button component="a" href="/mis-cvs" startIcon={<ArrowBackRounded />}>{t("backToCvs")}</Button>
+          </Box>
+          <MobileNavigationMenu locale={locale} active="applications" />
         </Toolbar>
       </AppBar>
 
@@ -384,6 +398,7 @@ export function ApplicationsPage() {
             {visibleApplications.map((application) => {
               const linkedCv = application.cvId ? cvById.get(application.cvId) : undefined;
               const sourceCv = application.sourceCvId ? cvById.get(application.sourceCvId) : undefined;
+              const coverLetter = coverLetterByApplication.get(application.id);
               const jobUrl = safeExternalUrl(application.url);
               return (
                 <Card variant="outlined" key={application.id} className={`application-card status-${application.status}`}>
@@ -399,6 +414,7 @@ export function ApplicationsPage() {
                       {application.location ? <span><LocationOnOutlined fontSize="small" />{application.location}</span> : null}
                       <span><CalendarMonthRounded fontSize="small" />{application.appliedAt ? t("appliedOn", { date: formatDate(application) }) : t("updatedOn", { date: formatDate(application) })}</span>
                       <span><DescriptionRounded fontSize="small" />{linkedCv ? t("linkedCv", { title: linkedCv.title }) : t(application.cvId ? "missingCv" : "noLinkedCv")}</span>
+                      {coverLetter ? <span><ArticleOutlined fontSize="small" />{t("coverLetterSaved")}</span> : null}
                     </Stack>
                     <TextField
                       select
@@ -424,6 +440,7 @@ export function ApplicationsPage() {
                       <Button variant="outlined" size="small" startIcon={<EditRounded />} onClick={() => openEdit(application)}>{t("edit")}</Button>
                       {linkedCv ? <Button className="application-analyze-action" size="small" startIcon={<ManageSearchRounded />} onClick={() => analyzeApplication(application, linkedCv)}>{t("analyzeApplication")}</Button> : null}
                       {linkedCv ? <Button className="application-adapt-action" size="small" startIcon={<AutoFixHighRounded />} onClick={() => openAdaptation(application, linkedCv)}>{t(application.sourceCvId ? "createAnotherVersion" : "adaptCv")}</Button> : null}
+                      {coverLetter ? <Button className="application-cover-letter-action" size="small" component="a" href={`${locale === "en" ? "/en/cover-letter" : "/es/carta-presentacion"}?draft=${encodeURIComponent(coverLetter.id)}`} startIcon={<ArticleOutlined />}>{t("openCoverLetter")}</Button> : linkedCv ? <Button className="application-cover-letter-action" size="small" component="a" href={`${locale === "en" ? "/en/cover-letter" : "/es/carta-presentacion"}?application=${encodeURIComponent(application.id)}`} startIcon={<ArticleOutlined />}>{t("createCoverLetter")}</Button> : null}
                       {linkedCv ? <Button size="small" component="a" href={`/${locale}?cv=${encodeURIComponent(linkedCv.id)}#generator`} startIcon={<DescriptionRounded />}>{t(application.sourceCvId ? "openAdaptedCv" : "openLinkedCv")}</Button> : null}
                       {sourceCv && sourceCv.id !== linkedCv?.id ? <Button size="small" component="a" href={`/${locale}?cv=${encodeURIComponent(sourceCv.id)}#generator`}>{t("openOriginalCv")}</Button> : null}
                       {jobUrl ? <Button size="small" component="a" href={jobUrl} target="_blank" rel="noreferrer" endIcon={<OpenInNewRounded />}>{t("openJob")}</Button> : null}
