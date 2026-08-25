@@ -1062,6 +1062,7 @@ body {
   .cv-paper { --paper-scale: 0.55; }
   .floating-improvements-button.MuiButton-root { right: 1rem; bottom: 1rem; max-width: calc(100vw - 2rem); }
 }
+.library-pagination { display: flex; justify-content: center; margin: 2rem 0 .5rem; }.library-pagination .MuiPagination-ul { justify-content: center; flex-wrap: wrap; }
 
 .cv-paper.template-harvard {
   display: grid;

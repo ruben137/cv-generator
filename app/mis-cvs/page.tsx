@@ -38,6 +38,7 @@ import {
   IconButton,
   MenuItem,
   Menu,
+  Pagination,
   Stack,
   TextField,
   ThemeProvider,
@@ -85,6 +86,8 @@ const theme = createTheme({
   },
 });
 
+const CVS_PER_PAGE = 8;
+
 export default function MyCvsPage() {
   const t = useTranslations("App");
   const jobT = useTranslations("JobMatch");
@@ -103,6 +106,7 @@ export default function MyCvsPage() {
   const [deleteCandidates, setDeleteCandidates] = useState<StoredCv[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [bulkExporting, setBulkExporting] = useState(false);
   const importCvInputRef = useRef<HTMLInputElement>(null);
   const restoreBackupInputRef = useRef<HTMLInputElement>(null);
@@ -318,6 +322,12 @@ const confirmDeleteCvs = async () => {
             .includes(term)),
     );
   }, [items, languageFilter, locale, search]);
+  const pageCount = Math.ceil(visibleItems.length / CVS_PER_PAGE);
+  const currentPage = Math.min(page, Math.max(1, pageCount));
+  const paginatedItems = useMemo(
+    () => visibleItems.slice((currentPage - 1) * CVS_PER_PAGE, currentPage * CVS_PER_PAGE),
+    [currentPage, visibleItems],
+  );
 
 const handleSelect = () => {
   setDisablePreview((prev) => {
@@ -490,7 +500,7 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
                 size="small"
                 label={t("searchCvs")}
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => { setSearch(event.target.value); setPage(1); }}
                 sx={{
                   minWidth: {
                     sm: 220,
@@ -507,9 +517,7 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
                 size="small"
                 label={t("filterByLanguage")}
                 value={languageFilter}
-                onChange={(event) =>
-                  setLanguageFilter(event.target.value as "all" | "es" | "en")
-                }
+                onChange={(event) => { setLanguageFilter(event.target.value as "all" | "es" | "en"); setPage(1); }}
                 sx={{
                   minWidth: 190,
                 }}
@@ -687,7 +695,7 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
               </Alert>
             )}
             <Box className="cv-library-grid">
-              {visibleItems.map((cv) => (
+              {paginatedItems.map((cv) => (
                 <Card
                   variant="outlined"
                   key={cv.id}
@@ -843,6 +851,7 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
                 </Card>
               ))}
             </Box>
+            {pageCount > 1 ? <Box className="library-pagination"><Pagination page={currentPage} count={pageCount} color="primary" showFirstButton showLastButton siblingCount={0} boundaryCount={1} aria-label={t("cvPaginationLabel")} onChange={(_, nextPage) => { setPage(nextPage); window.scrollTo({ top: 0, behavior: "smooth" }); }} /></Box> : null}
           </>
         )}
         <ConfirmModal

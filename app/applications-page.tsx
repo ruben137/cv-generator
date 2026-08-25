@@ -37,6 +37,7 @@ import {
   DialogTitle,
   InputAdornment,
   MenuItem,
+  Pagination,
   Stack,
   TextField,
   ThemeProvider,
@@ -63,6 +64,8 @@ const theme = createTheme({
   shape: { borderRadius: 12 },
   typography: { fontFamily: "var(--font-geist-sans), Arial, sans-serif", button: { textTransform: "none", fontWeight: 700 } },
 });
+
+const APPLICATIONS_PER_PAGE = 6;
 
 type StatusFilter = "all" | JobApplicationStatus;
 type SortMode = "updated-desc" | "applied-desc" | "company-asc";
@@ -99,6 +102,7 @@ export function ApplicationsPage() {
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortMode>("updated-desc");
+  const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<ApplicationEditor | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<JobApplication | null>(null);
@@ -165,6 +169,12 @@ export function ApplicationsPage() {
       return right.updatedAt.localeCompare(left.updatedAt);
     });
   }, [applications, deferredSearch, locale, sort, status]);
+  const pageCount = Math.ceil(visibleApplications.length / APPLICATIONS_PER_PAGE);
+  const currentPage = Math.min(page, Math.max(1, pageCount));
+  const paginatedApplications = useMemo(
+    () => visibleApplications.slice((currentPage - 1) * APPLICATIONS_PER_PAGE, currentPage * APPLICATIONS_PER_PAGE),
+    [currentPage, visibleApplications],
+  );
 
   const openCreate = () => setEditor(emptyEditor(locale === "en" ? "en" : "es"));
   const openEdit = (application: JobApplication) => setEditor({
@@ -210,7 +220,7 @@ export function ApplicationsPage() {
   const formatDate = (application: JobApplication) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" })
     .format(new Date(application.appliedAt ? `${application.appliedAt}T12:00:00` : application.updatedAt));
 
-  const clearFilters = () => { setSearch(""); setStatus("all"); setSort("updated-desc"); };
+  const clearFilters = () => { setSearch(""); setStatus("all"); setSort("updated-desc"); setPage(1); };
   const safeExternalUrl = (value: string) => {
     try {
       const url = new URL(value);
@@ -356,7 +366,7 @@ export function ApplicationsPage() {
 
         <Box className="applications-summary" aria-label={t("summaryLabel")} role="group">
           {jobApplicationStatuses.map((item) => (
-            <button key={item} type="button" className={`application-summary-card status-${item}${status === item ? " active" : ""}`} onClick={() => setStatus(status === item ? "all" : item)} aria-pressed={status === item}>
+            <button key={item} type="button" className={`application-summary-card status-${item}${status === item ? " active" : ""}`} onClick={() => { setStatus(status === item ? "all" : item); setPage(1); }} aria-pressed={status === item}>
               <span>{t(`statuses.${item}`)}</span><strong>{counts[item]}</strong>
             </button>
           ))}
@@ -367,14 +377,14 @@ export function ApplicationsPage() {
             size="small"
             label={t("search")}
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchRounded /></InputAdornment> } }}
           />
-          <TextField select size="small" label={t("filterStatus")} value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)}>
+          <TextField select size="small" label={t("filterStatus")} value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(1); }}>
             <MenuItem value="all">{t("allStatuses")}</MenuItem>
             {jobApplicationStatuses.map((item) => <MenuItem key={item} value={item}>{t(`statuses.${item}`)}</MenuItem>)}
           </TextField>
-          <TextField select size="small" label={t("sortBy")} value={sort} onChange={(event) => setSort(event.target.value as SortMode)}>
+          <TextField select size="small" label={t("sortBy")} value={sort} onChange={(event) => { setSort(event.target.value as SortMode); setPage(1); }}>
             <MenuItem value="updated-desc">{t("sortUpdated")}</MenuItem>
             <MenuItem value="applied-desc">{t("sortApplied")}</MenuItem>
             <MenuItem value="company-asc">{t("sortCompany")}</MenuItem>
@@ -394,8 +404,9 @@ export function ApplicationsPage() {
         ) : visibleApplications.length === 0 ? (
           <Alert severity="info" action={<Button size="small" onClick={clearFilters}>{t("clearFilters")}</Button>}>{t("noResults")}</Alert>
         ) : (
+          <>
           <Box className="applications-grid">
-            {visibleApplications.map((application) => {
+            {paginatedApplications.map((application) => {
               const linkedCv = application.cvId ? cvById.get(application.cvId) : undefined;
               const sourceCv = application.sourceCvId ? cvById.get(application.sourceCvId) : undefined;
               const coverLetter = coverLetterByApplication.get(application.id);
@@ -452,6 +463,8 @@ export function ApplicationsPage() {
               );
             })}
           </Box>
+          {pageCount > 1 ? <Box className="library-pagination"><Pagination page={currentPage} count={pageCount} color="primary" showFirstButton showLastButton siblingCount={0} boundaryCount={1} aria-label={t("paginationLabel")} onChange={(_, nextPage) => { setPage(nextPage); window.scrollTo({ top: 0, behavior: "smooth" }); }} /></Box> : null}
+          </>
         )}
       </Container>
 
