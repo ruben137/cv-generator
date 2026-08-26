@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
@@ -30,8 +29,8 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { BrandLogo } from "../brand-logo";
-import { MobileNavigationMenu } from "../mobile-navigation-menu";
+import { SiteHeader } from "../site-header";
+import { SiteContent } from "../site-content";
 import { listStoredCvs, type StoredCv } from "../cv-library";
 import { getJobApplication, listJobApplications, putJobApplication } from "../job-application-library";
 import { updateJobApplication, type JobApplication } from "../job-application";
@@ -352,16 +351,8 @@ export function JobMatchClient() {
   }, [analysis, linkedApplicationId, selectedImprovementsKey]);
 
   return (
-    <main className="job-match-page">
-      <header className="job-match-header">
-        <BrandLogo />
-        <MobileNavigationMenu locale={locale} active="tools" />
-        <nav aria-label={t("navigationLabel")}>
-          <a href={`${homePath}?openEditor=1#generator`} rel="noopener noreferrer">
-            <ArrowBackRoundedIcon fontSize="small" />{t("backToGenerator")}
-          </a>
-        </nav>
-      </header>
+    <><SiteHeader locale={locale} active="tools" />
+    <SiteContent className="job-match-page">
 
       <section className="job-match-hero">
         <div>
@@ -610,6 +601,6 @@ export function JobMatchClient() {
           <Button component="a" href={locale === "en" ? "/applications" : "/mis-postulaciones"}>{t("manageStoredApplications")}</Button>
         </DialogActions>
       </Dialog>
-    </main>
+    </SiteContent></>
   );
 }

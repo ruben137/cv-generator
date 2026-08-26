@@ -19,7 +19,6 @@ import {
 } from "@mui/icons-material";
 import {
   Alert,
-  AppBar,
   Box,
   Button,
   ButtonGroup,
@@ -42,7 +41,6 @@ import {
   Stack,
   TextField,
   ThemeProvider,
-  Toolbar,
   Tooltip,
   Typography,
   createTheme,
@@ -56,8 +54,7 @@ import {
   putStoredCv,
   type StoredCv,
 } from "../cv-library";
-import { BrandLogo } from "../brand-logo";
-import { MobileNavigationMenu } from "../mobile-navigation-menu";
+import { SiteHeader } from "../site-header";
 import {
   parseBackupFile,
   parseCvFile,
@@ -415,28 +412,18 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar
-        position="sticky"
-        color="inherit"
-        elevation={0}
-        className="topbar"
-      >
-        <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: 2 }}>
-          <BrandLogo />
-          <Box sx={{ flexGrow: 1 }} />
-          <Box className="desktop-page-actions">
+      <SiteHeader locale={locale} active="cvs" actions={
+        <Box className="desktop-page-actions">
             <Button component="a" href="/" startIcon={<ArrowBackRounded />}>
               {t("backToEditor")}
             </Button>
             <Button component="a" href={locale === "en" ? "/en/applications" : "/es/mis-postulaciones"} startIcon={<WorkOutlineRounded />}>
               {t("myApplications")}
             </Button>
-          </Box>
-          <MobileNavigationMenu locale={locale} active="cvs" />
-        </Toolbar>
-      </AppBar>
+        </Box>
+      } />
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth={false} disableGutters className="site-content" sx={{ py: 4 }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
           justifyContent="space-between"

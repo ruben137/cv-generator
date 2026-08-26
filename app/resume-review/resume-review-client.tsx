@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
@@ -20,8 +19,8 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { BrandLogo } from "../brand-logo";
-import { MobileNavigationMenu } from "../mobile-navigation-menu";
+import { SiteHeader } from "../site-header";
+import { SiteContent } from "../site-content";
 import { listStoredCvs, type StoredCv } from "../cv-library";
 import { createImprovementTarget, saveImprovementPlan, type ImprovementTarget } from "../improvement-plan";
 import type { CvData } from "../types";
@@ -109,17 +108,8 @@ export function ResumeReviewClient() {
     window.location.assign(`/${locale}?openEditor=1#generator`);
   };
   return (
-    <main className="job-match-page quality-page">
-      <header className="job-match-header">
-        <BrandLogo />
-        <MobileNavigationMenu locale={locale} active="tools" />
-        <nav aria-label={t("navigationLabel")}>
-          <a href={`/${locale}/tools`}>
-            <ArrowBackRoundedIcon fontSize="small" />
-            {t("backToTools")}
-          </a>
-        </nav>
-      </header>
+    <><SiteHeader locale={locale} active="tools" />
+    <SiteContent className="job-match-page quality-page">
       <section className="job-match-hero quality-hero">
         <div>
           <span className="job-match-eyebrow">{t("eyebrow")}</span>
@@ -287,6 +277,6 @@ export function ResumeReviewClient() {
           </Button>
         </DialogActions>
       </Dialog>
-    </main>
+    </SiteContent></>
   );
 }

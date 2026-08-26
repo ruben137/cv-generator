@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { BrandLogo } from "./brand-logo";
-import { MobileNavigationMenu } from "./mobile-navigation-menu";
+import { SiteHeader } from "./site-header";
+import { SiteContent } from "./site-content";
 import { getSiteUrl } from "./site-url";
 
 export type InstitutionalPageKind = "about" | "privacy" | "terms";
@@ -53,8 +53,6 @@ export async function InstitutionalPage({ kind }: { kind: InstitutionalPageKind 
   const page = t.raw(`${kind}.sections`) as ContentSection[];
   const siteUrl = getSiteUrl();
   const canonicalPath = paths[kind][locale];
-  const homePath = `/${locale}`;
-  const catalogPath = locale === "en" ? "/en/templates" : "/es/plantillas";
   const structuredData = {
     "@context": "https://schema.org",
     "@type": kind === "about" ? "AboutPage" : "WebPage",
@@ -65,19 +63,13 @@ export async function InstitutionalPage({ kind }: { kind: InstitutionalPageKind 
   };
 
   return (
-    <main className="institutional-page">
+    <>
+    <SiteHeader locale={locale} />
+    <SiteContent className="institutional-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
       />
-      <header className="preset-page-header institutional-header">
-        <BrandLogo />
-        <MobileNavigationMenu locale={locale} />
-        <nav aria-label={t("navigationLabel")}>
-          <a href={homePath}>{t("generatorLink")}</a>
-          <a href={catalogPath}>{t("templatesLink")}</a>
-        </nav>
-      </header>
 
       <article className="institutional-article">
         <header className="institutional-hero">
@@ -106,6 +98,7 @@ export async function InstitutionalPage({ kind }: { kind: InstitutionalPageKind 
           <a href={paths.terms[locale]}>{t("termsLink")}</a>
         </nav>
       </footer>
-    </main>
+    </SiteContent>
+    </>
   );
 }

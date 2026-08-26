@@ -2,7 +2,6 @@
 
 import {
   ArticleOutlined,
-  ArrowBackRounded,
   CheckCircleRounded,
   DeleteOutlineRounded,
   DescriptionOutlined,
@@ -24,7 +23,6 @@ import {
 } from "@mui/material";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BrandLogo } from "../brand-logo";
 import { type CoverLetterContent, type CoverLetterDraft, type CoverLetterTone } from "../cover-letter";
 import { downloadCoverLetterDocx, downloadCoverLetterPdf } from "../cover-letter-exporters";
 import { deleteCoverLetter, listCoverLetters, putCoverLetter } from "../cover-letter-library";
@@ -32,7 +30,8 @@ import ConfirmModal from "../ConfirmModal";
 import { listStoredCvs, type StoredCv } from "../cv-library";
 import { listJobApplications } from "../job-application-library";
 import type { JobApplication } from "../job-application";
-import { MobileNavigationMenu } from "../mobile-navigation-menu";
+import { SiteHeader } from "../site-header";
+import { SiteContent } from "../site-content";
 
 const theme = createTheme({
   palette: { primary: { main: "#173B63", dark: "#0E2948" }, background: { default: "#F4F6F8", paper: "#FFFFFF" } },
@@ -223,14 +222,8 @@ export function CoverLetterClient() {
 
   return (
     <ThemeProvider theme={theme}>
-      <main className="cover-letter-page">
-        <header className="job-match-header">
-          <BrandLogo />
-          <MobileNavigationMenu locale={locale} active="tools" />
-          <nav aria-label={t("navigationLabel")}>
-            <a href={`/${locale}/tools`}><ArrowBackRounded fontSize="small" />{t("backToTools")}</a>
-          </nav>
-        </header>
+      <SiteHeader locale={locale} active="tools" />
+      <SiteContent className="cover-letter-page">
 
         <section className="cover-letter-hero">
           <div>
@@ -314,7 +307,7 @@ export function CoverLetterClient() {
           </div>
         </section> : null}
         <ConfirmModal open={Boolean(deleteCandidate)} title={t("deleteDialogTitle")} warning={t("deleteDialogWarning")} message={t("deleteDialogMessage", { title: deleteCandidate?.title ?? "" })} cancelLabel={t("cancelDelete")} confirmLabel={t("confirmDelete")} closeLabel={t("closeDelete")} loading={deleting} onClose={() => !deleting && setDeleteCandidate(null)} onConfirm={() => void confirmDeleteLetter()} />
-      </main>
+      </SiteContent>
     </ThemeProvider>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import { BrandLogo } from "./brand-logo";
-import { MobileNavigationMenu } from "./mobile-navigation-menu";
+import { SiteHeader } from "./site-header";
+import { SiteContent } from "./site-content";
 import {
   getProfessionalPreset,
   getProfessionalPresetIdBySlug,
@@ -27,6 +27,7 @@ function localeConfig(locale: string) {
   return {
     locale: normalizedLocale,
     catalogPath: normalizedLocale === "en" ? "/en/templates" : "/es/plantillas",
+    guidesPath: normalizedLocale === "en" ? "/en/guides" : "/es/guias",
     homePath: `/${normalizedLocale}`,
   } as const;
 }
@@ -54,7 +55,7 @@ export async function generateCatalogMetadata(): Promise<Metadata> {
 export async function ProfessionalCatalogPage() {
   const locale = await getLocale();
   const t = await getTranslations("Presets");
-  const { catalogPath, homePath } = localeConfig(locale);
+  const { catalogPath } = localeConfig(locale);
   const siteUrl = getSiteUrl();
   const structuredData = {
     "@context": "https://schema.org",
@@ -74,16 +75,10 @@ export async function ProfessionalCatalogPage() {
   };
 
   return (
-    <main className="preset-site-page">
+    <>
+    <SiteHeader locale={locale} active="templates" />
+    <SiteContent className="preset-site-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
-      <header className="preset-page-header">
-        <BrandLogo />
-        <MobileNavigationMenu locale={locale} active="templates" />
-        <nav aria-label={t("navigationLabel")}>
-          <a href={homePath}>{t("generatorLink")}</a>
-          <a href={`${homePath}/mis-cvs`}>{t("savedCvsLink")}</a>
-        </nav>
-      </header>
       <section className="preset-catalog-hero">
         <span className="preset-page-eyebrow">{t("catalogEyebrow")}</span>
         <h1>{t("catalogTitle")}</h1>
@@ -113,7 +108,8 @@ export async function ProfessionalCatalogPage() {
         <h2>{t("catalogNoteTitle")}</h2>
         <p>{t("catalogNoteDescription")}</p>
       </section>
-    </main>
+    </SiteContent>
+    </>
   );
 }
 
@@ -171,16 +167,10 @@ export async function ProfessionalPresetDetailPage({ slug }: { slug: string }) {
   };
 
   return (
-    <main className="preset-site-page">
+    <>
+    <SiteHeader locale={locale} active="templates" />
+    <SiteContent className="preset-site-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
-      <header className="preset-page-header">
-        <BrandLogo />
-        <MobileNavigationMenu locale={locale} active="templates" />
-        <nav aria-label={t("navigationLabel")}>
-          <a href={catalogPath}>{t("allExamplesLink")}</a>
-          <a href={homePath}>{t("generatorLink")}</a>
-        </nav>
-      </header>
       <div className="preset-breadcrumb"><a href={catalogPath}>{t("breadcrumbCatalog")}</a><span>/</span>{t(`role${suffix}`)}</div>
       <section className="preset-detail-hero">
         <div className="preset-detail-copy">
@@ -217,6 +207,7 @@ export async function ProfessionalPresetDetailPage({ slug }: { slug: string }) {
         <p>{t("detailCtaDescription")}</p>
         <a className="preset-primary-cta" href={`${homePath}?preset=${id}#generator`}>{t("useThisExample")}</a>
       </section>
-    </main>
+    </SiteContent>
+    </>
   );
 }

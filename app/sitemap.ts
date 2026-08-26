@@ -54,6 +54,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: paths.priority, alternates: { languages },
     }));
   });
+  const guideLanguages = { es: `${siteUrl}/es/guias`, en: `${siteUrl}/en/guides` };
+  const guidePages = [guideLanguages.es, guideLanguages.en].map((url) => ({
+    url,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+    alternates: { languages: guideLanguages },
+  }));
+  const firstGuideLanguages = {
+    es: `${siteUrl}/es/guias/como-hacer-cv-sin-experiencia`,
+    en: `${siteUrl}/en/guides/how-to-write-resume-no-experience`,
+  };
+  const guideArticlePages = [firstGuideLanguages.es, firstGuideLanguages.en].map((url) => ({
+    url,
+    lastModified: new Date("2026-08-26"),
+    changeFrequency: "monthly" as const,
+    priority: 0.85,
+    alternates: { languages: firstGuideLanguages },
+  }));
   const institutionalGroups = [
     { es: "es/acerca-de", en: "en/about" },
     { es: "es/privacidad", en: "en/privacy" },
@@ -69,5 +88,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages },
     }));
   });
-  return [...homePages, ...catalogPages, ...professionalPages, ...toolPages, ...jobMatchPages, ...institutionalPages];
+  return [...homePages, ...catalogPages, ...professionalPages, ...guidePages, ...guideArticlePages, ...toolPages, ...jobMatchPages, ...institutionalPages];
 }

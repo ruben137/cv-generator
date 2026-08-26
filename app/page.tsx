@@ -3,7 +3,6 @@
 import {
   AddRounded,
   CheckCircleRounded,
-  CloudOffRounded,
   ColorLensRounded,
   CropRounded,
   DeleteOutlineRounded,
@@ -30,7 +29,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
-  AppBar,
   Box,
   Button,
   ButtonGroup,
@@ -44,15 +42,12 @@ import {
   DialogContentText,
   DialogTitle,
   Drawer,
-  FormControlLabel,
   IconButton,
   MenuItem,
   Slider,
   Stack,
-  Switch,
   TextField,
   ThemeProvider,
-  Toolbar,
   Tooltip,
   Typography,
   createTheme,
@@ -89,7 +84,7 @@ import {
 } from "./types";
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
-import { MobileNavigationMenu } from "./mobile-navigation-menu";
+import { SiteHeader } from "./site-header";
 import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
 import { writeJobMatchTransfer } from "./job-match/transfer";
 import { jobFamilies, type JobFamily } from "./job-match/model";
@@ -134,7 +129,6 @@ const colorPresets = [
 ] as const;
 
 const STORAGE_KEY = "cv-simple-data";
-const AUTOSAVE_KEY = "cv-simple-autosave";
 const NAVIGATION_DRAFT_KEY = "cv-simple-navigation-draft";
 
 const fontOptions = [
@@ -288,7 +282,6 @@ export default function Home() {
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const [notice, setNotice] = useState("");
   const [noticeSuccess, setNoticeSuccess] = useState(false);
-  const [autoSave, setAutoSave] = useState(true);
   const [storageReady, setStorageReady] = useState(false);
   const [activeCvId, setActiveCvId] = useState<string | null>(null);
   const [improvementPlans, setImprovementPlans] = useState<ImprovementPlan[]>([]);
@@ -344,9 +337,7 @@ export default function Home() {
   }, [pendingImprovementCount]);
 
   useEffect(() => {
-    const storedAutoSave = window.localStorage.getItem(AUTOSAVE_KEY);
-    const enabled = storedAutoSave === null || storedAutoSave === "true";
-    if (storedAutoSave === null) window.localStorage.setItem(AUTOSAVE_KEY, "true");
+    window.localStorage.removeItem("cv-simple-autosave");
     const searchParams = new URLSearchParams(window.location.search);
     const storedCvId = searchParams.get("cv");
     const professionalPresetId = searchParams.get("preset");
@@ -394,7 +385,7 @@ export default function Home() {
           window.sessionStorage.removeItem(NAVIGATION_DRAFT_KEY);
         }
       }
-      if (!loaded && enabled && !forceNew) {
+      if (!loaded && !forceNew) {
         try {
           const saved = window.localStorage.getItem(STORAGE_KEY);
           if (saved) reset(normalizeCvData(JSON.parse(saved), locale as "es" | "en"));
@@ -402,28 +393,25 @@ export default function Home() {
           window.localStorage.removeItem(STORAGE_KEY);
         }
       }
-      setAutoSave(enabled);
       setStorageReady(true);
     })();
   }, [initialCv, locale, reset, t]);
 
   useEffect(() => {
-    if (!storageReady || !autoSave) return;
+    if (!storageReady) return;
     const timeout = window.setTimeout(() => {
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch {
-        window.localStorage.setItem(AUTOSAVE_KEY, "false");
-        setAutoSave(false);
         setNotice(t("autoSaveError"));
         setNoticeSuccess(false);
       }
     }, 600);
     return () => window.clearTimeout(timeout);
-  }, [autoSave, data, storageReady, t]);
+  }, [data, storageReady, t]);
 
   useEffect(() => {
-    if (!storageReady || !autoSave || !activeCvId) return;
+    if (!storageReady || !activeCvId) return;
     const timeout = window.setTimeout(() => {
       void (async () => {
         const existing = await getStoredCv(activeCvId);
@@ -437,28 +425,7 @@ export default function Home() {
       })().catch(() => undefined);
     }, 700);
     return () => window.clearTimeout(timeout);
-  }, [activeCvId, autoSave, data, storageReady]);
-
-  const changeAutoSave = (enabled: boolean) => {
-    setAutoSave(enabled);
-    window.localStorage.setItem(AUTOSAVE_KEY, String(enabled));
-    if (enabled) {
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        setNotice(t("autoSaveEnabled"));
-        setNoticeSuccess(true);
-      } catch {
-        setAutoSave(false);
-        window.localStorage.setItem(AUTOSAVE_KEY, "false");
-        setNotice(t("autoSaveError"));
-        setNoticeSuccess(false);
-      }
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-      setNotice(t("autoSaveDisabled"));
-      setNoticeSuccess(true);
-    }
-  };
+  }, [activeCvId, data, storageReady]);
 
   const saveToLibrary = async () => {
     try {
@@ -840,44 +807,32 @@ export default function Home() {
       window.removeEventListener("resize", handleResize);
     };
   }, [previewData, editorReady]);
-  const contrastHeadingStyle: CSSProperties | undefined = previewData.template === "contrast"
-    ? {
-        marginTop: "calc(12px * var(--scale))",
-        marginBottom: "calc(6px * var(--scale))",
-        padding: "0 0 calc(4px * var(--scale))",
-        borderBottom: `1px solid ${previewData.primaryColor}`,
-        background: "transparent",
-        letterSpacing: "normal",
-        textTransform: "none",
-      }
-    : undefined;
-
   const renderMainSection = (section: string) => {
     if (!mainSectionIds.includes(section as MainSectionId)) {
       const custom = previewData.customSections.find((item) => item.id === section);
       if (!custom) return null;
       if (custom.type === "text") {
-        return custom.text.trim() ? <section key={section}><h3 style={contrastHeadingStyle}>{custom.title || t("untitledSection")}</h3><p>{custom.text}</p></section> : null;
+        return custom.text.trim() ? <section className={`cv-section cv-section-${section}`} key={section}><h3>{custom.title || t("untitledSection")}</h3><p>{custom.text}</p></section> : null;
       }
       const items = custom.items.filter((item) => item.text.trim());
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{custom.title || t("untitledSection")}</h3><ul className="cv-skills">{items.map((item) => <li key={item.id}>{item.text}</li>)}</ul></section> : null;
+      return items.length ? <section className={`cv-section cv-section-${section}`} key={section}><h3>{custom.title || t("untitledSection")}</h3><ul className="cv-skills">{items.map((item) => <li key={item.id}>{item.text}</li>)}</ul></section> : null;
     }
     if (section === "summary") {
-      return previewData.summary ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3><p>{previewData.summary}</p></section> : null;
+      return previewData.summary ? <section className="cv-section cv-section-summary" key={section}><h3>{previewSectionLabel(section)}</h3><p>{previewData.summary}</p></section> : null;
     }
     if (section === "experience") {
       const items = previewData.experiences.filter((item) => item.company || item.role);
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.company}-${index}`}><h4>{item.company}{item.company && item.role ? " — " : ""}<i>{item.role}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p><ul>{item.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul></div>)}</section> : null;
+      return items.length ? <section className="cv-section cv-section-experience" key={section}><h3>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.company}-${index}`}><h4>{item.company}{item.company && item.role ? " — " : ""}<i>{item.role}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p><ul>{item.bullets.filter(Boolean).map((bullet, bulletIndex) => <li key={bulletIndex}>{bullet}</li>)}</ul></div>)}</section> : null;
     }
     if (section === "education") {
       const items = previewData.education.filter((item) => item.institution || item.degree);
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.institution}-${index}`}><h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
+      return items.length ? <section className="cv-section cv-section-education" key={section}><h3>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.institution}-${index}`}><h4>{item.institution}{item.institution && item.degree ? " — " : ""}<i>{item.degree}</i></h4><p className="cv-meta">{[item.location, [item.start, item.end].filter(Boolean).join(" – ")].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
     }
     if (section === "certifications") {
       const items = previewData.certifications.filter((item) => item.name || item.issuer);
-      return items.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.name}-${index}`}><h4>{item.name}</h4><p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
+      return items.length ? <section className="cv-section cv-section-certifications" key={section}><h3>{previewSectionLabel(section)}</h3>{items.map((item, index) => <div className="cv-experience" key={`${item.name}-${index}`}><h4>{item.name}</h4><p className="cv-meta">{[item.issuer, item.date].filter(Boolean).join(" · ")}</p></div>)}</section> : null;
     }
-    return skillItems.length ? <section key={section}><h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3><ul className="cv-skills">{skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}</ul></section> : null;
+    return skillItems.length ? <section className="cv-section cv-section-skills" key={section}><h3>{previewSectionLabel(section)}</h3><ul className="cv-skills">{skillItems.map((skill, index) => <li key={`${skill}-${index}`}>{skill}</li>)}</ul></section> : null;
   };
 
   const faqItems = [1, 2, 3, 4, 5, 6, 7, 8].map((item) => ({
@@ -901,16 +856,14 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData).replace(/</g, "\\u003c") }}
       />
-      <AppBar position="sticky" color="inherit" elevation={0} className="topbar generator-topbar">
-        <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: { xs: 1, md: 2 }, py: { xs: 1, md: 0 }, flexWrap: { xs: "wrap", md: "nowrap" } }}>
-          <BrandLogo />
-          <Box component="nav" className="main-nav" aria-label={t("mainNavigation")}>
-            <Button component="a" href="#generator" onClick={activateEditor} className="main-nav-link active">{t("generatorNav")}</Button>
-            <Button component="a" href={templatesPath} className="main-nav-link">{t("templatesNav")}</Button>
-            <Button component="a" href={toolsPath} className="main-nav-link">{t("toolsNav")}</Button>
-            <Button component="a" href="/mis-cvs" className="main-nav-link">{t("myCvs")}</Button>
-          </Box>
-          <Box className="topbar-actions">
+      <SiteHeader
+        locale={locale}
+        active="generator"
+        onSave={openSaveDialog}
+        saveLabel={savingCv ? t("savingCv") : activeCvId ? t("updateCv") : t("saveCv")}
+        saveDisabled={savingCv}
+        onLocaleChange={changeLocale}
+        actions={<Box className="topbar-actions">
           <Button
               variant="contained"
               className="save-cv-button"
@@ -937,20 +890,10 @@ export default function Home() {
               EN
             </Button>
           </ButtonGroup>
-          <Chip className="privacy-chip" icon={<CloudOffRounded />} label={t("noStorage")} variant="outlined" />
-          </Box>
-          <MobileNavigationMenu
-            locale={locale}
-            active="generator"
-            onSave={openSaveDialog}
-            saveLabel={savingCv ? t("savingCv") : activeCvId ? t("updateCv") : t("saveCv")}
-            saveDisabled={savingCv}
-            onLocaleChange={changeLocale}
-          />
-        </Toolbar>
-      </AppBar>
+        </Box>}
+      />
 
-      <Container maxWidth={false} sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 3 } }}>
+      <Container maxWidth={false} disableGutters className="site-content" sx={{ py: { xs: 2, md: 3 } }}>
         <Box className="intro">
           <Box className="hero-copy">
             <Chip className="hero-eyebrow" size="small" label={t("heroEyebrow")} />
@@ -1027,21 +970,6 @@ export default function Home() {
         </Stack>
 
         {notice && <Alert className="editor-notice" severity={noticeSuccess ? "success" : "info"} sx={{ mb: 2 }} onClose={() => setNotice("")}>{notice}</Alert>}
-
-        <Box className="autosave-panel">
-          <Box>
-            <Typography fontWeight={750}>{t("autoSave")}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {autoSave ? t("autoSaveOnHelp") : t("autoSaveOffHelp")}
-            </Typography>
-          </Box>
-          <FormControlLabel
-            control={<Switch checked={autoSave} onChange={(event) => changeAutoSave(event.target.checked)} />}
-            label={autoSave ? t("enabled") : t("disabled")}
-            labelPlacement="start"
-            sx={{ m: 0, flexShrink: 0 }}
-          />
-        </Box>
 
         <Box className="workspace">
           <DndContext id="editor-sections-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
@@ -1702,8 +1630,8 @@ export default function Home() {
                 } as CSSProperties}
               >
                 <aside
-                  className={`cv-sidebar cv-sidebar-${previewData.template}`}
-                  style={["contrast", "editorial"].includes(previewData.template) ? { backgroundColor: previewData.primaryColor, color: "#fff" } : undefined}
+                  className={`cv-sidebar cv-sidebar-${previewData.template}${previewData.photo ? " has-photo" : ""}`}
+                  style={["right", "contrast", "editorial"].includes(previewData.template) ? { backgroundColor: previewData.primaryColor, color: "#fff" } : undefined}
                 >
                   <div className="top-accent" />
                   <h2>{previewData.name || "Tu nombre"}</h2>
@@ -1945,6 +1873,7 @@ export default function Home() {
           <Box className="footer-links">
             <a href="#generator" onClick={activateEditor}>{t("generatorNav")}</a>
             <a href={templatesPath}>{t("templatesNav")}</a>
+            <a href={locale === "en" ? "/en/guides" : "/es/guias"}>{t("guidesNav")}</a>
             <a href={toolsPath}>{t("toolsNav")}</a>
             <a href="/mis-cvs">{t("myCvs")}</a>
             <a href={locale === "en" ? "/en/about" : "/es/acerca-de"}>{t("aboutLink")}</a>
