@@ -98,18 +98,6 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
     previewData.sectionOrder,
     previewData.customSections,
   );
-  const contrastHeadingStyle: CSSProperties | undefined =
-    previewData.template === "contrast"
-      ? {
-          marginTop: "calc(12px * var(--scale))",
-          marginBottom: "calc(6px * var(--scale))",
-          padding: "0 0 calc(4px * var(--scale))",
-          borderBottom: `1px solid ${previewData.primaryColor}`,
-          background: "transparent",
-          letterSpacing: "normal",
-          textTransform: "none",
-        }
-      : undefined;
   const previewSectionLabel = (section: string) => {
     if (mainSectionIds.includes(section as MainSectionId)) {
       const mainSection = section as MainSectionId;
@@ -141,8 +129,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
       if (!custom) return null;
       if (custom.type === "text") {
         return custom.text.trim() ? (
-          <section key={section}>
-            <h3 style={contrastHeadingStyle}>
+          <section className={`cv-section cv-section-${section}`} key={section}>
+            <h3>
               {custom.title || t("untitledSection")}
             </h3>
             <p>{custom.text}</p>
@@ -151,8 +139,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
       }
       const items = custom.items.filter((item) => item.text.trim());
       return items.length ? (
-        <section key={section}>
-          <h3 style={contrastHeadingStyle}>
+        <section className={`cv-section cv-section-${section}`} key={section}>
+          <h3>
             {custom.title || t("untitledSection")}
           </h3>
           <ul className="cv-skills">
@@ -165,8 +153,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
     }
     if (section === "summary") {
       return previewData.summary ? (
-        <section key={section}>
-          <h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>
+        <section className="cv-section cv-section-summary" key={section}>
+          <h3>{previewSectionLabel(section)}</h3>
           <p>{previewData.summary}</p>
         </section>
       ) : null;
@@ -176,8 +164,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
         (item) => item.company || item.role,
       );
       return items.length ? (
-        <section key={section}>
-          <h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>
+        <section className="cv-section cv-section-experience" key={section}>
+          <h3>{previewSectionLabel(section)}</h3>
           {items.map((item, index) => (
             <div className="cv-experience" key={`${item.company}-${index}`}>
               <h4>
@@ -208,8 +196,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
         (item) => item.institution || item.degree,
       );
       return items.length ? (
-        <section key={section}>
-          <h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>
+        <section className="cv-section cv-section-education" key={section}>
+          <h3>{previewSectionLabel(section)}</h3>
           {items.map((item, index) => (
             <div className="cv-experience" key={`${item.institution}-${index}`}>
               <h4>
@@ -235,8 +223,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
         (item) => item.name || item.issuer,
       );
       return items.length ? (
-        <section key={section}>
-          <h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>
+        <section className="cv-section cv-section-certifications" key={section}>
+          <h3>{previewSectionLabel(section)}</h3>
           {items.map((item, index) => (
             <div className="cv-experience" key={`${item.name}-${index}`}>
               <h4>{item.name}</h4>
@@ -249,8 +237,8 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
       ) : null;
     }
     return skillItems.length ? (
-      <section key={section}>
-        <h3 style={contrastHeadingStyle}>{previewSectionLabel(section)}</h3>
+      <section className="cv-section cv-section-skills" key={section}>
+        <h3>{previewSectionLabel(section)}</h3>
         <ul className="cv-skills">
           {skillItems.map((skill, index) => (
             <li key={`${skill}-${index}`}>{skill}</li>
@@ -275,9 +263,9 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
         }
       >
         <aside
-          className={`cv-sidebar cv-sidebar-${previewData.template}`}
+          className={`cv-sidebar cv-sidebar-${previewData.template}${previewData.photo ? " has-photo" : ""}`}
           style={
-            ["contrast", "editorial"].includes(previewData.template)
+            ["right", "contrast", "editorial"].includes(previewData.template)
               ? { backgroundColor: previewData.primaryColor, color: "#fff" }
               : undefined
           }

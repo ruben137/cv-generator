@@ -129,9 +129,10 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
   const isModern = data.template === "modern";
   const isMinimal = data.template === "minimal";
   const isRight = data.template === "right";
+  const isCompact = data.template === "compact";
   const isContrast = data.template === "contrast";
   const isEditorial = data.template === "editorial";
-  const hasDarkSidebar = isContrast || isEditorial;
+  const hasDarkSidebar = isRight || isContrast || isEditorial;
   const sidebarTextColor = hasDarkSidebar ? "FFFFFF" : undefined;
   const sidebarPercent = data.template === "compact" ? 28 : isEditorial ? 38 : 32;
 
@@ -141,11 +142,18 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
       spacing: { before: isHarvard ? 170 : 220, after: isHarvard ? 55 : 80 },
       border: isHarvard
         ? { bottom: { color: "222222", size: 8, style: BorderStyle.SINGLE } }
+        : (isCompact || isContrast) && main
+        ? { left: { color: accent, size: 22, space: 8, style: BorderStyle.SINGLE } }
         : isEditorial && main
         ? { left: { color: accent, size: 22, space: 8, style: BorderStyle.SINGLE } }
         : { bottom: { color: borderColor, size: 8, style: BorderStyle.SINGLE } },
-      shading: isEditorial && main ? { fill: "E8EDF2", type: ShadingType.CLEAR } : undefined,
-      children: [new TextRun({ text: isHarvard ? text.toUpperCase() : text, bold: true, color: isHarvard ? "171717" : textColor, size: isHarvard ? 22 : 27 })],
+      shading: ((isCompact || isContrast) && main) || (isEditorial && main) ? { fill: "E8EDF2", type: ShadingType.CLEAR } : undefined,
+      children: [new TextRun({
+        text: isHarvard || ((isCompact || isContrast) && main) ? text.toUpperCase() : text,
+        bold: !((isCompact || isContrast) && main),
+        color: isHarvard ? "171717" : textColor,
+        size: isHarvard ? 22 : (isCompact || isContrast) && main ? 23 : 27,
+      })],
     });
 
   const left: InstanceType<typeof Paragraph>[] = [
@@ -358,6 +366,115 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
   const orderedRight = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections)
     .flatMap((section) => sectionParagraphs[section] ?? []);
 
+  if (isCompact || isContrast) {
+    const headerInk = isContrast ? "FFFFFF" : primary;
+    const identityHeader: InstanceType<typeof Paragraph>[] = [
+      new Paragraph({
+        spacing: { after: 45 },
+        children: [new TextRun({ text: safe(data.name).toUpperCase() || "TU NOMBRE", bold: true, color: headerInk, size: 36 })],
+      }),
+      ...(safe(data.headline) ? [new Paragraph({
+        spacing: { after: 65 },
+        children: [new TextRun({ text: safe(data.headline), bold: true, color: headerInk, size: 20 })],
+      })] : []),
+    ];
+    const photoHeader: InstanceType<typeof Paragraph>[] = [];
+    if (data.photo) {
+      const image = await dataUrlBytes(await cropPhoto(data.photo, data.photoShape));
+      photoHeader.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new ImageRun({
+          data: image,
+          transformation: { width: 96, height: data.photoShape === "round" ? 96 : 110 },
+          type: data.photoShape === "round" ? "png" : "jpg",
+        })],
+      }));
+    }
+    const detailsHeader: InstanceType<typeof Paragraph>[] = [];
+    if (contacts.length) {
+      detailsHeader.push(new Paragraph({
+        spacing: { after: 65 },
+        border: { bottom: { color: isContrast ? accent : primary, size: 7, style: BorderStyle.SINGLE } },
+        children: [new TextRun({ text: labels.contact.toUpperCase(), bold: true, color: headerInk, size: 19 })],
+      }));
+    }
+    contacts.forEach(([label, value]) => detailsHeader.push(new Paragraph({
+      spacing: { after: 45 },
+      children: [
+        new TextRun({ text: `${label.toUpperCase()}: `, bold: true, color: isContrast ? accent : primary, size: 15 }),
+        new TextRun({ text: safe(value), color: headerInk, size: 17 }),
+      ],
+    })));
+    if (!isContrast && data.languages.some((item) => safe(item.name))) {
+      detailsHeader.push(new Paragraph({
+        spacing: { before: 45, after: 55 },
+        border: { bottom: { color: primary, size: 7, style: BorderStyle.SINGLE } },
+        children: [new TextRun({ text: labels.languages.toUpperCase(), bold: true, color: headerInk, size: 19 })],
+      }));
+    }
+    data.languages.filter((item) => safe(item.name)).forEach((item) => {
+      const target = isContrast ? identityHeader : detailsHeader;
+      target.push(new Paragraph({
+        spacing: { after: 25 },
+        children: [
+          new TextRun({ text: `${item.name}: `, bold: true, color: headerInk, size: 17 }),
+          new TextRun({ text: item.level, color: headerInk, size: 17 }),
+        ],
+      }));
+    });
+
+    const fullWidth = 11906;
+    const headerWidths = [4450, 2250, 5206];
+    const headerFill = isContrast ? primary : "F2F5F7";
+    const borderlessCell = (width: number, children: InstanceType<typeof Paragraph>[], alignment?: typeof AlignmentType.CENTER) => new TableCell({
+      width: { size: width, type: WidthType.DXA },
+      verticalAlign: "center",
+      margins: { top: 220, bottom: 180, left: 320, right: 320 },
+      shading: { fill: headerFill, type: ShadingType.CLEAR },
+      children: children.length ? children : [new Paragraph({ alignment, children: [new TextRun("")] })],
+    });
+    const horizontalTable = new Table({
+      width: { size: fullWidth, type: WidthType.DXA },
+      columnWidths: headerWidths,
+      borders: {
+        top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+        insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE },
+      },
+      rows: [
+        new TableRow({
+          height: { value: 180, rule: HeightRule.EXACT },
+          children: headerWidths.map((width) => new TableCell({ width: { size: width, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, shading: { fill: accent, type: ShadingType.CLEAR }, children: [new Paragraph("")] })),
+        }),
+        new TableRow({
+          cantSplit: true,
+          children: [
+            borderlessCell(headerWidths[0], identityHeader),
+            borderlessCell(headerWidths[1], photoHeader, AlignmentType.CENTER),
+            borderlessCell(headerWidths[2], detailsHeader),
+          ],
+        }),
+        new TableRow({ children: [new TableCell({ columnSpan: 3, width: { size: fullWidth, type: WidthType.DXA }, margins: { top: 220, bottom: 220, left: 520, right: 520 }, children: orderedRight.length ? orderedRight : [new Paragraph("")] })] }),
+        new TableRow({
+          height: { value: 140, rule: HeightRule.EXACT },
+          children: headerWidths.map((width) => new TableCell({ width: { size: width, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, shading: { fill: isContrast ? accent : primary, type: ShadingType.CLEAR }, children: [new Paragraph("")] })),
+        }),
+      ],
+    });
+    const horizontalDoc = new Document({
+      styles: {
+        default: { document: { run: { font: docxFont, size: 18 } } },
+        paragraphStyles: [{ id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: docxFont, bold: true, color: primary } }],
+      },
+      sections: [{
+        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 0, right: 0, bottom: 0, left: 0 } } },
+        children: [horizontalTable, new Paragraph({ spacing: { before: 0, after: 0, line: 1 }, children: [new TextRun({ text: "\u200B", size: 2 })] })],
+      }],
+    });
+    const horizontalBlob = await Packer.toBlob(horizontalDoc);
+    download(horizontalBlob, `${slugName(filename || data.name)}.docx`, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    return;
+  }
+
   if (isHarvard) {
     const contactLine = contacts.map(([, value]) => safe(value)).join("  |  ");
     const languageLine = data.languages
@@ -537,25 +654,41 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   const muted = rgb(0.94, 0.95, 0.96);
   const white = rgb(1, 1, 1);
   const isContrastPdf = data.template === "contrast";
+  const isCompactPdf = data.template === "compact";
   const isEditorialPdf = data.template === "editorial";
   const isHarvardPdf = data.template === "harvard";
-  const hasDarkSidebarPdf = isContrastPdf || isEditorialPdf;
+  const isHorizontalPdf = isCompactPdf || isContrastPdf;
+  const horizontalContentLoad =
+    safe(data.summary).length / 85 +
+    data.experiences.reduce((total, item) => total + 1.5 + item.bullets.filter((bullet) => safe(bullet)).reduce((sum, bullet) => sum + Math.max(1, safe(bullet).length / 75), 0), 0) +
+    data.skills.filter((skill) => safe(skill.name)).length * 0.7 +
+    data.education.filter((item) => safe(item.institution) || safe(item.degree)).length * 1.2 +
+    data.certifications.filter((item) => safe(item.name) || safe(item.issuer)).length +
+    data.customSections.reduce((total, section) => total + (section.type === "text" ? safe(section.text).length / 85 : section.items.filter((item) => safe(item.text)).length * 0.75), 0);
+  const horizontalDense = isHorizontalPdf && horizontalContentLoad > 21;
+  const horizontalBodyScale = horizontalDense ? 0.78 : 1;
+  const hasDarkSidebarPdf = data.template === "right" || isEditorialPdf;
   const sidebarInk = hasDarkSidebarPdf ? white : dark;
   const pageWidth = 595.28;
-  const sidebarWidth = isHarvardPdf ? 0 : data.template === "compact" ? 167 : isEditorialPdf ? 226 : 202;
+  const sidebarWidth = isHarvardPdf || isHorizontalPdf ? 0 : isEditorialPdf ? 226 : data.template === "right" ? 179 : 202;
   const mainWidth = pageWidth - sidebarWidth;
   const isRight = data.template === "right";
   const sidebarX = isRight ? mainWidth : 0;
   const mainX = isRight ? 0 : sidebarWidth;
   const sidebarContentX = sidebarX + 20;
   const sidebarContentWidth = sidebarWidth - 40;
-  const mainContentX = isHarvardPdf ? 42 : mainX + 24;
-  const mainContentWidth = isHarvardPdf ? pageWidth - 84 : mainWidth - 48;
+  const mainContentX = isHarvardPdf || isHorizontalPdf ? 42 : mainX + 24;
+  const mainContentWidth = isHarvardPdf || isHorizontalPdf ? pageWidth - 84 : mainWidth - 48;
   const bulletX = mainContentX + 5;
   const bulletTextX = mainContentX + 15;
   const columnBoundary = isRight ? mainWidth : sidebarWidth;
 
-  if (!isHarvardPdf && data.template !== "minimal") {
+  if (isHorizontalPdf) {
+    const headerBottom = horizontalDense ? 692 : 652;
+    page.drawRectangle({ x: 0, y: headerBottom, width: pageWidth, height: 841.89 - headerBottom, color: isContrastPdf ? color : muted });
+    page.drawRectangle({ x: 0, y: 829, width: pageWidth, height: 12, color: accent });
+    page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: 9, color: isContrastPdf ? accent : color });
+  } else if (!isHarvardPdf && data.template !== "minimal") {
     page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: hasDarkSidebarPdf ? color : muted });
     if (isEditorialPdf) {
       page.drawRectangle({ x: sidebarContentX, y: 806, width: 34, height: 6, color: accent });
@@ -595,11 +728,13 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
     maxLines = 20,
     textColor = dark,
   ) => {
-    const lines = wrap(text, font, size, width).slice(0, maxLines);
+    const effectiveSize = size * (isHorizontalPdf ? horizontalBodyScale : 1);
+    const effectiveLineHeight = lineHeight * (isHorizontalPdf ? horizontalBodyScale : 1);
+    const lines = wrap(text, font, effectiveSize, width).slice(0, maxLines);
     lines.forEach((line, index) =>
-      page.drawText(line, { x, y: y - index * lineHeight, size, font, color: textColor }),
+      page.drawText(line, { x, y: y - index * effectiveLineHeight, size: effectiveSize, font, color: textColor }),
     );
-    return y - lines.length * lineHeight;
+    return y - lines.length * effectiveLineHeight;
   };
   const heading = (text: string, x: number, y: number, width: number, textColor = color, lineColor = color) => {
     page.drawText(text, { x, y, size: 16, font: bold, color: textColor });
@@ -614,7 +749,38 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   ].filter(([, value]) => safe(value));
   const languages = data.languages.filter((item) => safe(item.name));
 
-  if (!isHarvardPdf) {
+  if (isHorizontalPdf) {
+    const headerInk = isContrastPdf ? white : color;
+    page.drawText(safe(data.name).toUpperCase() || "TU NOMBRE", { x: 42, y: 790, size: 21, font: bold, color: headerInk });
+    if (safe(data.headline)) page.drawText(safe(data.headline), { x: 42, y: 770, size: 9.5, font: bold, color: headerInk });
+    let detailY = 790;
+    if (contacts.length) {
+      page.drawText(labels.contact.toUpperCase(), { x: 405, y: detailY, size: 8.4, font: bold, color: headerInk });
+      page.drawLine({ start: { x: 405, y: detailY - 4 }, end: { x: 553, y: detailY - 4 }, thickness: 0.65, color: isContrastPdf ? accent : color });
+      detailY -= 16;
+    }
+    contacts.slice(0, 4).forEach(([label, value]) => {
+      page.drawText(`${label.toUpperCase()}:`, { x: 405, y: detailY, size: 6.7, font: bold, color: isContrastPdf ? accent : color });
+      detailY = textBlock(safe(value), 405, detailY - 9, 148, 7.6, 9.5, regular, 2, isContrastPdf ? white : dark) - 3;
+    });
+    const languageText = languages.map((item) => `${item.name}: ${item.level}`).join("  |  ");
+    if (languageText) {
+      const languageY = horizontalDense ? 722 : 736;
+      page.drawText(labels.languages.toUpperCase(), { x: 42, y: languageY, size: 8.4, font: bold, color: headerInk });
+      page.drawLine({ start: { x: 42, y: languageY - 4 }, end: { x: 237, y: languageY - 4 }, thickness: 0.65, color: isContrastPdf ? accent : color });
+      textBlock(languageText, 42, languageY - 16, 195, 7.8, 10, regular, 3, isContrastPdf ? white : dark);
+    }
+    if (data.photo) {
+      try {
+        const bytes = await dataUrlBytes(await cropPhoto(data.photo, data.photoShape));
+        const image = data.photoShape === "round" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+        const target = horizontalDense ? 82 : 104;
+        page.drawImage(image, { x: horizontalDense ? 274 : 263, y: horizontalDense ? 704 : 696, width: target, height: data.photoShape === "round" ? target : target * 1.14 });
+      } catch {
+        // The CV still exports if an unsupported image slips through.
+      }
+    }
+  } else if (!isHarvardPdf) {
   let leftY = 775;
   wrap(safe(data.name).toUpperCase() || "TU NOMBRE", bold, 20, sidebarContentWidth + 2)
     .slice(0, 2)
@@ -652,7 +818,7 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   }
   }
 
-  let rightY = isHarvardPdf ? 790 : 775;
+  let rightY = isHarvardPdf ? 790 : isHorizontalPdf ? (horizontalDense ? 670 : 625) : 775;
   if (isHarvardPdf) {
     const centeredText = (text: string, y: number, size: number, font = regular) => {
       const width = font.widthOfTextAtSize(text, size);
@@ -683,24 +849,27 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   }
   let drawnMainSections = 0;
   const mainHeading = (label: string) => {
-    if (drawnMainSections > 0) rightY -= 12;
+    const sectionGap = isHorizontalPdf ? 12 * horizontalBodyScale : 12;
+    if (drawnMainSections > 0) rightY -= sectionGap;
     drawnMainSections += 1;
     if (isHarvardPdf) {
       page.drawText(label.toUpperCase(), { x: mainContentX, y: rightY, size: 10.5, font: bold, color: dark });
       page.drawLine({ start: { x: mainContentX, y: rightY - 3 }, end: { x: mainContentX + mainContentWidth, y: rightY - 3 }, thickness: 0.7, color: dark });
       return rightY - 16;
     }
-    if (isEditorialPdf) {
-      page.drawRectangle({ x: mainContentX, y: rightY - 5, width: mainContentWidth, height: 21, color: muted });
-      page.drawRectangle({ x: mainContentX, y: rightY - 5, width: 4, height: 21, color: accent });
+    if (isEditorialPdf || isHorizontalPdf) {
+      const headingHeight = isHorizontalPdf ? 21 * horizontalBodyScale : 21;
+      const headingSize = isHorizontalPdf ? 13 * horizontalBodyScale : 13;
+      page.drawRectangle({ x: mainContentX, y: rightY - 5 * horizontalBodyScale, width: mainContentWidth, height: headingHeight, color: muted });
+      page.drawRectangle({ x: mainContentX, y: rightY - 5 * horizontalBodyScale, width: 4, height: headingHeight, color: accent });
       page.drawText(label.toUpperCase(), {
         x: mainContentX + 10,
         y: rightY,
-        size: 13,
+        size: headingSize,
         font: regular,
         color,
       });
-      return rightY - 26;
+      return rightY - 26 * (isHorizontalPdf ? horizontalBodyScale : 1);
     }
     return heading(label, mainContentX, rightY, mainContentWidth);
   };

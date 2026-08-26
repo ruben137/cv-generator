@@ -17,12 +17,12 @@ import {
   AutoFixHighRounded,
   HistoryRounded,
   NoteAddRounded,
+  PictureAsPdfRounded,
   SaveAltRounded,
   SearchRounded,
 } from "@mui/icons-material";
 import {
   Alert,
-  AppBar,
   Box,
   Button,
   Card,
@@ -41,18 +41,18 @@ import {
   Stack,
   TextField,
   ThemeProvider,
-  Toolbar,
   Typography,
   createTheme,
 } from "@mui/material";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { BrandLogo } from "./brand-logo";
-import { MobileNavigationMenu } from "./mobile-navigation-menu";
+import { SiteHeader } from "./site-header";
 import ConfirmModal from "./ConfirmModal";
 import { listCoverLetters } from "./cover-letter-library";
 import type { CoverLetterDraft } from "./cover-letter";
 import { createStoredCv, listStoredCvs, putStoredCv, type StoredCv } from "./cv-library";
+import { defaultDocumentLabels } from "./cv-data";
+import { exportPdf, type ExportLabels } from "./exporters";
 import { jobApplicationStatuses, updateJobApplication, type JobApplication, type JobApplicationEvent, type JobApplicationStatus, type NewJobApplicationEvent } from "./job-application";
 import { addJobApplication, deleteJobApplication, listJobApplications, putJobApplication } from "./job-application-library";
 import { jobFamilies, type JobFamily } from "./job-match/model";
@@ -89,6 +89,23 @@ const emptyEditor = (language: "es" | "en"): ApplicationEditor => ({
   jobFamily: "general", status: "saved", appliedAt: "", notes: "", cvId: "",
 });
 
+const getExportLabels = (cv: StoredCv): ExportLabels => {
+  const defaults = defaultDocumentLabels[cv.data.documentLocale];
+  return {
+    summary: cv.data.sectionTitles.summary?.trim() || defaults.summary,
+    experience: cv.data.sectionTitles.experience?.trim() || defaults.experience,
+    skills: cv.data.sectionTitles.skills?.trim() || defaults.skills,
+    contact: cv.data.sectionTitles.contact?.trim() || defaults.contact,
+    languages: cv.data.sectionTitles.languages?.trim() || defaults.languages,
+    education: cv.data.sectionTitles.education?.trim() || defaults.education,
+    certifications: cv.data.sectionTitles.certifications?.trim() || defaults.certifications,
+    location: cv.data.sectionTitles.location?.trim() || defaults.location,
+    phone: cv.data.sectionTitles.phone?.trim() || defaults.phone,
+    email: cv.data.sectionTitles.email?.trim() || defaults.email,
+    portfolio: cv.data.sectionTitles.portfolio?.trim() || defaults.portfolio,
+  };
+};
+
 export function ApplicationsPage() {
   const t = useTranslations("Applications");
   const jobT = useTranslations("JobMatch");
@@ -108,6 +125,7 @@ export function ApplicationsPage() {
   const [deleteCandidate, setDeleteCandidate] = useState<JobApplication | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [exportingCvId, setExportingCvId] = useState<string | null>(null);
   const [adaptationCandidate, setAdaptationCandidate] = useState<{ application: JobApplication; cv: StoredCv } | null>(null);
   const [adaptedCvTitle, setAdaptedCvTitle] = useState("");
   const [adapting, setAdapting] = useState(false);
@@ -260,6 +278,17 @@ export function ApplicationsPage() {
     });
     window.location.assign(locale === "en" ? "/en/job-match?source=application" : "/es/analizar-vacante?source=application");
   };
+  const downloadApplicationCv = async (cv: StoredCv) => {
+    try {
+      setExportingCvId(cv.id);
+      setError("");
+      await exportPdf(cv.data, getExportLabels(cv), cv.title);
+    } catch {
+      setError(t("downloadCvError"));
+    } finally {
+      setExportingCvId(null);
+    }
+  };
   const openAdaptation = (application: JobApplication, cv: StoredCv) => {
     setAdaptationCandidate({ application, cv });
     setAdaptedCvTitle(`${application.role} · ${application.company}`.slice(0, 120));
@@ -338,18 +367,13 @@ export function ApplicationsPage() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppBar position="sticky" color="inherit" elevation={0} className="topbar">
-        <Toolbar className="topbar-inner" sx={{ minHeight: 76, gap: 2 }}>
-          <BrandLogo />
-          <Box sx={{ flexGrow: 1 }} />
-          <Box className="desktop-page-actions">
+      <SiteHeader locale={locale} active="applications" actions={
+        <Box className="desktop-page-actions">
             <Button component="a" href="/mis-cvs" startIcon={<ArrowBackRounded />}>{t("backToCvs")}</Button>
-          </Box>
-          <MobileNavigationMenu locale={locale} active="applications" />
-        </Toolbar>
-      </AppBar>
+        </Box>
+      } />
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth={false} disableGutters className="site-content" sx={{ py: 4 }}>
         <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ md: "center" }} gap={2} mb={3}>
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h4" component="h1" fontWeight={800}>{t("title")}</Typography>
@@ -409,6 +433,7 @@ export function ApplicationsPage() {
             {paginatedApplications.map((application) => {
               const linkedCv = application.cvId ? cvById.get(application.cvId) : undefined;
               const sourceCv = application.sourceCvId ? cvById.get(application.sourceCvId) : undefined;
+              const downloadableCv = linkedCv ?? sourceCv;
               const coverLetter = coverLetterByApplication.get(application.id);
               const jobUrl = safeExternalUrl(application.url);
               return (
@@ -449,6 +474,7 @@ export function ApplicationsPage() {
                     </Box> : null}
                     <Stack className="application-card-actions" direction="row" gap={0.75} flexWrap="wrap">
                       <Button variant="outlined" size="small" startIcon={<EditRounded />} onClick={() => openEdit(application)}>{t("edit")}</Button>
+                      {downloadableCv ? <Button className="application-download-action" variant="outlined" size="small" startIcon={exportingCvId === downloadableCv.id ? <CircularProgress size={15} color="inherit" /> : <PictureAsPdfRounded />} disabled={Boolean(exportingCvId)} onClick={() => void downloadApplicationCv(downloadableCv)}>{t(exportingCvId === downloadableCv.id ? "downloadingCv" : "downloadCv")}</Button> : null}
                       {linkedCv ? <Button className="application-analyze-action" size="small" startIcon={<ManageSearchRounded />} onClick={() => analyzeApplication(application, linkedCv)}>{t("analyzeApplication")}</Button> : null}
                       {linkedCv ? <Button className="application-adapt-action" size="small" startIcon={<AutoFixHighRounded />} onClick={() => openAdaptation(application, linkedCv)}>{t(application.sourceCvId ? "createAnotherVersion" : "adaptCv")}</Button> : null}
                       {coverLetter ? <Button className="application-cover-letter-action" size="small" component="a" href={`${locale === "en" ? "/en/cover-letter" : "/es/carta-presentacion"}?draft=${encodeURIComponent(coverLetter.id)}`} startIcon={<ArticleOutlined />}>{t("openCoverLetter")}</Button> : linkedCv ? <Button className="application-cover-letter-action" size="small" component="a" href={`${locale === "en" ? "/en/cover-letter" : "/es/carta-presentacion"}?application=${encodeURIComponent(application.id)}`} startIcon={<ArticleOutlined />}>{t("createCoverLetter")}</Button> : null}
