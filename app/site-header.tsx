@@ -7,7 +7,7 @@ import { MobileNavigationMenu } from "./mobile-navigation-menu";
 
 type SiteHeaderProps = {
   locale: string;
-  active?: "generator" | "templates" | "tools" | "cvs" | "applications";
+  active?: "generator" | "templates" | "guides" | "tools" | "cvs" | "applications";
   actions?: ReactNode;
   onSave?: () => void;
   saveLabel?: string;

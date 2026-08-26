@@ -4,6 +4,7 @@ import {
   CloseRounded,
   FolderOpenRounded,
   LanguageRounded,
+  MenuBookRounded,
   MenuRounded,
   SaveRounded,
   WorkOutlineRounded,
@@ -22,7 +23,7 @@ import { BrandLogo } from "./brand-logo";
 
 type MobileNavigationMenuProps = {
   locale: string;
-  active?: "generator" | "templates" | "tools" | "cvs" | "applications";
+  active?: "generator" | "templates" | "guides" | "tools" | "cvs" | "applications";
   onSave?: () => void;
   saveLabel?: string;
   saveDisabled?: boolean;
@@ -36,6 +37,7 @@ const copy = {
     navigation: "Navegación principal",
     generator: "Generador",
     templates: "Plantillas",
+    guides: "Guías",
     tools: "Herramientas",
     cvs: "Mis CVs",
     applications: "Mis postulaciones",
@@ -47,6 +49,7 @@ const copy = {
     navigation: "Main navigation",
     generator: "Generator",
     templates: "Templates",
+    guides: "Guides",
     tools: "Tools",
     cvs: "My CVs",
     applications: "My applications",
@@ -68,6 +71,7 @@ export function MobileNavigationMenu({
   const links: Array<{ id: NonNullable<MobileNavigationMenuProps["active"]>; label: string; href: string; icon?: ReactNode }> = [
     { id: "generator", label: labels.generator, href: `/${resolvedLocale}?openEditor=1#generator` },
     { id: "templates", label: labels.templates, href: resolvedLocale === "en" ? "/en/templates" : "/es/plantillas" },
+    { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias", icon: <MenuBookRounded fontSize="small" /> },
     { id: "tools", label: labels.tools, href: `/${resolvedLocale}/tools` },
     { id: "cvs", label: labels.cvs, href: "/mis-cvs", icon: <FolderOpenRounded fontSize="small" /> },
     { id: "applications", label: labels.applications, href: resolvedLocale === "en" ? "/en/applications" : "/es/mis-postulaciones", icon: <WorkOutlineRounded fontSize="small" /> },

@@ -96,7 +96,7 @@ export async function GuidesCatalogPage() {
 
   return (
     <>
-    <SiteHeader locale={locale} />
+    <SiteHeader locale={locale} active="guides" />
     <SiteContent className="guide-site-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
 
@@ -204,7 +204,7 @@ export async function GuideArticlePage({ guide }: { guide: GuideArticle }) {
 
   return (
     <>
-    <SiteHeader locale={locale} />
+    <SiteHeader locale={locale} active="guides" />
     <SiteContent className="guide-site-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(structuredData) }} />
       <article className="guide-article">
