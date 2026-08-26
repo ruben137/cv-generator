@@ -83,7 +83,7 @@ const theme = createTheme({
   },
 });
 
-const CVS_PER_PAGE = 8;
+const CVS_PER_PAGE = 10;
 
 export default function MyCvsPage() {
   const t = useTranslations("App");
