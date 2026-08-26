@@ -95,6 +95,22 @@ const cases: Case[] = [
     partial: resume("Graphic Designer", ["graphic design", "Adobe Photoshop", "typography"], ["Created social media graphics in Photoshop."]),
     unrelated,
   },
+  {
+    area: "nursing",
+    source: "curated bilingual nursing vacancy sample",
+    job: { title: "Registered Nurse", language: "en", jobFamily: "nursing", text: "Requirements: registered nurse license, nursing care, patient assessment, vital signs monitoring, medication administration, clinical documentation, infection control, wound care, patient education, clinical handoff and CPR." },
+    strong: resume("Registered Nurse", ["registered nurse", "nursing care", "patient assessment", "vital signs", "medication administration", "clinical records", "infection control", "wound care", "patient education", "CPR"], ["Provided nursing care, assessed patients, monitored vital signs and administered medications while maintaining accurate clinical records and infection control protocols."]),
+    partial: resume("Nurse", ["nursing care", "vital signs", "patient education"], ["Provided daily patient care and monitored vital signs."]),
+    unrelated,
+  },
+  {
+    area: "reception",
+    source: "curated bilingual receptionist vacancy sample",
+    job: { title: "Receptionist", language: "en", jobFamily: "reception", text: "Requirements: front desk service, visitor registration, appointment scheduling, call handling, mail handling, office support, data entry, customer-facing service, confidential information handling, organization and communication." },
+    strong: resume("Receptionist", ["front desk", "visitor management", "appointment scheduling", "call handling", "mail handling", "office support", "data entry", "customer-facing service", "confidential information", "organization", "communication"], ["Managed the front desk, greeted visitors, scheduled appointments, handled calls and correspondence, and entered confidential information accurately."]),
+    partial: resume("Front Desk Assistant", ["front desk", "call handling", "organization"], ["Greeted visitors and answered phone calls."]),
+    unrelated: resume("Warehouse Operator", ["inventory control", "forklift operation"], ["Prepared shipments and operated warehouse equipment."]),
+  },
 ];
 
 const rows = cases.map((testCase) => {

@@ -11,6 +11,8 @@ export const jobFamilies = [
   "accounting",
   "customer-service",
   "graphic-design",
+  "nursing",
+  "reception",
 ] as const;
 export type JobFamily = (typeof jobFamilies)[number];
 

@@ -649,7 +649,7 @@
     "finalDescription": "Vuelve al generador para mejorar la redacción, reorganizar secciones o crear una versión adaptada a la vacante.",
     "backToBuilderCta": "Volver al generador",
     "components": { "skills": "Habilidades y requisitos", "keywords": "Palabras clave", "title": "Título profesional", "evidence": "Evidencia en experiencia" },
-    "families": { "general": "General", "software-development": "Desarrollo de software", "industrial-engineering": "Ingeniería industrial", "administration": "Administración", "marketing": "Marketing", "sales": "Ventas", "accounting": "Contabilidad", "customer-service": "Atención al cliente", "graphic-design": "Diseño gráfico" },
+    "families": { "general": "General", "software-development": "Desarrollo de software", "industrial-engineering": "Ingeniería industrial", "administration": "Administración", "marketing": "Marketing", "sales": "Ventas", "accounting": "Contabilidad", "customer-service": "Atención al cliente", "graphic-design": "Diseño gráfico", "nursing": "Enfermería", "reception": "Recepción" },
     "matchTypes": { "exact": "Exacta", "alias": "Equivalente", "related": "Relacionada", "approximate": "Aproximada", "user-confirmed": "Confirmada", "unclassified": "Sin clasificar" },
     "levels": { "required": "Obligatorio", "preferred": "Deseable", "unknown": "Sin prioridad" },
     "priorities": { "high": "Prioridad alta", "medium": "Prioridad media", "low": "Prioridad baja" },

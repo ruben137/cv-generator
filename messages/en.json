@@ -636,7 +636,7 @@
     "finalDescription": "Return to the builder to improve wording, reorganize sections, or create a version tailored to the role.",
     "backToBuilderCta": "Back to resume builder",
     "components": { "skills": "Skills and requirements", "keywords": "Keywords", "title": "Professional title", "evidence": "Evidence in experience" },
-    "families": { "general": "General", "software-development": "Software development", "industrial-engineering": "Industrial engineering", "administration": "Administration", "marketing": "Marketing", "sales": "Sales", "accounting": "Accounting", "customer-service": "Customer service", "graphic-design": "Graphic design" },
+    "families": { "general": "General", "software-development": "Software development", "industrial-engineering": "Industrial engineering", "administration": "Administration", "marketing": "Marketing", "sales": "Sales", "accounting": "Accounting", "customer-service": "Customer service", "graphic-design": "Graphic design", "nursing": "Nursing", "reception": "Reception" },
     "matchTypes": { "exact": "Exact", "alias": "Equivalent", "related": "Related", "approximate": "Approximate", "user-confirmed": "Confirmed", "unclassified": "Unclassified" },
     "levels": { "required": "Required", "preferred": "Preferred", "unknown": "No priority" },
     "priorities": { "high": "High priority", "medium": "Medium priority", "low": "Low priority" },

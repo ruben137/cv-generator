@@ -33,6 +33,10 @@ const expectedTerms = [
   ["Google Ads", "es", "marketing", "google-ads"],
   ["Excel", "es", "marketing", "microsoft-excel"],
   ["análisis de datos", "es", "marketing", "data-analysis"],
+  ["toma de signos vitales", "es", "nursing", "vital-signs"],
+  ["patient care", "en", "nursing", "nursing-care"],
+  ["programación de citas", "es", "reception", "appointment-scheduling"],
+  ["front desk", "en", "reception", "reception-service"],
 ] as const;
 
 for (const [term, language, family, expectedId] of expectedTerms) {
