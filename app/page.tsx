@@ -1471,6 +1471,8 @@ export default function Home() {
                                           {...bulletField}
                                           value={bulletField.value ?? ""}
                                           label={t("bullet", { number: bulletIndex + 1 })}
+                                          multiline
+                                          minRows={1}
                                           inputProps={{ maxLength: 160 }}
                                         />
                                       )}
