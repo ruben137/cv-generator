@@ -56,10 +56,17 @@ const PreviewContent = ({ previewData }: IPreviewContentProps) => {
         const columns = Array.from(
           paper.querySelectorAll<HTMLElement>(".cv-sidebar, .cv-main"),
         );
-        const availableHeight = Math.max(paper.clientHeight, 1);
+        const paperRect = paper.getBoundingClientRect();
         const overflowRatio = Math.max(
           1,
-          ...columns.map((column) => column.scrollHeight / availableHeight),
+          ...columns.map((column) => {
+            const columnRect = column.getBoundingClientRect();
+            const availableHeight = Math.max(
+              paperRect.bottom - columnRect.top,
+              1,
+            );
+            return column.scrollHeight / availableHeight;
+          }),
         );
         if (overflowRatio <= 1.002 || iteration >= 3) return;
 

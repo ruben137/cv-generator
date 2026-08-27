@@ -1225,6 +1225,11 @@ body {
 }
 .cv-paper.template-harvard > .cv-main > section:first-child h3 { margin-top: 0; }
 .cv-paper.template-harvard .cv-experience { margin-bottom: calc(10px * var(--scale)); }
+.cv-paper.template-harvard .cv-experience ul,
+.cv-paper.template-harvard .cv-skills {
+  list-style-position: outside;
+  list-style-type: disc;
+}
 
 @media (max-width: 760px) {
   .cv-preview-dialog .MuiDialogContent-root { padding: .6rem; }
