@@ -9,6 +9,8 @@ export const professionalPresetIds = [
   "sales",
   "accounting",
   "graphicDesign",
+  "nursing",
+  "reception",
 ] as const;
 export type ProfessionalPresetId = (typeof professionalPresetIds)[number];
 
@@ -22,6 +24,8 @@ export const professionalPresetSlugs: Record<"es" | "en", Record<ProfessionalPre
     sales: "cv-ventas",
     accounting: "cv-contador",
     graphicDesign: "cv-disenador-grafico",
+    nursing: "cv-enfermera",
+    reception: "cv-recepcionista",
   },
   en: {
     software: "software-developer-resume",
@@ -32,6 +36,8 @@ export const professionalPresetSlugs: Record<"es" | "en", Record<ProfessionalPre
     sales: "sales-resume",
     accounting: "accountant-resume",
     graphicDesign: "graphic-designer-resume",
+    nursing: "nurse-resume",
+    reception: "receptionist-resume",
   },
 };
 
@@ -217,6 +223,52 @@ const presets: Record<"es" | "en", Record<ProfessionalPresetId, PresetContent>> 
       primaryColor: "#3D315B",
       accentColor: "#C47A5A",
     },
+    nursing: {
+      headline: "Enfermero/a",
+      summary: "Profesional de enfermería orientado al cuidado seguro y humano del paciente, con experiencia apoyando la valoración clínica, el seguimiento de tratamientos y la coordinación con equipos de salud.",
+      skills: ["Cuidados de enfermería", "Control de signos vitales", "Administración de medicamentos", "Registros clínicos", "Control de infecciones", "Educación al paciente"].map((name) => ({ name })),
+      experiences: [{
+        company: "Centro de salud",
+        role: "Enfermero/a",
+        location: "Ciudad, País",
+        start: "2022",
+        end: "Actualidad",
+        bullets: [
+          "Valoración y seguimiento de pacientes de acuerdo con las indicaciones y protocolos del servicio.",
+          "Administración segura de medicamentos y registro oportuno de la atención proporcionada.",
+          "Coordinación con el equipo clínico y orientación a pacientes y familiares sobre sus cuidados.",
+        ],
+      }],
+      education: [{ institution: "Universidad o instituto", degree: "Licenciatura o formación en enfermería", location: "Ciudad, País", start: "2017", end: "2021" }],
+      certifications: [{ name: "Soporte vital básico o RCP", issuer: "Institución acreditada", date: "2024" }],
+      template: "harvard",
+      fontFamily: "serif",
+      primaryColor: "#174F57",
+      accentColor: "#5E8F91",
+    },
+    reception: {
+      headline: "Recepcionista",
+      summary: "Profesional de recepción cordial y organizado, con experiencia atendiendo visitantes, coordinando citas y llamadas, y apoyando las tareas administrativas que mantienen el servicio diario en funcionamiento.",
+      skills: ["Atención en recepción", "Gestión de citas", "Atención telefónica", "Atención de visitantes", "Gestión de correspondencia", "Administración de oficina"].map((name) => ({ name })),
+      experiences: [{
+        company: "Empresa de servicios",
+        role: "Recepcionista",
+        location: "Ciudad, País",
+        start: "2022",
+        end: "Actualidad",
+        bullets: [
+          "Recepción y orientación de visitantes, manteniendo una atención cordial y organizada.",
+          "Gestión de llamadas, citas y comunicaciones dirigidas a las distintas áreas de la empresa.",
+          "Registro de información y apoyo en correspondencia, documentos y tareas administrativas.",
+        ],
+      }],
+      education: [{ institution: "Instituto de formación", degree: "Administración, atención al cliente o área relacionada", location: "Ciudad, País", start: "2019", end: "2021" }],
+      certifications: [],
+      template: "modern",
+      fontFamily: "humanist",
+      primaryColor: "#315575",
+      accentColor: "#8FAFC4",
+    },
   },
   en: {
     software: {
@@ -395,6 +447,52 @@ const presets: Record<"es" | "en", Record<ProfessionalPresetId, PresetContent>> 
       template: "editorial",
       primaryColor: "#3D315B",
       accentColor: "#C47A5A",
+    },
+    nursing: {
+      headline: "Registered Nurse",
+      summary: "Patient-centered nursing professional experienced in supporting clinical assessments, treatment follow-up, and coordinated care while maintaining safe, compassionate practice.",
+      skills: ["Nursing care", "Vital signs monitoring", "Medication administration", "Clinical records", "Infection control", "Patient education"].map((name) => ({ name })),
+      experiences: [{
+        company: "Healthcare Center",
+        role: "Registered Nurse",
+        location: "City, Country",
+        start: "2022",
+        end: "Present",
+        bullets: [
+          "Assessed and monitored patients according to care plans and unit protocols.",
+          "Administered medications safely and documented the care provided in a timely manner.",
+          "Coordinated with the clinical team and educated patients and families about ongoing care.",
+        ],
+      }],
+      education: [{ institution: "University or College", degree: "Bachelor's degree or professional studies in Nursing", location: "City, Country", start: "2017", end: "2021" }],
+      certifications: [{ name: "Basic Life Support or CPR Certification", issuer: "Accredited Institution", date: "2024" }],
+      template: "harvard",
+      fontFamily: "serif",
+      primaryColor: "#174F57",
+      accentColor: "#5E8F91",
+    },
+    reception: {
+      headline: "Receptionist",
+      summary: "Welcoming and organized reception professional experienced in assisting visitors, coordinating appointments and calls, and supporting the administrative tasks that keep daily service running smoothly.",
+      skills: ["Reception service", "Appointment scheduling", "Telephone service", "Visitor management", "Correspondence management", "Office administration"].map((name) => ({ name })),
+      experiences: [{
+        company: "Services Company",
+        role: "Receptionist",
+        location: "City, Country",
+        start: "2022",
+        end: "Present",
+        bullets: [
+          "Welcomed and directed visitors while maintaining courteous and organized front-desk service.",
+          "Managed calls, appointments, and communications for different areas of the company.",
+          "Recorded information and supported correspondence, documentation, and administrative tasks.",
+        ],
+      }],
+      education: [{ institution: "Training Institute", degree: "Business administration, customer service, or related studies", location: "City, Country", start: "2019", end: "2021" }],
+      certifications: [],
+      template: "modern",
+      fontFamily: "humanist",
+      primaryColor: "#315575",
+      accentColor: "#8FAFC4",
     },
   },
 };

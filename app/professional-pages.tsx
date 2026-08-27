@@ -20,6 +20,8 @@ const translationSuffix: Record<ProfessionalPresetId, string> = {
   sales: "Sales",
   accounting: "Accounting",
   graphicDesign: "GraphicDesign",
+  nursing: "Nursing",
+  reception: "Reception",
 };
 
 function localeConfig(locale: string) {
@@ -90,7 +92,7 @@ export async function ProfessionalCatalogPage() {
           const preset = getProfessionalPreset(locale, id);
           return (
             <article className="preset-catalog-card" key={id}>
-              <div className="preset-card-number">0{index + 1}</div>
+              <div className="preset-card-number">{String(index + 1).padStart(2, "0")}</div>
               <div className="preset-card-preview" style={{ "--preset-primary": preset.primaryColor, "--preset-accent": preset.accentColor } as React.CSSProperties} aria-hidden="true">
                 <span /><span /><span /><span />
               </div>
