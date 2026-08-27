@@ -15,6 +15,8 @@ import {
   MoreHorizRounded,
   PictureAsPdfRounded,
   SaveAltRounded,
+  StarBorderRounded,
+  StarRounded,
   UploadFileRounded,
 } from "@mui/icons-material";
 import {
@@ -105,6 +107,7 @@ export default function MyCvsPage() {
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [search, setSearch] = useState("");
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [bulkExporting, setBulkExporting] = useState(false);
   const importCvInputRef = useRef<HTMLInputElement>(null);
@@ -296,6 +299,18 @@ const confirmRenameCv = async () => {
     setRenaming(false);
   }
 };
+const toggleFavorite = async (cv: StoredCv) => {
+  const nextFavorite = !cv.favorite;
+  setItems((current) => current.map((item) => item.id === cv.id ? { ...item, favorite: nextFavorite } : item));
+
+  try {
+    await putStoredCv({ ...cv, favorite: nextFavorite });
+    setError("");
+  } catch {
+    setItems((current) => current.map((item) => item.id === cv.id ? cv : item));
+    setError(t("favoriteCvError"));
+  }
+};
   const exportBackup = async () => {
     try {
       const applications = await listJobApplications();
@@ -346,12 +361,14 @@ const confirmRenameCv = async () => {
     return items.filter(
       (cv) =>
         (languageFilter === "all" || cv.locale === languageFilter) &&
+        (!favoriteOnly || cv.favorite === true) &&
         (!term ||
           `${cv.title} ${cv.data.name} ${cv.data.headline}`
             .toLocaleLowerCase(locale)
             .includes(term)),
     );
-  }, [items, languageFilter, locale, search]);
+  }, [favoriteOnly, items, languageFilter, locale, search]);
+  const favoriteCount = useMemo(() => items.filter((cv) => cv.favorite === true).length, [items]);
   const pageCount = Math.ceil(visibleItems.length / CVS_PER_PAGE);
   const currentPage = Math.min(page, Math.max(1, pageCount));
   const paginatedItems = useMemo(
@@ -540,6 +557,17 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
 
                 <MenuItem value="en">EN</MenuItem>
               </TextField>
+
+              <Button
+                type="button"
+                variant="outlined"
+                className={`library-favorites-filter${favoriteOnly ? " active" : ""}`}
+                startIcon={favoriteOnly ? <StarRounded /> : <StarBorderRounded />}
+                aria-pressed={favoriteOnly}
+                onClick={() => { setFavoriteOnly((current) => !current); setPage(1); }}
+              >
+                {t("favoriteCvsFilter", { count: favoriteCount })}
+              </Button>
             </Stack>
 
             <Stack
@@ -733,6 +761,19 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
                       />
                     </div>
                   )}
+
+                  {!disablePreview ? (
+                    <Tooltip title={t(cv.favorite ? "removeCvFromFavorites" : "addCvToFavorites")}>
+                      <IconButton
+                        className={`cv-library-favorite${cv.favorite ? " active" : ""}`}
+                        aria-label={t(cv.favorite ? "removeCvFromFavoritesNamed" : "addCvToFavoritesNamed", { title: cv.title })}
+                        aria-pressed={cv.favorite === true}
+                        onClick={() => void toggleFavorite(cv)}
+                      >
+                        {cv.favorite ? <StarRounded /> : <StarBorderRounded />}
+                      </IconButton>
+                    </Tooltip>
+                  ) : null}
 
                   <PreviewCvModal
                     cv={cv.data}

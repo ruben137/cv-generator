@@ -725,7 +725,12 @@ body {
   gap: 1.25rem;
 }
 
-.cv-library-card { overflow: hidden; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }.cv-library-card.selection-enabled { cursor: pointer; }.cv-library-card.selection-enabled:hover { transform: translateY(-2px); border-color: #8ca9c1; box-shadow: 0 10px 28px rgba(23,59,99,.1); }.cv-library-card.selection-enabled:focus-visible { outline: 3px solid rgba(23,59,99,.25); outline-offset: 2px; }.cv-library-card.selected { border-color: #173b63; box-shadow: 0 0 0 2px rgba(23,59,99,.13), 0 10px 28px rgba(23,59,99,.11); }
+.cv-library-card { position: relative; overflow: hidden; transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }.cv-library-card.selection-enabled { cursor: pointer; }.cv-library-card.selection-enabled:hover { transform: translateY(-2px); border-color: #8ca9c1; box-shadow: 0 10px 28px rgba(23,59,99,.1); }.cv-library-card.selection-enabled:focus-visible { outline: 3px solid rgba(23,59,99,.25); outline-offset: 2px; }.cv-library-card.selected { border-color: #173b63; box-shadow: 0 0 0 2px rgba(23,59,99,.13), 0 10px 28px rgba(23,59,99,.11); }
+.cv-library-favorite.MuiIconButton-root { position: absolute; z-index: 4; top: .65rem; right: .65rem; width: 38px; height: 38px; border: 1px solid rgba(23,59,99,.14); background: rgba(255,255,255,.94); color: #667785; box-shadow: 0 4px 12px rgba(23,42,59,.13); }
+.cv-library-favorite.MuiIconButton-root:hover { background: #fff8df; color: #9a6a00; }
+.cv-library-favorite.MuiIconButton-root.active { border-color: #e5bd55; background: #fff4c7; color: #a66f00; }
+.library-favorites-filter.MuiButton-root { min-height: 40px; border-color: #d5b354; color: #765600; background: #fffdf5; white-space: nowrap; }
+.library-favorites-filter.MuiButton-root:hover, .library-favorites-filter.MuiButton-root.active { border-color: #c18a00; background: #fff2bf; color: #684900; }
 .library-selection-bar { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid #9eb5c8; border-radius: 13px; background: #f6f9fb; box-shadow: 0 6px 18px rgba(23,59,99,.05); }
 .library-data-menu .MuiMenuItem-root { gap: .65rem; min-height: 42px; color: #263d52; font-weight: 650; }
 

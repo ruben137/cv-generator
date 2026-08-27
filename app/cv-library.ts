@@ -8,6 +8,7 @@ export type StoredCv = {
   locale: "es" | "en";
   createdAt: string;
   updatedAt: string;
+  favorite?: boolean;
   data: CvData;
 };
 
@@ -16,7 +17,7 @@ export async function listStoredCvs(): Promise<StoredCv[]> {
   return items.map((item) => {
     const locale = item.locale === "en" ? "en" : "es";
     const data = normalizeCvData(item.data, locale);
-    return { ...item, locale: data.documentLocale, data };
+    return { ...item, locale: data.documentLocale, favorite: item.favorite === true, data };
   }).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
@@ -25,7 +26,7 @@ export function getStoredCv(id: string): Promise<StoredCv | undefined> {
     if (!item) return undefined;
     const locale = item.locale === "en" ? "en" : "es";
     const data = normalizeCvData(item.data, locale);
-    return { ...item, locale: data.documentLocale, data };
+    return { ...item, locale: data.documentLocale, favorite: item.favorite === true, data };
   });
 }
 
@@ -45,6 +46,7 @@ export function createStoredCv(data: CvData, locale: "es" | "en", title?: string
     locale,
     createdAt: now,
     updatedAt: now,
+    favorite: false,
     data,
   };
 }

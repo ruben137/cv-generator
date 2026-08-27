@@ -33,6 +33,7 @@ function normalizeStoredCv(value: unknown, fallbackLocale: "es" | "en", preserve
     locale: data.documentLocale,
     createdAt: preserveId && typeof value.createdAt === "string" ? value.createdAt : now,
     updatedAt: now,
+    favorite: value.favorite === true,
     data,
   };
 }
