@@ -728,7 +728,8 @@
       { "title": "How many jobs to include", "description": "Decide which roles to keep based on recency, relevance, and the space available.", "category": "Structure", "slug": "how-many-jobs-to-include-on-resume" },
       { "title": "How to tailor a resume to a job", "description": "Compare requirements and adjust your focus without inventing knowledge or copying the posting.", "category": "Application", "slug": "how-to-tailor-resume-to-job" },
       { "title": "How to make an ATS-friendly resume", "description": "Improve document readability without chasing a nonexistent universal ATS score.", "category": "Format", "slug": "ats-friendly-resume" },
-      { "title": "Common resume mistakes", "description": "Spot issues in clarity, length, hierarchy, and evidence before sending your resume.", "category": "Review", "slug": "common-resume-mistakes" }
+      { "title": "Common resume mistakes", "description": "Spot issues in clarity, length, hierarchy, and evidence before sending your resume.", "category": "Review", "slug": "common-resume-mistakes" },
+      { "title": "Should a resume include a photo?", "description": "Decide when to add one based on the country, industry, and instructions in the job posting.", "category": "Format", "slug": "resume-with-or-without-photo" }
     ],
     "principlesEyebrow": "Our approach",
     "principlesTitle": "Advice you can genuinely apply",

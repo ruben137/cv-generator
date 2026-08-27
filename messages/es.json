@@ -741,7 +741,8 @@
       { "title": "Cuántos trabajos incluir en el CV", "description": "Decide qué experiencias conservar según su antigüedad, relevancia y espacio disponible.", "category": "Estructura", "slug": "cuantos-trabajos-incluir-en-el-cv" },
       { "title": "Cómo adaptar tu CV a una vacante", "description": "Compara requisitos y ajusta el enfoque sin inventar conocimientos ni copiar el anuncio.", "category": "Postulación", "slug": "como-adaptar-cv-a-vacante" },
       { "title": "Cómo hacer un CV compatible con ATS", "description": "Mejora la legibilidad del documento sin perseguir una puntuación ATS inexistente.", "category": "Formato", "slug": "cv-compatible-con-ats" },
-      { "title": "Errores frecuentes al crear un CV", "description": "Detecta problemas de claridad, extensión, jerarquía y evidencia antes de enviarlo.", "category": "Revisión", "slug": "errores-comunes-en-un-cv" }
+      { "title": "Errores frecuentes al crear un CV", "description": "Detecta problemas de claridad, extensión, jerarquía y evidencia antes de enviarlo.", "category": "Revisión", "slug": "errores-comunes-en-un-cv" },
+      { "title": "¿El CV debe llevar foto?", "description": "Decide cuándo incluirla según el país, el sector y las instrucciones de la vacante.", "category": "Formato", "slug": "cv-con-foto-o-sin-foto" }
     ],
     "principlesEyebrow": "Nuestro enfoque",
     "principlesTitle": "Consejos que puedas aplicar de verdad",

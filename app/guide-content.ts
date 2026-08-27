@@ -203,6 +203,7 @@ const guideSlugs = {
   ats: { es: "cv-compatible-con-ats", en: "ats-friendly-resume" },
   mistakes: { es: "errores-comunes-en-un-cv", en: "common-resume-mistakes" },
   jobCount: { es: "cuantos-trabajos-incluir-en-el-cv", en: "how-many-jobs-to-include-on-resume" },
+  photo: { es: "cv-con-foto-o-sin-foto", en: "resume-with-or-without-photo" },
 };
 
 const completeGuideEs: GuideArticle = {
@@ -513,6 +514,50 @@ const jobCountGuideEn: GuideArticle = {
   ],
 };
 
+const photoGuideEs: GuideArticle = {
+  title: "¿El CV debe llevar foto? Cuándo incluirla y cuándo evitarla",
+  description: "Decide si conviene añadir una foto a tu currículum según el país, el sector y las instrucciones de la vacante, sin depender de reglas universales.",
+  eyebrow: "Foto en el currículum",
+  slug: guideSlugs.photo,
+  updatedAt: "27 de agosto de 2026",
+  readTime: "7 min de lectura",
+  sections: [
+    { id: "respuesta-corta", title: "No existe una respuesta válida para todos los países", paragraphs: ["La conveniencia de incluir una foto depende principalmente del mercado laboral al que envías el CV. En algunos países es habitual; en otros se evita para reducir información personal que no ayuda a evaluar tu experiencia.", "No tomes como referencia solamente el lugar donde vives. Si postulas a una empresa extranjera o a una vacante internacional, revisa las prácticas del país de destino y las instrucciones del anuncio."], bullets: ["Si la vacante pide expresamente un CV sin foto, no la incluyas.", "Si la plataforma solicita la imagen por separado, no necesitas repetirla en el documento.", "Si no conoces la práctica local, investiga antes de decidir."] },
+    { id: "cuando-evitarla", title: "Cuándo suele ser mejor enviar el CV sin foto", paragraphs: ["Evítala cuando el mercado o la organización prefieran candidaturas centradas únicamente en experiencia, formación y habilidades. También conviene omitirla si resta espacio a información relevante o si no dispones de una imagen profesional.", "Para puestos remotos o procesos internacionales, un CV sin foto suele ser una opción prudente cuando no existe una expectativa clara. La fotografía no demuestra que puedas desempeñar el trabajo."], bullets: ["La empresa indica que no se añadan fotografías ni otros datos personales.", "El país de destino acostumbra a utilizar currículums sin foto.", "Necesitas ese espacio para experiencia, logros o formación relevante.", "La única imagen disponible es informal, antigua o tiene baja calidad."] },
+    { id: "cuando-incluirla", title: "Cuándo puede tener sentido incluirla", paragraphs: ["Puedes considerarla cuando sea una práctica normal y aceptada en el mercado objetivo, o cuando la empresa la solicite de forma explícita. En profesiones donde la imagen forma parte de la presentación pública, revisa primero si se espera una foto en el CV o si corresponde enviarla mediante un portafolio o perfil profesional.", "Que sea habitual no significa que sea obligatoria. Si la foto no aporta valor y el anuncio no la pide, un documento claro y bien redactado puede funcionar perfectamente sin ella." ] },
+    { id: "como-elegirla", title: "Cómo debe ser una foto profesional", paragraphs: ["Utiliza una fotografía reciente, nítida y coherente con el contexto profesional. El rostro debe verse con claridad y el fondo no debería distraer. No necesitas una sesión costosa: una imagen bien iluminada, con encuadre sencillo y apariencia natural, suele ser suficiente.", "Evita recortes de fotografías grupales, filtros intensos, selfies con perspectiva marcada y fondos que compitan con el contenido. Comprueba también que la imagen no se deforme al cambiar entre forma redonda y cuadrada."], bullets: ["Encuadre desde los hombros o el pecho.", "Iluminación uniforme y rostro visible.", "Vestimenta acorde con el sector, sin necesidad de sobreactuar formalidad.", "Fondo sencillo y archivo con resolución suficiente."] },
+    { id: "privacidad", title: "Considera privacidad y posibles sesgos", paragraphs: ["Una foto revela información personal antes de que se evalúe tu trayectoria. No puedes controlar cómo influirá en quien revise el documento, por lo que incluirla debe ser una decisión consciente y no una costumbre automática.", "Nunca añadas otros datos sensibles para acompañar la foto, como estado civil, documento de identidad, fecha completa de nacimiento, religión o información familiar, salvo que una norma aplicable exija un dato concreto y hayas comprobado esa exigencia." ] },
+    { id: "decision", title: "Una regla práctica para decidir", paragraphs: ["Primero obedece las instrucciones de la vacante. Después revisa la práctica del país y del sector. Si la fotografía es opcional y dudas de su utilidad, prioriza el espacio para evidencia profesional.", "Puedes mantener dos versiones del mismo CV —una con foto y otra sin ella— y elegir la adecuada para cada candidatura. El contenido, las fechas y los logros deben permanecer consistentes entre ambas."], bullets: ["¿La empresa o plataforma da una instrucción concreta?", "¿La foto es habitual en el mercado al que postulas?", "¿Aporta valor sin desplazar información importante?", "¿La imagen tiene calidad y encaja con el contexto profesional?", "¿Te sientes cómodo compartiéndola en esa candidatura?"] },
+  ],
+  toolCta: { title: "Prueba tu CV con foto y sin foto", description: "Cambia la forma de la imagen o elimínala y compara ambas versiones sin modificar el contenido profesional.", label: "Abrir el generador", href: "/es?openEditor=1#generator" },
+  relatedGuides: [
+    { title: "Cómo hacer un CV paso a paso", description: "Organiza el contenido y toma cada decisión según el puesto objetivo.", slug: guideSlugs.complete.es },
+    { title: "Errores comunes en un CV", description: "Evita elementos que distraigan o resten espacio a la evidencia profesional.", slug: guideSlugs.mistakes.es },
+  ],
+};
+
+const photoGuideEn: GuideArticle = {
+  title: "Should a resume include a photo? When to add one and when not to",
+  description: "Decide whether to add a photo to your resume based on the country, industry, and job instructions instead of relying on one universal rule.",
+  eyebrow: "Resume photo guidance",
+  slug: guideSlugs.photo,
+  updatedAt: "August 27, 2026",
+  readTime: "7 min read",
+  sections: [
+    { id: "short-answer", title: "There is no answer that applies to every country", paragraphs: ["Whether a photo belongs on a resume depends mainly on the labor market where you are applying. It is common in some countries, while others avoid it so applications focus on experience, education, and skills.", "Do not look only at where you live. If you are applying to a foreign company or an international opening, check the conventions of the destination country and the instructions in the posting."], bullets: ["If the posting explicitly requests a resume without a photo, leave it out.", "If the application platform requests an image separately, you do not need to repeat it in the document.", "If you do not know the local convention, research it before deciding."] },
+    { id: "when-to-avoid", title: "When it is usually better to send a resume without a photo", paragraphs: ["Avoid it when the market or organization prefers applications focused only on professional evidence. You should also leave it out when it displaces relevant content or when you do not have a suitable professional image.", "For remote roles and international applications, a photo-free resume is often the safer choice when expectations are unclear. A picture does not demonstrate your ability to perform the job."], bullets: ["The employer asks candidates not to add photos or unrelated personal data.", "The destination country normally uses resumes without photos.", "You need the space for relevant experience, achievements, or education.", "The only available image is informal, outdated, or low quality."] },
+    { id: "when-to-include", title: "When including a photo may make sense", paragraphs: ["Consider it when photos are an accepted and normal convention in the target market, or when the employer explicitly asks for one. For roles where public presentation matters, first determine whether the image belongs on the resume or should instead be provided through a portfolio or professional profile.", "Common does not mean mandatory. If the picture adds no value and the posting does not request it, a clear, well-written document can work perfectly without one."] },
+    { id: "how-to-choose", title: "What a professional photo should look like", paragraphs: ["Use a recent, sharp photo that fits a professional context. Your face should be easy to see and the background should not distract. You do not need an expensive studio session: even lighting, a simple frame, and a natural appearance are usually enough.", "Avoid crops from group photographs, heavy filters, strongly angled selfies, and busy backgrounds. Also confirm that the image is not distorted when switching between round and square formats."], bullets: ["Head-and-shoulders or chest-up framing.", "Even lighting and a clearly visible face.", "Clothing appropriate to the field without forcing unnecessary formality.", "A simple background and sufficient image resolution."] },
+    { id: "privacy", title: "Consider privacy and potential bias", paragraphs: ["A photo reveals personal information before your professional background is assessed. You cannot control how it may influence the reviewer, so including it should be a conscious choice rather than an automatic habit.", "Do not add sensitive personal data alongside the picture, such as marital status, an identity number, full date of birth, religion, or family information, unless a specific applicable rule requires a particular detail and you have verified that requirement."] },
+    { id: "decision", title: "A practical rule for deciding", paragraphs: ["Follow the job posting first. Then check the convention in the country and industry. If the picture is optional and its value is unclear, prioritize space for professional evidence.", "You can maintain two versions of the same resume—one with a photo and one without—and select the appropriate version for each application. Keep the content, dates, and achievements consistent across both."], bullets: ["Does the employer or platform provide a specific instruction?", "Are photos customary in the market where you are applying?", "Does it add value without displacing important information?", "Is the image high quality and appropriate for the professional context?", "Are you comfortable sharing it for this application?"] },
+  ],
+  toolCta: { title: "Compare your resume with and without a photo", description: "Change the image shape or remove it and compare both versions without altering your professional content.", label: "Open the builder", href: "/en?openEditor=1#generator" },
+  relatedGuides: [
+    { title: "How to write a resume step by step", description: "Organize the content and make each choice around your target role.", slug: guideSlugs.complete.en },
+    { title: "Common resume mistakes", description: "Avoid elements that distract from or displace professional evidence.", slug: guideSlugs.mistakes.en },
+  ],
+};
+
 const guideEntries = [
   { slug: guideSlugs.complete, es: completeGuideEs, en: completeGuideEn, lastModified: "2026-08-26" },
   { slug: noExperienceSlug, es: noExperienceGuideEs, en: noExperienceGuideEn, lastModified: "2026-08-26" },
@@ -522,6 +567,7 @@ const guideEntries = [
   { slug: guideSlugs.ats, es: atsGuideEs, en: atsGuideEn, lastModified: "2026-08-26" },
   { slug: guideSlugs.mistakes, es: mistakesGuideEs, en: mistakesGuideEn, lastModified: "2026-08-26" },
   { slug: guideSlugs.jobCount, es: jobCountGuideEs, en: jobCountGuideEn, lastModified: "2026-08-26" },
+  { slug: guideSlugs.photo, es: photoGuideEs, en: photoGuideEn, lastModified: "2026-08-27" },
 ] as const;
 
 export function getGuideBySlug(locale: string, slug: string): GuideArticle | undefined {
