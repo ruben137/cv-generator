@@ -27,6 +27,8 @@ export type GuideArticle = {
   updatedAt: string;
   readTime: string;
   sections: GuideSection[];
+  relatedGuides?: Array<{ title: string; description: string; slug: string }>;
+  toolCta?: { title: string; description: string; label: string; href: string };
 };
 
 function localeConfig(locale: string) {
@@ -212,6 +214,29 @@ export async function GuideArticlePage({ guide }: { guide: GuideArticle }) {
         <header className="guide-article-hero"><span className="preset-page-eyebrow">{guide.eyebrow}</span><h1>{guide.title}</h1><p>{guide.description}</p><div><span>{t("updatedLabel", { date: guide.updatedAt })}</span><span>{guide.readTime}</span></div></header>
         <nav className="guide-table-of-contents" aria-label={t("contentsLabel")}><strong>{t("contentsTitle")}</strong><ol>{guide.sections.map((section) => <li key={section.id}><a href={`#${section.id}`}>{section.title}</a></li>)}</ol></nav>
         <div className="guide-article-content">{guide.sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2>{section.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}{section.bullets?.length ? <ul>{section.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul> : null}</section>)}</div>
+        {guide.toolCta ? (
+          <aside className="guide-tool-cta">
+            <div><span className="preset-page-eyebrow">{t("toolEyebrow")}</span><h2>{guide.toolCta.title}</h2><p>{guide.toolCta.description}</p></div>
+            <Link className="preset-primary-cta" href={guide.toolCta.href}>{guide.toolCta.label}</Link>
+          </aside>
+        ) : null}
+        {guide.relatedGuides?.length ? (
+          <aside className="guide-related" aria-labelledby="related-guides-title">
+            <div className="guide-section-heading">
+              <span className="preset-page-eyebrow">{t("relatedEyebrow")}</span>
+              <h2 id="related-guides-title">{t("relatedTitle")}</h2>
+            </div>
+            <div className="guide-related-grid">
+              {guide.relatedGuides.map((related) => (
+                <Link key={related.slug} href={`${catalogPath}/${related.slug}`}>
+                  <strong>{related.title}</strong>
+                  <span>{related.description}</span>
+                  <small>{t("readGuide")}</small>
+                </Link>
+              ))}
+            </div>
+          </aside>
+        ) : null}
         <aside className="guide-article-cta"><div><h2>{t("articleCtaTitle")}</h2><p>{t("articleCtaDescription")}</p></div><Link className="preset-primary-cta" href={templatesPath}>{t("ctaTemplates")}</Link></aside>
       </article>
     </SiteContent>

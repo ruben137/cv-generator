@@ -43,9 +43,15 @@ function buildContent(cv: StoredCv, application: JobApplication, tone: CoverLett
   const isEnglish = application.language === "en";
   const summary = cv.data.summary.trim();
   const experience = cv.data.experiences.find((item) => item.role.trim() || item.company.trim());
-  const evidence = experience
+  const experienceEvidence = experience
     ? [experience.role && experience.company ? `${experience.role} · ${experience.company}` : experience.role || experience.company, ...experience.bullets.slice(0, 2)].filter(Boolean).join(". ")
     : summary;
+  const evidenceSource = summary || experienceEvidence;
+  const evidence = evidenceSource
+    ? isEnglish
+      ? /^i am\b/i.test(evidenceSource) ? evidenceSource : `I am ${evidenceSource}`
+      : /^soy\b/i.test(evidenceSource) ? evidenceSource : `Soy ${evidenceSource}`
+    : "";
   const company = application.company.trim();
   const role = application.role.trim();
   const openings = isEnglish ? {
@@ -62,7 +68,7 @@ function buildContent(cv: StoredCv, application: JobApplication, tone: CoverLett
     subject: isEnglish ? `Application for ${role}` : `Postulación al puesto de ${role}`,
     greeting: isEnglish ? "Dear hiring team," : "Estimado equipo de selección:",
     opening: openings[tone],
-    evidence: summary && evidence !== summary ? `${summary}\n\n${evidence}.` : evidence,
+    evidence,
     motivation: isEnglish
       ? `I am interested in contributing my experience to the challenges and responsibilities described for this role.`
       : `Me interesa aportar mi experiencia a los retos y responsabilidades descritos para este puesto.`,

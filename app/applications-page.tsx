@@ -69,6 +69,7 @@ const APPLICATIONS_PER_PAGE = 6;
 
 type StatusFilter = "all" | JobApplicationStatus;
 type SortMode = "updated-desc" | "applied-desc" | "company-asc";
+type DateRangeFilter = "all" | "today" | "7-days" | "30-days" | "90-days";
 type ApplicationEditor = {
   id: string | null;
   company: string;
@@ -84,9 +85,17 @@ type ApplicationEditor = {
   cvId: string;
 };
 
-const emptyEditor = (language: "es" | "en"): ApplicationEditor => ({
+const LAST_JOB_FAMILY_KEY = "cv-simple-last-job-family";
+const toCalendarDate = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const emptyEditor = (language: "es" | "en", jobFamily: JobFamily = "general"): ApplicationEditor => ({
   id: null, company: "", role: "", url: "", location: "", description: "", language,
-  jobFamily: "general", status: "saved", appliedAt: "", notes: "", cvId: "",
+  jobFamily, status: "saved", appliedAt: toCalendarDate(), notes: "", cvId: "",
 });
 
 const getExportLabels = (cv: StoredCv): ExportLabels => {
@@ -118,6 +127,7 @@ export function ApplicationsPage() {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
   const [sort, setSort] = useState<SortMode>("updated-desc");
   const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<ApplicationEditor | null>(null);
@@ -166,15 +176,28 @@ export function ApplicationsPage() {
     for (const letter of coverLetters) if (!result.has(letter.applicationId)) result.set(letter.applicationId, letter);
     return result;
   }, [coverLetters]);
+  const dateFilteredApplications = useMemo(() => {
+    if (dateRange === "all") return applications;
+    const days = dateRange === "today" ? 1 : dateRange === "7-days" ? 7 : dateRange === "30-days" ? 30 : 90;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - (days - 1));
+    const startDate = toCalendarDate(start);
+    const today = toCalendarDate();
+    return applications.filter((application) => {
+      const applicationDate = application.appliedAt || toCalendarDate(new Date(application.createdAt));
+      return applicationDate >= startDate && applicationDate <= today;
+    });
+  }, [applications, dateRange]);
   const counts = useMemo(() => {
     const result = Object.fromEntries(jobApplicationStatuses.map((item) => [item, 0])) as Record<JobApplicationStatus, number>;
-    for (const application of applications) result[application.status] += 1;
+    for (const application of dateFilteredApplications) result[application.status] += 1;
     return result;
-  }, [applications]);
+  }, [dateFilteredApplications]);
 
   const visibleApplications = useMemo(() => {
     const term = deferredSearch.trim().toLocaleLowerCase(locale);
-    const filtered = applications.filter((application) => {
+    const filtered = dateFilteredApplications.filter((application) => {
       if (status !== "all" && application.status !== status) return false;
       if (!term) return true;
       return `${application.company} ${application.role} ${application.location} ${application.notes}`
@@ -186,7 +209,7 @@ export function ApplicationsPage() {
       if (sort === "applied-desc") return (right.appliedAt || right.createdAt).localeCompare(left.appliedAt || left.createdAt);
       return right.updatedAt.localeCompare(left.updatedAt);
     });
-  }, [applications, deferredSearch, locale, sort, status]);
+  }, [dateFilteredApplications, deferredSearch, locale, sort, status]);
   const pageCount = Math.ceil(visibleApplications.length / APPLICATIONS_PER_PAGE);
   const currentPage = Math.min(page, Math.max(1, pageCount));
   const paginatedApplications = useMemo(
@@ -194,7 +217,11 @@ export function ApplicationsPage() {
     [currentPage, visibleApplications],
   );
 
-  const openCreate = () => setEditor(emptyEditor(locale === "en" ? "en" : "es"));
+  const openCreate = () => {
+    const storedFamily = window.localStorage.getItem(LAST_JOB_FAMILY_KEY);
+    const jobFamily = jobFamilies.includes(storedFamily as JobFamily) ? storedFamily as JobFamily : "general";
+    setEditor(emptyEditor(locale === "en" ? "en" : "es", jobFamily));
+  };
   const openEdit = (application: JobApplication) => setEditor({
     id: application.id, company: application.company, role: application.role, url: application.url,
     location: application.location, description: application.description, language: application.language,
@@ -203,6 +230,10 @@ export function ApplicationsPage() {
   });
   const updateEditor = <Key extends keyof ApplicationEditor>(key: Key, value: ApplicationEditor[Key]) =>
     setEditor((current) => current ? { ...current, [key]: value } : current);
+  const updateJobFamily = (jobFamily: JobFamily) => {
+    window.localStorage.setItem(LAST_JOB_FAMILY_KEY, jobFamily);
+    updateEditor("jobFamily", jobFamily);
+  };
 
   const saveApplication = async () => {
     if (!editor?.company.trim() || !editor.role.trim()) return;
@@ -238,7 +269,7 @@ export function ApplicationsPage() {
   const formatDate = (application: JobApplication) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" })
     .format(new Date(application.appliedAt ? `${application.appliedAt}T12:00:00` : application.updatedAt));
 
-  const clearFilters = () => { setSearch(""); setStatus("all"); setSort("updated-desc"); setPage(1); };
+  const clearFilters = () => { setSearch(""); setStatus("all"); setDateRange("all"); setSort("updated-desc"); setPage(1); };
   const safeExternalUrl = (value: string) => {
     try {
       const url = new URL(value);
@@ -404,6 +435,13 @@ export function ApplicationsPage() {
             onChange={(event) => { setSearch(event.target.value); setPage(1); }}
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchRounded /></InputAdornment> } }}
           />
+          <TextField select size="small" label={t("filterDateRangeCount", { count: dateFilteredApplications.length })} value={dateRange} onChange={(event) => { setDateRange(event.target.value as DateRangeFilter); setPage(1); }}>
+            <MenuItem value="all">{t("dateRanges.all")}</MenuItem>
+            <MenuItem value="today">{t("dateRanges.today")}</MenuItem>
+            <MenuItem value="7-days">{t("dateRanges.sevenDays")}</MenuItem>
+            <MenuItem value="30-days">{t("dateRanges.thirtyDays")}</MenuItem>
+            <MenuItem value="90-days">{t("dateRanges.ninetyDays")}</MenuItem>
+          </TextField>
           <TextField select size="small" label={t("filterStatus")} value={status} onChange={(event) => { setStatus(event.target.value as StatusFilter); setPage(1); }}>
             <MenuItem value="all">{t("allStatuses")}</MenuItem>
             {jobApplicationStatuses.map((item) => <MenuItem key={item} value={item}>{t(`statuses.${item}`)}</MenuItem>)}
@@ -413,7 +451,7 @@ export function ApplicationsPage() {
             <MenuItem value="applied-desc">{t("sortApplied")}</MenuItem>
             <MenuItem value="company-asc">{t("sortCompany")}</MenuItem>
           </TextField>
-          {(search || status !== "all" || sort !== "updated-desc") ? <Button startIcon={<FilterAltOffRounded />} onClick={clearFilters}>{t("clearFilters")}</Button> : null}
+          {(search || status !== "all" || dateRange !== "all" || sort !== "updated-desc") ? <Button startIcon={<FilterAltOffRounded />} onClick={clearFilters}>{t("clearFilters")}</Button> : null}
         </Card>
 
         {loading ? (
@@ -507,7 +545,7 @@ export function ApplicationsPage() {
               {jobApplicationStatuses.map((item) => <MenuItem key={item} value={item}>{t(`statuses.${item}`)}</MenuItem>)}
             </TextField>
             <TextField label={t("appliedAt")} type="date" value={editor.appliedAt} onChange={(event) => updateEditor("appliedAt", event.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
-            <TextField select label={t("professionalArea")} value={editor.jobFamily} onChange={(event) => updateEditor("jobFamily", event.target.value as JobFamily)}>
+            <TextField select label={t("professionalArea")} value={editor.jobFamily} onChange={(event) => updateJobFamily(event.target.value as JobFamily)}>
               {jobFamilies.map((family) => <MenuItem key={family} value={family}>{jobT(`families.${family}`)}</MenuItem>)}
             </TextField>
             <TextField select label={t("language")} value={editor.language} onChange={(event) => updateEditor("language", event.target.value as "es" | "en")}>

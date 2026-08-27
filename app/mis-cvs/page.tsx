@@ -10,7 +10,6 @@ import {
   DescriptionRounded,
   DownloadRounded,
   EditRounded,
-  LanguageRounded,
   WorkOutlineRounded,
   MoreHorizRounded,
   PictureAsPdfRounded,
@@ -21,7 +20,6 @@ import {
   Alert,
   Box,
   Button,
-  ButtonGroup,
   Card,
   CardActions,
   CardContent,
@@ -438,17 +436,9 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
               {t("myCvsDescription")}
             </Typography>
           </Box>
-          <ButtonGroup className="library-create-actions" variant="contained" sx={{ alignSelf: { sm: "center" } }}>
-            <Button startIcon={<AddRounded />} onClick={() => createNew("es")}>
-              {t("newCvEs")}
-            </Button>
-            <Button
-              startIcon={<LanguageRounded />}
-              onClick={() => createNew("en")}
-            >
-              {t("newCvEn")}
-            </Button>
-          </ButtonGroup>
+          <Button variant="contained" startIcon={<AddRounded />} onClick={() => createNew(locale === "en" ? "en" : "es")} sx={{ alignSelf: { sm: "center" }, whiteSpace: "nowrap" }}>
+            {t("newCv")}
+          </Button>
         </Stack>
         <Box
           sx={{

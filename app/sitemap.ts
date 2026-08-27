@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getSiteUrl } from "./site-url";
 import { getProfessionalPresetPath, professionalPresetIds } from "./professional-presets";
+import { getGuideSitemapEntries } from "./guide-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = getSiteUrl();
@@ -62,17 +63,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.85,
     alternates: { languages: guideLanguages },
   }));
-  const firstGuideLanguages = {
-    es: `${siteUrl}/es/guias/como-hacer-cv-sin-experiencia`,
-    en: `${siteUrl}/en/guides/how-to-write-resume-no-experience`,
-  };
-  const guideArticlePages = [firstGuideLanguages.es, firstGuideLanguages.en].map((url) => ({
-    url,
-    lastModified: new Date("2026-08-26"),
-    changeFrequency: "monthly" as const,
-    priority: 0.85,
-    alternates: { languages: firstGuideLanguages },
-  }));
+  const guideArticlePages = getGuideSitemapEntries().flatMap(({ slug, lastModified }) => {
+    const languages = { es: `${siteUrl}/es/guias/${slug.es}`, en: `${siteUrl}/en/guides/${slug.en}` };
+    return (["es", "en"] as const).map((locale) => ({
+      url: languages[locale],
+      lastModified: new Date(lastModified),
+      changeFrequency: "monthly" as const,
+      priority: 0.85,
+      alternates: { languages },
+    }));
+  });
   const institutionalGroups = [
     { es: "es/acerca-de", en: "en/about" },
     { es: "es/privacidad", en: "en/privacy" },
