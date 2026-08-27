@@ -11,6 +11,7 @@ export const professionalPresetIds = [
   "graphicDesign",
   "nursing",
   "reception",
+  "teaching",
 ] as const;
 export type ProfessionalPresetId = (typeof professionalPresetIds)[number];
 
@@ -26,6 +27,7 @@ export const professionalPresetSlugs: Record<"es" | "en", Record<ProfessionalPre
     graphicDesign: "cv-disenador-grafico",
     nursing: "cv-enfermera",
     reception: "cv-recepcionista",
+    teaching: "cv-docente",
   },
   en: {
     software: "software-developer-resume",
@@ -38,6 +40,7 @@ export const professionalPresetSlugs: Record<"es" | "en", Record<ProfessionalPre
     graphicDesign: "graphic-designer-resume",
     nursing: "nurse-resume",
     reception: "receptionist-resume",
+    teaching: "teacher-resume",
   },
 };
 
@@ -269,6 +272,29 @@ const presets: Record<"es" | "en", Record<ProfessionalPresetId, PresetContent>> 
       primaryColor: "#315575",
       accentColor: "#8FAFC4",
     },
+    teaching: {
+      headline: "Docente",
+      summary: "Profesional de la educación orientado al aprendizaje significativo, con experiencia planificando clases, evaluando el progreso y creando entornos inclusivos que favorecen la participación y el desarrollo de los estudiantes.",
+      skills: ["Planificación didáctica", "Gestión del aula", "Evaluación del aprendizaje", "Adaptación curricular", "Tecnología educativa", "Comunicación con familias"].map((name) => ({ name })),
+      experiences: [{
+        company: "Institución educativa",
+        role: "Docente",
+        location: "Ciudad, País",
+        start: "2022",
+        end: "Actualidad",
+        bullets: [
+          "Planifiqué e impartí clases alineadas con los objetivos curriculares y las necesidades del grupo.",
+          "Evalué el progreso de los estudiantes mediante actividades, proyectos y retroalimentación continua.",
+          "Coordiné con familias y el equipo educativo acciones para apoyar el aprendizaje y la convivencia escolar.",
+        ],
+      }],
+      education: [{ institution: "Universidad o instituto", degree: "Licenciatura en Educación o formación docente", location: "Ciudad, País", start: "2017", end: "2021" }],
+      certifications: [{ name: "Formación en estrategias de enseñanza o tecnología educativa", issuer: "Institución formativa", date: "2024" }],
+      template: "harvard",
+      fontFamily: "serif",
+      primaryColor: "#284A6A",
+      accentColor: "#7896AE",
+    },
   },
   en: {
     software: {
@@ -493,6 +519,29 @@ const presets: Record<"es" | "en", Record<ProfessionalPresetId, PresetContent>> 
       fontFamily: "humanist",
       primaryColor: "#315575",
       accentColor: "#8FAFC4",
+    },
+    teaching: {
+      headline: "Teacher",
+      summary: "Education professional focused on meaningful learning, with experience planning lessons, assessing progress, and creating inclusive environments that encourage student participation and development.",
+      skills: ["Lesson planning", "Classroom management", "Student assessment", "Curriculum adaptation", "Educational technology", "Family communication"].map((name) => ({ name })),
+      experiences: [{
+        company: "Educational Institution",
+        role: "Teacher",
+        location: "City, Country",
+        start: "2022",
+        end: "Present",
+        bullets: [
+          "Planned and delivered lessons aligned with curriculum goals and student needs.",
+          "Assessed student progress through activities, projects, and ongoing feedback.",
+          "Coordinated with families and education staff to support learning and a positive classroom environment.",
+        ],
+      }],
+      education: [{ institution: "University or College", degree: "Bachelor's degree in Education or teacher training", location: "City, Country", start: "2017", end: "2021" }],
+      certifications: [{ name: "Teaching Strategies or Educational Technology Training", issuer: "Training Institution", date: "2024" }],
+      template: "harvard",
+      fontFamily: "serif",
+      primaryColor: "#284A6A",
+      accentColor: "#7896AE",
     },
   },
 };

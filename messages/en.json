@@ -656,7 +656,7 @@
     "finalDescription": "Return to the builder to improve wording, reorganize sections, or create a version tailored to the role.",
     "backToBuilderCta": "Back to resume builder",
     "components": { "skills": "Skills and requirements", "keywords": "Keywords", "title": "Professional title", "evidence": "Evidence in experience" },
-    "families": { "general": "General", "software-development": "Software development", "industrial-engineering": "Industrial engineering", "administration": "Administration", "marketing": "Marketing", "sales": "Sales", "accounting": "Accounting", "customer-service": "Customer service", "graphic-design": "Graphic design", "nursing": "Nursing", "reception": "Reception" },
+    "families": { "general": "General", "software-development": "Software development", "industrial-engineering": "Industrial engineering", "administration": "Administration", "marketing": "Marketing", "sales": "Sales", "accounting": "Accounting", "customer-service": "Customer service", "graphic-design": "Graphic design", "nursing": "Nursing", "reception": "Reception", "teaching": "Teaching" },
     "matchTypes": { "exact": "Exact", "alias": "Equivalent", "related": "Related", "approximate": "Approximate", "user-confirmed": "Confirmed", "unclassified": "Unclassified" },
     "levels": { "required": "Required", "preferred": "Preferred", "unknown": "No priority" },
     "priorities": { "high": "High priority", "medium": "Medium priority", "low": "Low priority" },
@@ -852,6 +852,14 @@
     "roleReceptionMetaTitle": "Receptionist resume: free template and example",
     "roleReceptionMetaDescription": "Create a receptionist resume with editable summary, skills, and experience examples. Free, no account, and downloadable as PDF or DOCX.",
     "roleReceptionSkillsGuide": "Combine customer-facing service with tasks you can demonstrate, such as calls, appointments, visitors, correspondence, reservations, or data entry.",
-    "roleReceptionExperienceGuide": "Explain who you assisted, which channels you handled, and how you helped keep service organized and efficient. Include volume or timing only when accurate."
+    "roleReceptionExperienceGuide": "Explain who you assisted, which channels you handled, and how you helped keep service organized and efficient. Include volume or timing only when accurate.",
+    "roleTeaching": "Teaching",
+    "roleTeachingDescription": "A foundation for lesson planning, assessment, classroom management, and student support.",
+    "roleTeachingTitle": "Teacher resume example",
+    "roleTeachingIntro": "Present your subject area, teaching experience, and contribution to learning through clear examples and a professional structure.",
+    "roleTeachingMetaTitle": "Teacher resume: free template and example",
+    "roleTeachingMetaDescription": "Create a free teacher resume with editable profile, skills, and education experience examples. Download it as PDF or DOCX with no account.",
+    "roleTeachingSkillsGuide": "Prioritize skills you can demonstrate, such as lesson planning, classroom management, assessment, curriculum adaptation, and educational technology.",
+    "roleTeachingExperienceGuide": "Describe what you taught, the learners you supported, and how you assessed or improved learning. Include genuine outcomes without exposing private information."
   }
 }

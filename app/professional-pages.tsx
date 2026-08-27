@@ -22,6 +22,7 @@ const translationSuffix: Record<ProfessionalPresetId, string> = {
   graphicDesign: "GraphicDesign",
   nursing: "Nursing",
   reception: "Reception",
+  teaching: "Teaching",
 };
 
 function localeConfig(locale: string) {

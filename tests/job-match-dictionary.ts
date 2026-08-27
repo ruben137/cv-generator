@@ -37,6 +37,8 @@ const expectedTerms = [
   ["patient care", "en", "nursing", "nursing-care"],
   ["programación de citas", "es", "reception", "appointment-scheduling"],
   ["front desk", "en", "reception", "reception-service"],
+  ["planificación de clases", "es", "teaching", "lesson-planning"],
+  ["classroom management", "en", "teaching", "classroom-management"],
 ] as const;
 
 for (const [term, language, family, expectedId] of expectedTerms) {

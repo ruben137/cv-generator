@@ -111,6 +111,14 @@ const cases: Case[] = [
     partial: resume("Front Desk Assistant", ["front desk", "call handling", "organization"], ["Greeted visitors and answered phone calls."]),
     unrelated: resume("Warehouse Operator", ["inventory control", "forklift operation"], ["Prepared shipments and operated warehouse equipment."]),
   },
+  {
+    area: "teaching",
+    source: "curated bilingual teacher vacancy sample",
+    job: { title: "Teacher", language: "en", jobFamily: "teaching", text: "Requirements: lesson planning, classroom management, student assessment, curriculum development, curriculum adaptation, educational technology, inclusive education, student feedback, family communication and student support." },
+    strong: resume("Teacher", ["lesson planning", "classroom management", "student assessment", "curriculum development", "curriculum adaptation", "educational technology", "inclusive education", "student feedback", "family communication", "student support"], ["Planned lessons, managed the classroom, assessed student progress and adapted curriculum while providing feedback and communicating with families."]),
+    partial: resume("Teacher", ["lesson planning", "classroom management", "student assessment"], ["Planned lessons and assessed student progress."]),
+    unrelated: resume("Retail Associate", ["cash handling", "inventory control"], ["Processed payments and organized store inventory."]),
+  },
 ];
 
 const rows = cases.map((testCase) => {

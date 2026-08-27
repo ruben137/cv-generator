@@ -669,7 +669,7 @@
     "finalDescription": "Vuelve al generador para mejorar la redacción, reorganizar secciones o crear una versión adaptada a la vacante.",
     "backToBuilderCta": "Volver al generador",
     "components": { "skills": "Habilidades y requisitos", "keywords": "Palabras clave", "title": "Título profesional", "evidence": "Evidencia en experiencia" },
-    "families": { "general": "General", "software-development": "Desarrollo de software", "industrial-engineering": "Ingeniería industrial", "administration": "Administración", "marketing": "Marketing", "sales": "Ventas", "accounting": "Contabilidad", "customer-service": "Atención al cliente", "graphic-design": "Diseño gráfico", "nursing": "Enfermería", "reception": "Recepción" },
+    "families": { "general": "General", "software-development": "Desarrollo de software", "industrial-engineering": "Ingeniería industrial", "administration": "Administración", "marketing": "Marketing", "sales": "Ventas", "accounting": "Contabilidad", "customer-service": "Atención al cliente", "graphic-design": "Diseño gráfico", "nursing": "Enfermería", "reception": "Recepción", "teaching": "Docencia" },
     "matchTypes": { "exact": "Exacta", "alias": "Equivalente", "related": "Relacionada", "approximate": "Aproximada", "user-confirmed": "Confirmada", "unclassified": "Sin clasificar" },
     "levels": { "required": "Obligatorio", "preferred": "Deseable", "unknown": "Sin prioridad" },
     "priorities": { "high": "Prioridad alta", "medium": "Prioridad media", "low": "Prioridad baja" },
@@ -865,6 +865,14 @@
     "roleReceptionMetaTitle": "CV de recepcionista: plantilla y ejemplo gratis",
     "roleReceptionMetaDescription": "Crea un CV de recepcionista con ejemplos editables de resumen, habilidades y experiencia. Gratis, sin registro y descargable en PDF o DOCX.",
     "roleReceptionSkillsGuide": "Combina atención al público con tareas concretas que puedas demostrar: llamadas, citas, visitantes, correspondencia, reservas o registro de información.",
-    "roleReceptionExperienceGuide": "Explica a quién atendías, qué canales gestionabas y cómo contribuías al orden y fluidez del servicio. Incluye volúmenes o tiempos solamente si son reales."
+    "roleReceptionExperienceGuide": "Explica a quién atendías, qué canales gestionabas y cómo contribuías al orden y fluidez del servicio. Incluye volúmenes o tiempos solamente si son reales.",
+    "roleTeaching": "Docencia",
+    "roleTeachingDescription": "Una base para planificación de clases, evaluación, gestión del aula y acompañamiento estudiantil.",
+    "roleTeachingTitle": "Ejemplo de CV para docente",
+    "roleTeachingIntro": "Presenta tu especialidad, experiencia pedagógica y contribución al aprendizaje con ejemplos claros y una estructura profesional.",
+    "roleTeachingMetaTitle": "CV de docente: plantilla y ejemplo gratis",
+    "roleTeachingMetaDescription": "Crea gratis un CV de docente con ejemplos editables de perfil, habilidades y experiencia educativa. Descárgalo en PDF o DOCX sin registro.",
+    "roleTeachingSkillsGuide": "Prioriza competencias que puedas demostrar, como planificación didáctica, gestión del aula, evaluación, adaptación curricular y tecnología educativa.",
+    "roleTeachingExperienceGuide": "Describe qué enseñabas, a qué tipo de estudiantes acompañabas y cómo evaluabas o mejorabas el aprendizaje. Incluye resultados reales sin exponer información privada."
   }
 }

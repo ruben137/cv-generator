@@ -9,6 +9,7 @@ import { industrialEngineeringConcepts } from "./industrial-engineering";
 import { marketingConcepts } from "./marketing";
 import { nursingConcepts } from "./nursing";
 import { receptionConcepts } from "./reception";
+import { teachingConcepts } from "./teaching";
 import { salesConcepts } from "./sales";
 import { sharedConcepts } from "./shared";
 import { softwareDevelopmentConcepts } from "./software-development";
@@ -24,6 +25,7 @@ export const professionalConcepts: Record<Exclude<JobFamily, "general">, readonl
   "graphic-design": [...graphicDesignConcepts, ...(escoCuratedConcepts["graphic-design"] ?? [])],
   nursing: [...nursingConcepts, ...(escoCuratedConcepts.nursing ?? [])],
   reception: [...receptionConcepts, ...(escoCuratedConcepts.reception ?? [])],
+  teaching: [...teachingConcepts, ...(escoCuratedConcepts.teaching ?? [])],
 };
 
 export const jobMatchConcepts: readonly MatchConcept[] = [
