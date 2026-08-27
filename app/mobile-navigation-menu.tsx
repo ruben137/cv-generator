@@ -2,6 +2,7 @@
 
 import {
   CloseRounded,
+  EditNoteRounded,
   FolderOpenRounded,
   LanguageRounded,
   MenuBookRounded,
@@ -35,7 +36,7 @@ const copy = {
     menu: "Abrir menú",
     close: "Cerrar menú",
     navigation: "Navegación principal",
-    generator: "Generador",
+    createCv: "Crear CV",
     templates: "Plantillas",
     guides: "Guías",
     tools: "Herramientas",
@@ -47,7 +48,7 @@ const copy = {
     menu: "Open menu",
     close: "Close menu",
     navigation: "Main navigation",
-    generator: "Generator",
+    createCv: "Create resume",
     templates: "Templates",
     guides: "Guides",
     tools: "Tools",
@@ -69,10 +70,9 @@ export function MobileNavigationMenu({
   const resolvedLocale = locale === "en" ? "en" : "es";
   const labels = copy[resolvedLocale];
   const links: Array<{ id: NonNullable<MobileNavigationMenuProps["active"]>; label: string; href: string; icon?: ReactNode }> = [
-    { id: "generator", label: labels.generator, href: `/${resolvedLocale}?openEditor=1#generator` },
     { id: "templates", label: labels.templates, href: resolvedLocale === "en" ? "/en/templates" : "/es/plantillas" },
-    { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias", icon: <MenuBookRounded fontSize="small" /> },
     { id: "tools", label: labels.tools, href: `/${resolvedLocale}/tools` },
+    { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias", icon: <MenuBookRounded fontSize="small" /> },
     { id: "cvs", label: labels.cvs, href: "/mis-cvs", icon: <FolderOpenRounded fontSize="small" /> },
     { id: "applications", label: labels.applications, href: resolvedLocale === "en" ? "/en/applications" : "/es/mis-postulaciones", icon: <WorkOutlineRounded fontSize="small" /> },
   ];
@@ -104,13 +104,22 @@ export function MobileNavigationMenu({
             </IconButton>
           </Box>
           <Box component="nav" aria-label={labels.navigation} className="mobile-navigation-links">
+            <Button
+              component="a"
+              href={`/${resolvedLocale}?openEditor=1#generator`}
+              startIcon={<EditNoteRounded />}
+              className="mobile-create-cv-action"
+              onClick={close}
+            >
+              {labels.createCv}
+            </Button>
             {links.map((link) => (
               <Button
                 key={link.id}
                 component="a"
                 href={link.href}
                 startIcon={link.icon}
-                className={`${link.id === "generator" ? "generator-entry" : ""}${active === link.id ? " active" : ""}`}
+                className={active === link.id ? "active" : ""}
                 onClick={close}
               >
                 {link.label}

@@ -2,7 +2,6 @@
 
 import {
   AddRounded,
-  ArrowBackRounded,
   CheckBox,
   CloseOutlined,
   ContentCopyRounded,
@@ -464,9 +463,6 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
       <CssBaseline />
       <SiteHeader locale={locale} active="cvs" actions={
         <Box className="desktop-page-actions">
-            <Button component="a" href="/" startIcon={<ArrowBackRounded />}>
-              {t("backToEditor")}
-            </Button>
             <Button component="a" href={locale === "en" ? "/en/applications" : "/es/mis-postulaciones"} startIcon={<WorkOutlineRounded />}>
               {t("myApplications")}
             </Button>

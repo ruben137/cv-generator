@@ -10,13 +10,12 @@ type DesktopNavigationProps = {
 export function DesktopNavigation({ locale, active }: DesktopNavigationProps) {
   const resolvedLocale = locale === "en" ? "en" : "es";
   const labels = resolvedLocale === "en"
-    ? { navigation: "Main navigation", generator: "Generator", templates: "Templates", guides: "Guides", tools: "Tools", cvs: "My resumes" }
-    : { navigation: "Navegación principal", generator: "Generador", templates: "Plantillas", guides: "Guías", tools: "Herramientas", cvs: "Mis CVs" };
+    ? { navigation: "Main navigation", templates: "Templates", guides: "Guides", tools: "Tools", cvs: "My resumes" }
+    : { navigation: "Navegación principal", templates: "Plantillas", guides: "Guías", tools: "Herramientas", cvs: "Mis CVs" };
   const links: Array<{ id: NavigationSection; label: string; href: string }> = [
-    { id: "generator", label: labels.generator, href: `/${resolvedLocale}?openEditor=1#generator` },
     { id: "templates", label: labels.templates, href: resolvedLocale === "en" ? "/en/templates" : "/es/plantillas" },
-    { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias" },
     { id: "tools", label: labels.tools, href: `/${resolvedLocale}/tools` },
+    { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias" },
     { id: "cvs", label: labels.cvs, href: "/mis-cvs" },
   ];
 
@@ -26,7 +25,7 @@ export function DesktopNavigation({ locale, active }: DesktopNavigationProps) {
         <Link
           key={link.id}
           href={link.href}
-          className={`main-nav-link${link.id === "generator" ? " generator-entry" : ""}${active === link.id ? " active" : ""}`}
+          className={`main-nav-link${active === link.id ? " active" : ""}`}
           aria-current={active === link.id ? "page" : undefined}
         >
           {link.label}

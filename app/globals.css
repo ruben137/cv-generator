@@ -68,13 +68,13 @@ body {
 .main-nav-link { display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-geist-sans), Arial, sans-serif; font-size: .875rem; font-weight: 750; line-height: 1.75; text-decoration: none; }
 .main-nav-link:hover { color: var(--navy) !important; background: #edf2f6 !important; }
 .main-nav-link.active { color: var(--navy) !important; background: #fff !important; box-shadow: 0 1px 5px rgba(23, 42, 59, 0.11); }
-.main-nav-link.generator-entry { color: #fff !important; background: var(--navy) !important; box-shadow: 0 2px 7px rgba(23, 59, 99, .2); }
-.main-nav-link.generator-entry:hover { color: #fff !important; background: #0e2948 !important; }
-.main-nav-link.generator-entry.active { box-shadow: 0 0 0 2px #c9dbe9, 0 2px 7px rgba(23, 59, 99, .2); }
 .site-header { position: sticky; top: 0; z-index: 1100; width: 100%; }
 .site-header-inner { display: flex; min-height: 76px; align-items: center; gap: 1rem; }
 .site-header-brand-slot { display: flex; flex: 0 0 340px; align-items: center; }
-.site-header-actions { display: flex; align-items: center; gap: .65rem; margin-left: auto; }
+.site-header-utility { display: flex; align-items: center; gap: .65rem; margin-left: auto; }
+.site-header-create-cta.MuiButton-root { min-height: 42px; padding-inline: 1.1rem; border-radius: 11px; background: var(--navy); box-shadow: 0 3px 10px rgba(23, 59, 99, .18); font-weight: 800; text-transform: none; white-space: nowrap; }
+.site-header-create-cta.MuiButton-root:hover { background: #0e2948; box-shadow: 0 4px 12px rgba(23, 59, 99, .24); }
+.site-header-actions { display: flex; align-items: center; gap: .65rem; }
 .site-header-actions:empty { min-width: 0; }
 .site-content {
   width: min(1480px, calc(100% - 48px)) !important;
@@ -96,16 +96,15 @@ body {
 .mobile-navigation-links .MuiButton-root { min-height: 48px; justify-content: flex-start; padding-inline: 1rem; border-radius: 11px; color: #314b62; font-weight: 750; text-transform: none; }
 .mobile-navigation-links .MuiButton-root:hover { background: #eaf1f6; color: var(--navy); }
 .mobile-navigation-links .MuiButton-root.active { background: #e0ecf5; color: var(--navy); }
-.mobile-navigation-links .MuiButton-root.generator-entry { margin-bottom: .35rem; background: var(--navy); color: #fff; box-shadow: 0 3px 10px rgba(23, 59, 99, .18); }
-.mobile-navigation-links .MuiButton-root.generator-entry:hover { background: #0e2948; color: #fff; }
-.mobile-navigation-links .MuiButton-root.generator-entry.active { box-shadow: 0 0 0 2px #b9d1e3, 0 3px 10px rgba(23, 59, 99, .18); }
+.mobile-navigation-links .MuiButton-root.mobile-create-cv-action { margin-bottom: .5rem; background: var(--navy); color: #fff; box-shadow: 0 3px 10px rgba(23, 59, 99, .18); }
+.mobile-navigation-links .MuiButton-root.mobile-create-cv-action:hover { background: #0e2948; color: #fff; }
 .mobile-navigation-actions { display: grid; gap: .9rem; margin-top: auto; padding-top: 1rem; }
 .mobile-navigation-actions > .MuiButton-root { min-height: 46px; border-radius: 11px; font-weight: 750; text-transform: none; }
 .mobile-language-control { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .mobile-language-control > span { display: inline-flex; align-items: center; gap: .4rem; color: #526779; font-weight: 700; }
 
 @media (max-width: 1050px) {
-  .brand-logo-tagline, .privacy-chip, .main-nav, .site-header-actions { display: none !important; }
+  .brand-logo-tagline, .privacy-chip, .main-nav, .site-header-utility { display: none !important; }
   .mobile-navigation-trigger { display: inline-flex !important; }
 }
 
