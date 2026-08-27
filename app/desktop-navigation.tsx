@@ -26,7 +26,7 @@ export function DesktopNavigation({ locale, active }: DesktopNavigationProps) {
         <Link
           key={link.id}
           href={link.href}
-          className={`main-nav-link${active === link.id ? " active" : ""}`}
+          className={`main-nav-link${link.id === "generator" ? " generator-entry" : ""}${active === link.id ? " active" : ""}`}
           aria-current={active === link.id ? "page" : undefined}
         >
           {link.label}

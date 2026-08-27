@@ -110,7 +110,7 @@ export function MobileNavigationMenu({
                 component="a"
                 href={link.href}
                 startIcon={link.icon}
-                className={active === link.id ? "active" : ""}
+                className={`${link.id === "generator" ? "generator-entry" : ""}${active === link.id ? " active" : ""}`}
                 onClick={close}
               >
                 {link.label}

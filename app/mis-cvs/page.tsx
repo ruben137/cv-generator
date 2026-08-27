@@ -9,6 +9,7 @@ import {
   DeleteOutlineRounded,
   DescriptionRounded,
   DownloadRounded,
+  DriveFileRenameOutlineRounded,
   EditRounded,
   WorkOutlineRounded,
   MoreHorizRounded,
@@ -100,6 +101,9 @@ export default function MyCvsPage() {
   const [libraryMenuAnchor, setLibraryMenuAnchor] = useState<HTMLElement | null>(null);
   const [deleteCandidates, setDeleteCandidates] = useState<StoredCv[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [renameCandidate, setRenameCandidate] = useState<StoredCv | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renaming, setRenaming] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [bulkExporting, setBulkExporting] = useState(false);
@@ -259,6 +263,37 @@ const confirmDeleteCvs = async () => {
     setError(t("libraryLoadError"));
   } finally {
     setDeleting(false);
+  }
+};
+const openRenameCv = (cv: StoredCv) => {
+  setRenameCandidate(cv);
+  setRenameValue(cv.title);
+};
+const closeRenameCv = () => {
+  if (renaming) return;
+  setRenameCandidate(null);
+  setRenameValue("");
+};
+const confirmRenameCv = async () => {
+  const title = renameValue.trim();
+  if (!renameCandidate || !title) return;
+
+  try {
+    setRenaming(true);
+    await putStoredCv({
+      ...renameCandidate,
+      title,
+      updatedAt: new Date().toISOString(),
+    });
+    setRenameCandidate(null);
+    setRenameValue("");
+    setNotice(t("cvRenamed"));
+    setError("");
+    await refresh();
+  } catch {
+    setError(t("renameCvError"));
+  } finally {
+    setRenaming(false);
   }
 };
   const exportBackup = async () => {
@@ -732,10 +767,23 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
                       alignItems="flex-start"
                       gap={1}
                     >
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography fontWeight={800} noWrap title={cv.title}>
-                          {cv.title}
-                        </Typography>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Stack direction="row" alignItems="center" spacing={0.25}>
+                          <Typography sx={{ minWidth: 0, flex: 1 }} fontWeight={800} noWrap title={cv.title}>
+                            {cv.title}
+                          </Typography>
+                          {!disablePreview ? (
+                            <Tooltip title={t("renameCv")}>
+                              <IconButton
+                                size="small"
+                                aria-label={t("renameCvNamed", { title: cv.title })}
+                                onClick={() => openRenameCv(cv)}
+                              >
+                                <DriveFileRenameOutlineRounded fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
+                        </Stack>
                         <Typography
                           variant="body2"
                           color="text.secondary"
@@ -843,6 +891,46 @@ const getExportLabels = (cv: StoredCv): ExportLabels => {
           onClose={() => setDeleteCandidates([])}
           onConfirm={() => void confirmDeleteCvs()}
         />
+        <Dialog
+          className="library-analysis-dialog"
+          open={Boolean(renameCandidate)}
+          onClose={closeRenameCv}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle>{t("renameCvTitle")}</DialogTitle>
+          <DialogContent>
+            <Typography color="text.secondary" sx={{ mb: 2 }}>
+              {t("renameCvHelp")}
+            </Typography>
+            <TextField
+              autoFocus
+              fullWidth
+              label={t("cvNameRequired")}
+              value={renameValue}
+              error={renameValue.length > 0 && !renameValue.trim()}
+              helperText={t("renameCvCharacters", { count: renameValue.length })}
+              inputProps={{ maxLength: 100 }}
+              onChange={(event) => setRenameValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && renameValue.trim() && !renaming) {
+                  event.preventDefault();
+                  void confirmRenameCv();
+                }
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeRenameCv} disabled={renaming}>{t("cancel")}</Button>
+            <Button
+              variant="contained"
+              disabled={!renameValue.trim() || renaming}
+              onClick={() => void confirmRenameCv()}
+            >
+              {renaming ? t("renamingCv") : t("saveCvName")}
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Dialog className="library-analysis-dialog" open={Boolean(jobMatchCv)} onClose={() => setJobMatchCv(null)} fullWidth maxWidth="sm">
           <DialogTitle>{t("jobMatchAreaTitle")}</DialogTitle>
           <DialogContent>
