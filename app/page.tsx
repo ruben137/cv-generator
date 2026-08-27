@@ -910,7 +910,7 @@ export default function Home() {
               </Button>
             </Stack>
             <Box className="hero-trust-list">
-              {[t("heroTrustFree"), t("heroTrustNoAccount"), t("heroTrustLocal")].map((item) => (
+              {[t("heroTrustFree"), t("heroTrustUnlimitedDownloads"), t("heroTrustNoAccount"), t("heroTrustLocal")].map((item) => (
                 <span key={item}><CheckCircleRounded fontSize="small" />{item}</span>
               ))}
             </Box>
