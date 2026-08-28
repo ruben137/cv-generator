@@ -19,6 +19,19 @@ export type ExportLabels = {
 const safe = (value?: string) => value?.trim() ?? "";
 const docxColor = (value: string, fallback: string) =>
   /^#[0-9a-f]{6}$/i.test(value) ? value.slice(1).toUpperCase() : fallback;
+const docxMixedColor = (value: string, ratio: number, fallback: string) => {
+  const source = docxColor(value, fallback);
+  const clampedRatio = Math.min(1, Math.max(0, ratio));
+  return [0, 2, 4]
+    .map((offset) => {
+      const channel = Number.parseInt(source.slice(offset, offset + 2), 16);
+      return Math.round(255 - (255 - channel) * clampedRatio)
+        .toString(16)
+        .padStart(2, "0");
+    })
+    .join("")
+    .toUpperCase();
+};
 const pdfColor = (
   value: string,
   fallback: [number, number, number],
@@ -30,6 +43,24 @@ const pdfColor = (
     Number.parseInt(match[1], 16) / 255,
     Number.parseInt(match[2], 16) / 255,
     Number.parseInt(match[3], 16) / 255,
+  );
+};
+
+const pdfMixedColor = (
+  value: string,
+  ratio: number,
+  fallback: [number, number, number],
+  rgb: (red: number, green: number, blue: number) => unknown,
+) => {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(value);
+  const source = match
+    ? [match[1], match[2], match[3]].map((channel) => Number.parseInt(channel, 16) / 255)
+    : fallback;
+  const clampedRatio = Math.min(1, Math.max(0, ratio));
+  return rgb(
+    1 - (1 - source[0]) * clampedRatio,
+    1 - (1 - source[1]) * clampedRatio,
+    1 - (1 - source[2]) * clampedRatio,
   );
 };
 
@@ -124,6 +155,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
   } = await import("docx");
   const primary = docxColor(data.primaryColor, "173B63");
   const accent = docxColor(data.accentColor, "3C6596");
+  const compactHeadingFill = docxMixedColor(data.primaryColor, 0.09, "173B63");
   const isHarvard = data.template === "harvard";
   const docxFont = isHarvard || data.fontFamily === "times" ? "Times New Roman" : data.fontFamily === "serif" ? "Georgia" : data.fontFamily === "humanist" ? "Calibri" : "Arial";
   const isModern = data.template === "modern";
@@ -142,12 +174,16 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
       spacing: { before: isHarvard ? 170 : 220, after: isHarvard ? 55 : 80 },
       border: isHarvard
         ? { bottom: { color: "222222", size: 8, style: BorderStyle.SINGLE } }
-        : (isCompact || isContrast) && main
+        : isContrast && main
         ? { left: { color: accent, size: 22, space: 8, style: BorderStyle.SINGLE } }
         : isEditorial && main
         ? { left: { color: accent, size: 22, space: 8, style: BorderStyle.SINGLE } }
         : { bottom: { color: borderColor, size: 8, style: BorderStyle.SINGLE } },
-      shading: ((isCompact || isContrast) && main) || (isEditorial && main) ? { fill: "E8EDF2", type: ShadingType.CLEAR } : undefined,
+      shading: isCompact && main
+        ? { fill: compactHeadingFill, type: ShadingType.CLEAR }
+        : (isContrast && main) || (isEditorial && main)
+        ? { fill: "E8EDF2", type: ShadingType.CLEAR }
+        : undefined,
       children: [new TextRun({
         text: isHarvard || ((isCompact || isContrast) && main) ? text.toUpperCase() : text,
         bold: !((isCompact || isContrast) && main),
@@ -433,6 +469,57 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
       shading: { fill: headerFill, type: ShadingType.CLEAR },
       children: children.length ? children : [new Paragraph({ alignment, children: [new TextRun("")] })],
     });
+    const compactContentWidth = fullWidth - 1040;
+    const compactColumnGap = 220;
+    const compactColumnWidth = Math.floor((compactContentWidth - compactColumnGap) / 2);
+    const compactSectionIds = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections)
+      .filter((section) => (sectionParagraphs[section] ?? []).length > 0);
+    const compactGridRows: InstanceType<typeof TableRow>[] = [];
+    let compactPair: string[] = [];
+    const compactGridCell = (sectionId?: string, rightCell = false) => new TableCell({
+      width: { size: compactColumnWidth, type: WidthType.DXA },
+      margins: {
+        top: 0,
+        bottom: 100,
+        left: rightCell ? compactColumnGap : 0,
+        right: 0,
+      },
+      children: sectionId ? sectionParagraphs[sectionId] : [new Paragraph("")],
+    });
+    const flushCompactPair = () => {
+      if (!compactPair.length) return;
+      compactGridRows.push(new TableRow({
+        cantSplit: true,
+        children: [compactGridCell(compactPair[0]), compactGridCell(compactPair[1], true)],
+      }));
+      compactPair = [];
+    };
+    compactSectionIds.forEach((sectionId) => {
+      if (sectionId === "summary" || sectionId === "experience") {
+        flushCompactPair();
+        compactGridRows.push(new TableRow({
+          children: [new TableCell({
+            columnSpan: 2,
+            width: { size: compactContentWidth, type: WidthType.DXA },
+            margins: { top: 0, bottom: 80, left: 0, right: 0 },
+            children: sectionParagraphs[sectionId],
+          })],
+        }));
+        return;
+      }
+      compactPair.push(sectionId);
+      if (compactPair.length === 2) flushCompactPair();
+    });
+    flushCompactPair();
+    const compactBody = new Table({
+      width: { size: compactContentWidth, type: WidthType.DXA },
+      columnWidths: [compactColumnWidth, compactColumnWidth + compactColumnGap],
+      borders: {
+        top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+        insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE },
+      },
+      rows: compactGridRows.length ? compactGridRows : [new TableRow({ children: [compactGridCell()] })],
+    });
     const horizontalTable = new Table({
       width: { size: fullWidth, type: WidthType.DXA },
       columnWidths: headerWidths,
@@ -443,7 +530,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
       rows: [
         new TableRow({
           height: { value: 180, rule: HeightRule.EXACT },
-          children: headerWidths.map((width) => new TableCell({ width: { size: width, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, shading: { fill: accent, type: ShadingType.CLEAR }, children: [new Paragraph("")] })),
+          children: headerWidths.map((width) => new TableCell({ width: { size: width, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, shading: { fill: isContrast ? accent : primary, type: ShadingType.CLEAR }, children: [new Paragraph("")] })),
         }),
         new TableRow({
           cantSplit: true,
@@ -453,7 +540,7 @@ export async function exportDocx(data: CvData, labels: ExportLabels, filename?: 
             borderlessCell(headerWidths[2], detailsHeader),
           ],
         }),
-        new TableRow({ children: [new TableCell({ columnSpan: 3, width: { size: fullWidth, type: WidthType.DXA }, margins: { top: 220, bottom: 220, left: 520, right: 520 }, children: orderedRight.length ? orderedRight : [new Paragraph("")] })] }),
+        new TableRow({ children: [new TableCell({ columnSpan: 3, width: { size: fullWidth, type: WidthType.DXA }, margins: { top: 220, bottom: 220, left: 520, right: 520 }, children: isCompact ? [compactBody] : orderedRight.length ? orderedRight : [new Paragraph("")] })] }),
         new TableRow({
           height: { value: 140, rule: HeightRule.EXACT },
           children: headerWidths.map((width) => new TableCell({ width: { size: width, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, shading: { fill: isContrast ? accent : primary, type: ShadingType.CLEAR }, children: [new Paragraph("")] })),
@@ -650,6 +737,11 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   const italic = await pdf.embedFont(pdfFonts[2]);
   const color = pdfColor(data.primaryColor, [23 / 255, 59 / 255, 99 / 255], rgb) as ReturnType<typeof rgb>;
   const accent = pdfColor(data.accentColor, [60 / 255, 101 / 255, 150 / 255], rgb) as ReturnType<typeof rgb>;
+  const primaryTint8 = pdfMixedColor(data.primaryColor, 0.08, [23 / 255, 59 / 255, 99 / 255], rgb) as ReturnType<typeof rgb>;
+  const primaryTint9 = pdfMixedColor(data.primaryColor, 0.09, [23 / 255, 59 / 255, 99 / 255], rgb) as ReturnType<typeof rgb>;
+  const primaryTint10 = pdfMixedColor(data.primaryColor, 0.1, [23 / 255, 59 / 255, 99 / 255], rgb) as ReturnType<typeof rgb>;
+  const accentTint8 = pdfMixedColor(data.accentColor, 0.08, [60 / 255, 101 / 255, 150 / 255], rgb) as ReturnType<typeof rgb>;
+  const accentTint14 = pdfMixedColor(data.accentColor, 0.14, [60 / 255, 101 / 255, 150 / 255], rgb) as ReturnType<typeof rgb>;
   const dark = rgb(24 / 255, 30 / 255, 38 / 255);
   const muted = rgb(0.94, 0.95, 0.96);
   const white = rgb(1, 1, 1);
@@ -685,11 +777,11 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
 
   if (isHorizontalPdf) {
     const headerBottom = horizontalDense ? 692 : 652;
-    page.drawRectangle({ x: 0, y: headerBottom, width: pageWidth, height: 841.89 - headerBottom, color: isContrastPdf ? color : muted });
-    page.drawRectangle({ x: 0, y: 829, width: pageWidth, height: 12, color: accent });
+    page.drawRectangle({ x: 0, y: headerBottom, width: pageWidth, height: 841.89 - headerBottom, color: isContrastPdf ? color : accentTint8 });
+    page.drawRectangle({ x: 0, y: 829, width: pageWidth, height: 12, color: isContrastPdf ? accent : color });
     page.drawRectangle({ x: 0, y: 0, width: pageWidth, height: 9, color: isContrastPdf ? accent : color });
   } else if (!isHarvardPdf && data.template !== "minimal") {
-    page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: hasDarkSidebarPdf ? color : muted });
+    page.drawRectangle({ x: sidebarX, y: 0, width: sidebarWidth, height: 841.89, color: hasDarkSidebarPdf ? color : data.template === "modern" ? accentTint14 : muted });
     if (isEditorialPdf) {
       page.drawRectangle({ x: sidebarContentX, y: 806, width: 34, height: 6, color: accent });
     } else {
@@ -860,10 +952,13 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
     if (isEditorialPdf || isHorizontalPdf) {
       const headingHeight = isHorizontalPdf ? 21 * horizontalBodyScale : 21;
       const headingSize = isHorizontalPdf ? 13 * horizontalBodyScale : 13;
-      page.drawRectangle({ x: mainContentX, y: rightY - 5 * horizontalBodyScale, width: mainContentWidth, height: headingHeight, color: muted });
-      page.drawRectangle({ x: mainContentX, y: rightY - 5 * horizontalBodyScale, width: 4, height: headingHeight, color: accent });
+      const headingBackground = isCompactPdf ? primaryTint9 : isContrastPdf ? primaryTint8 : primaryTint10;
+      page.drawRectangle({ x: mainContentX, y: rightY - 5 * horizontalBodyScale, width: mainContentWidth, height: headingHeight, color: headingBackground });
+      if (!isCompactPdf) {
+        page.drawRectangle({ x: mainContentX, y: rightY - 5 * horizontalBodyScale, width: 4, height: headingHeight, color: accent });
+      }
       page.drawText(label.toUpperCase(), {
-        x: mainContentX + 10,
+        x: mainContentX + (isCompactPdf ? 8 : 10),
         y: rightY,
         size: headingSize,
         font: regular,
@@ -876,6 +971,70 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
   const experiences = data.experiences.filter((item) => safe(item.company) || safe(item.role));
   const education = data.education.filter((item) => safe(item.institution) || safe(item.degree));
   const certifications = data.certifications.filter((item) => safe(item.name) || safe(item.issuer));
+  const drawCompactHeading = (label: string, x: number, y: number, width: number) => {
+    const headingHeight = 21 * horizontalBodyScale;
+    page.drawRectangle({ x, y: y - 5 * horizontalBodyScale, width, height: headingHeight, color: primaryTint9 });
+    page.drawText(label.toUpperCase(), {
+      x: x + 8,
+      y,
+      size: 13 * horizontalBodyScale,
+      font: regular,
+      color,
+    });
+    return y - 26 * horizontalBodyScale;
+  };
+  const compactSectionHasContent = (sectionId: string) => {
+    if (sectionId === "summary") return Boolean(safe(data.summary));
+    if (sectionId === "experience") return experiences.length > 0;
+    if (sectionId === "education") return education.length > 0;
+    if (sectionId === "certifications") return certifications.length > 0;
+    if (sectionId === "skills") return data.skills.some((skill) => safe(skill.name));
+    const section = data.customSections.find((item) => item.id === sectionId);
+    if (!section) return false;
+    return section.type === "text"
+      ? Boolean(safe(section.text))
+      : section.items.some((item) => safe(item.text));
+  };
+  const drawCompactGridSection = (sectionId: string, x: number, startY: number, width: number) => {
+    let y = startY;
+    const drawList = (items: string[], limit: number) => {
+      items.filter(Boolean).slice(0, limit).forEach((item) => {
+        page.drawCircle({ x: x + 3, y: y + 3, size: 1.5, color: dark });
+        y = textBlock(item, x + 15, y, width - 15, 9, 12, regular, 2);
+      });
+    };
+
+    if (sectionId === "education") {
+      y = drawCompactHeading(labels.education, x, y, width);
+      education.forEach((item) => {
+        y = textBlock([safe(item.institution), safe(item.degree)].filter(Boolean).join(" — "), x, y, width, 9.2, 11, bold, 2);
+        y = textBlock([safe(item.location), [safe(item.start), safe(item.end)].filter(Boolean).join(" – ")].filter(Boolean).join(" · "), x, y - 2, width, 8.3, 10, italic, 2) - 6;
+      });
+      return y;
+    }
+    if (sectionId === "certifications") {
+      y = drawCompactHeading(labels.certifications, x, y, width);
+      certifications.forEach((item) => {
+        y = textBlock(safe(item.name), x, y, width, 9, 11, bold, 2);
+        y = textBlock([safe(item.issuer), safe(item.date)].filter(Boolean).join(" · "), x, y - 1, width, 8.3, 10, italic, 2) - 5;
+      });
+      return y;
+    }
+    if (sectionId === "skills") {
+      y = drawCompactHeading(labels.skills, x, y, width);
+      drawList(data.skills.map((skill) => skill.name.trim()), 12);
+      return y;
+    }
+
+    const section = data.customSections.find((item) => item.id === sectionId);
+    if (!section) return y;
+    y = drawCompactHeading(safe(section.title) || "Section", x, y, width);
+    if (section.type === "text") {
+      return textBlock(section.text, x, y, width, 9.5, 13, regular, 7) - 6;
+    }
+    drawList(section.items.map((item) => item.text.trim()), 8);
+    return y;
+  };
   const sectionDrawers: Record<MainSectionId, () => void> = {
     summary: () => {
       if (!safe(data.summary)) return;
@@ -920,7 +1079,35 @@ export async function exportPdf(data: CvData, labels: ExportLabels, filename?: s
       });
     },
   };
-  normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections).forEach((sectionId) => {
+  const orderedSections = normalizeContentOrder(data.contentOrder, data.sectionOrder, data.customSections);
+  if (isCompactPdf) {
+    let compactGridSections: string[] = [];
+    const flushCompactGrid = () => {
+      if (!compactGridSections.length || rightY <= 55) return;
+      const columnGap = 24;
+      const columnWidth = (mainContentWidth - columnGap) / 2;
+      for (let index = 0; index < compactGridSections.length && rightY > 55; index += 2) {
+        rightY -= 12 * horizontalBodyScale;
+        const leftBottom = drawCompactGridSection(compactGridSections[index], mainContentX, rightY, columnWidth);
+        const rightSection = compactGridSections[index + 1];
+        const rightBottom = rightSection
+          ? drawCompactGridSection(rightSection, mainContentX + columnWidth + columnGap, rightY, columnWidth)
+          : rightY;
+        rightY = Math.min(leftBottom, rightBottom);
+      }
+      compactGridSections = [];
+    };
+
+    orderedSections.filter(compactSectionHasContent).forEach((sectionId) => {
+      if (sectionId === "summary" || sectionId === "experience") {
+        flushCompactGrid();
+        sectionDrawers[sectionId]();
+        return;
+      }
+      compactGridSections.push(sectionId);
+    });
+    flushCompactGrid();
+  } else orderedSections.forEach((sectionId) => {
     if (mainSectionIds.includes(sectionId as MainSectionId)) {
       sectionDrawers[sectionId as MainSectionId]();
       return;

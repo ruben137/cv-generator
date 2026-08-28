@@ -876,17 +876,25 @@ body {
 .cv-experience ul {
   margin: calc(5px * var(--scale)) 0 0;
   padding-left: calc(22px * var(--scale));
+  list-style-position: outside;
+  list-style-type: disc;
 }
 
-.cv-experience li { margin-bottom: calc(3px * var(--scale)); }
+.cv-experience li {
+  display: list-item;
+  margin-bottom: calc(3px * var(--scale));
+}
 
 .cv-skills {
   display: block;
   margin: 0;
   padding-left: calc(20px * var(--scale));
+  list-style-position: outside;
+  list-style-type: disc;
 }
 
 .cv-skills li {
+  display: list-item;
   margin-bottom: calc(3px * var(--scale));
   break-inside: avoid;
 }
@@ -917,7 +925,7 @@ body {
 .template-modern h2 { margin-top: calc(38px * var(--scale)); }
 .template-modern .cv-main { padding-top: calc(38px * var(--scale)); }
 .template-modern .bottom-accent { width: 100%; height: calc(12px * var(--scale)); }
-.template-modern .cv-main h3 { border-bottom-width: 2px; }
+.template-modern .cv-main h3 { border-bottom-width: 1px; }
 
 .cv-paper.template-minimal {
   grid-template-columns: 34% 66%;
@@ -1228,6 +1236,20 @@ body {
 .cv-paper.template-harvard .cv-skills {
   list-style-position: outside;
   list-style-type: disc;
+}
+
+/* Marcadores consistentes en todas las vistas previas, sin depender del reset del navegador. */
+.cv-paper .cv-experience ul,
+.cv-paper .cv-skills {
+  list-style: disc outside !important;
+}
+.cv-paper .cv-experience li,
+.cv-paper .cv-skills > li {
+  display: list-item !important;
+}
+.cv-paper .cv-experience li::marker,
+.cv-paper .cv-skills > li::marker {
+  font-size: .78em;
 }
 
 @media (max-width: 760px) {
