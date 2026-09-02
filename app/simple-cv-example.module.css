@@ -1,0 +1,49 @@
+.example {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.example > h2 {
+  margin: 0 0 1rem;
+  color: #173b63;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.paper {
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  border: 1px solid #d5dee7;
+  border-top: 4px solid #173b63;
+  border-radius: 4px;
+  background: #fff;
+  color: #344456;
+  box-shadow: 0 18px 45px rgba(23, 42, 59, 0.1);
+  font-size: .8125rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.paper p { margin: 0; }
+.paper .name { color: #173b63; font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+.header > p + p { margin-top: .35rem; }
+.contact { color: #5e6a78; font-size: .75rem; }
+.paper section { margin-top: 1rem; }
+
+.paper h3 {
+  margin: 0 0 .4rem;
+  padding-bottom: .25rem;
+  border-bottom: 1px solid #dce4eb;
+  color: #173b63;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.paper ul { margin: .4rem 0 0; padding-left: 1.1rem; list-style: disc; }
+.paper li + li { margin-top: .2rem; }
+.example figcaption { margin-top: .85rem; color: #5e6a78; font-size: .8125rem; line-height: 1.5; }

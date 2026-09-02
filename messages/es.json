@@ -1,7 +1,7 @@
 {
   "Metadata": {
-    "title": "CV Simple | Crea un currículum de una página",
-    "description": "Crea y descarga gratis un currículum profesional de una página en PDF y DOCX, sin registro y sin enviar tus datos personales a un servidor.",
+    "title": "CV Simple: crea tu currículum sencillo gratis en PDF o Word",
+    "description": "Crea un CV simple y profesional con plantillas editables. Personaliza tu currículum de una página y descárgalo gratis en PDF o Word (DOCX), sin registro.",
     "imageAlt": "CV Simple, generador gratuito y privado de currículums de una página",
     "featureList": ["Exportación a PDF y DOCX", "Plantillas personalizables", "Guardado automático local", "Sin registro", "Interfaz en español e inglés"]
   },
@@ -107,8 +107,8 @@
     "updatedAt": "Actualizado: {date}",
     "libraryLoadError": "No se pudieron cargar los CVs guardados.",
     "noStorage": "Sin almacenamiento",
-    "heroTitle": "Crea un CV que va al grano.",
-    "heroDescription": "Diseña un currículum profesional de una página, personalízalo y descárgalo en PDF o DOCX. Sin registro, sin sorpresas de pago y sin enviar tus datos personales.",
+    "heroTitle": "Crea tu CV simple y gratis.",
+    "heroDescription": "Un currículum sencillo de una página, con tu experiencia, formación y habilidades. Elige una plantilla, personalízala y descarga tu CV en PDF o Word (DOCX), sin registro.",
     "heroEyebrow": "Tu CV, realmente gratis",
     "heroPrimaryCta": "Crear mi CV",
     "heroSecondaryCta": "Ver plantillas",
@@ -135,7 +135,7 @@
     "dismissSuggestion": "No aplica",
     "improvementSkillsLimit": "Tu CV ya alcanzó el límite de 12 habilidades. Elimina una antes de añadir otra.",
     "howEyebrow": "Simple desde el principio",
-    "howTitle": "De una página en blanco a un CV listo para enviar",
+    "howTitle": "Cómo hacer un currículum sencillo en tres pasos",
     "howDescription": "No necesitas aprender una herramienta de diseño ni descubrir un paywall al terminar.",
     "step1Title": "Completa tu información",
     "step1Description": "Añade únicamente las secciones que necesites. Los límites están pensados para mantener un CV claro y de una página.",

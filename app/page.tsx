@@ -53,6 +53,7 @@ import {
   createTheme,
 } from "@mui/material";
 import { type CSSProperties, type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   DndContext,
   KeyboardSensor,
@@ -85,12 +86,16 @@ import {
 import { createStoredCv, getStoredCv, putStoredCv } from "./cv-library";
 import { BrandLogo } from "./brand-logo";
 import { SiteHeader } from "./site-header";
+import { SimpleCvExample } from "./simple-cv-example";
 import { getProfessionalPreset, isProfessionalPresetId } from "./professional-presets";
 import { writeJobMatchTransfer } from "./job-match/transfer";
 import { jobFamilies, type JobFamily } from "./job-match/model";
 import { writeResumeReviewTransfer } from "./resume-review/transfer";
 import { PromptJsonDropzone } from "./prompt-json-dropzone";
 import { createImprovementTarget, getImprovementPlans, removeImprovementPlan, storeImprovementPlans, type ImprovementPlan, type ImprovementSuggestion } from "./improvement-plan";
+
+const GuidedTour = dynamic(() => import("./guided-tour").then((module) => module.GuidedTour), { ssr: false });
+const START_GUIDED_TOUR_EVENT = "cv-simple:start-guided-tour";
 
 const theme = createTheme({
   palette: {
@@ -441,7 +446,7 @@ export default function Home() {
       setActiveCvId(cv.id);
       setCvTitle(cv.title);
       setSaveDialogOpen(false);
-      window.history.replaceState(null, "", `/?cv=${encodeURIComponent(cv.id)}`);
+      window.history.replaceState(null, "", `/${locale}?cv=${encodeURIComponent(cv.id)}`);
       setNotice(t(existing ? "cvUpdated" : "cvSaved"));
       setNoticeSuccess(true);
     } catch {
@@ -899,7 +904,7 @@ export default function Home() {
 
       <Container maxWidth={false} disableGutters className="site-content" sx={{ py: { xs: 2, md: 3 } }}>
         <Box className="intro">
-          <Box className="hero-copy">
+          <Box className="hero-copy" data-tour="hero">
             <Chip className="hero-eyebrow" size="small" label={t("heroEyebrow")} />
             <Typography variant="h3" component="h1">{t("heroTitle")}</Typography>
             <Typography className="hero-description" color="text.secondary">
@@ -919,23 +924,10 @@ export default function Home() {
               ))}
             </Box>
           </Box>
-          <Box className="hero-visual" aria-hidden="true">
-            <div className="hero-document">
-              <span className="hero-document-sidebar" />
-              <span className="hero-document-title" />
-              <span className="hero-document-line line-one" />
-              <span className="hero-document-line line-two" />
-              <span className="hero-document-heading" />
-              <span className="hero-document-line line-three" />
-              <span className="hero-document-line line-four" />
-            </div>
-            <div className="hero-format format-pdf">PDF</div>
-            <div className="hero-format format-docx">DOCX</div>
-            <div className="hero-private"><LockOutlined fontSize="small" />{t("heroPrivateBadge")}</div>
-          </Box>
+          <SimpleCvExample locale={locale} />
         </Box>
 
-        <Box component="aside" className="professional-presets-cta">
+        <Box component="aside" className="professional-presets-cta" data-tour="professional-examples">
           <span className="professional-preset-icon"><WorkOutlineRounded /></span>
           <Box>
             <Typography fontWeight={800}>{t("professionalPresetsCompactTitle")}</Typography>
@@ -946,7 +938,7 @@ export default function Home() {
 
         <Box id="generator">
         {editorReady ? <>
-        <Stack className="editor-toolbar" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
+        <Stack className="editor-toolbar" data-tour="editor-status" direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} justifyContent="space-between">
           <Typography component="h2" variant="h6" fontWeight={800}>{t("editorHeading")}</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
             {improvementPlans.length > 0 && (
@@ -979,7 +971,7 @@ export default function Home() {
           <DndContext id="editor-sections-order" sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
           <SortableContext items={fullContentOrder} strategy={verticalListSortingStrategy}>
           <Box className="editor-column">
-            <Accordion defaultExpanded sx={sectionSx} id="improvement-personal">
+            <Accordion defaultExpanded sx={sectionSx} id="improvement-personal" data-tour="editor-section">
               <AccordionSummary expandIcon={<ExpandMoreRounded />}>
                 <Typography fontWeight={750}>{t("personalInfo")}</Typography>
               </AccordionSummary>
@@ -1617,7 +1609,7 @@ export default function Home() {
           </DndContext>
 
           <Box className="preview-column">
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+            <Stack className="preview-tour-heading" data-tour="preview" direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
               <Box>
                 <Typography component="h2" variant="h6">{t("preview")}</Typography>
                 <Typography variant="caption" color="text.secondary">{t("a4OnePage")}</Typography>
@@ -1673,7 +1665,7 @@ export default function Home() {
               <Typography variant="body2" color="text.secondary" mb={1.5}>
                 {t("downloadPrivacy")}
               </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+              <Stack className="primary-export-actions" data-tour="export" direction={{ xs: "column", sm: "row" }} spacing={1}>
                 <Button
                   fullWidth
                   variant="contained"
@@ -1877,6 +1869,9 @@ export default function Home() {
           <BrandLogo />
           <Typography variant="body2" color="text.secondary">{t("footerDescription")}</Typography>
           <Box className="footer-links">
+            <button type="button" className="footer-tour-link" onClick={() => window.dispatchEvent(new Event(START_GUIDED_TOUR_EVENT))}>
+              {locale === "en" ? "Guided tour" : "Tutorial guiado"}
+            </button>
             <a href="#generator" onClick={activateEditor}>{t("generatorNav")}</a>
             <a href={templatesPath}>{t("templatesNav")}</a>
             <a href={locale === "en" ? "/en/guides" : "/es/guias"}>{t("guidesNav")}</a>
@@ -1890,6 +1885,7 @@ export default function Home() {
           <Typography variant="caption" color="text.secondary">{t("footerLicense")}</Typography>
         </Container>
       </Box>
+      <GuidedTour locale={locale} onPrepare={activateEditor} />
       <Dialog open={jobMatchDialogOpen} onClose={() => setJobMatchDialogOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>{t("jobMatchAreaTitle")}</DialogTitle>
         <DialogContent>

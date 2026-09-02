@@ -14,7 +14,7 @@ export function DesktopNavigation({ locale, active }: DesktopNavigationProps) {
     : { navigation: "Navegación principal", templates: "Plantillas", guides: "Guías", tools: "Herramientas", cvs: "Mis CVs" };
   const links: Array<{ id: NavigationSection; label: string; href: string }> = [
     { id: "templates", label: labels.templates, href: resolvedLocale === "en" ? "/en/templates" : "/es/plantillas" },
-    { id: "tools", label: labels.tools, href: `/${resolvedLocale}/tools` },
+    { id: "tools", label: labels.tools, href: resolvedLocale === "en" ? "/en/tools" : "/es/herramientas" },
     { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias" },
     { id: "cvs", label: labels.cvs, href: "/mis-cvs" },
   ];

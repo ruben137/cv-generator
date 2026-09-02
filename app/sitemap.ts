@@ -5,10 +5,9 @@ import { getGuideSitemapEntries } from "./guide-content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = getSiteUrl();
-  const homeLanguages = { es: `${siteUrl}/es`, en: `${siteUrl}/en`, "x-default": siteUrl };
+  const homeLanguages = { es: `${siteUrl}/es`, en: `${siteUrl}/en`, "x-default": `${siteUrl}/es` };
   const homePages = ["es", "en"].map((locale) => ({
     url: `${siteUrl}/${locale}`,
-    lastModified: new Date(),
     changeFrequency: "weekly" as const,
     priority: 1,
     images: [`${siteUrl}/og.png`],

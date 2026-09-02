@@ -1,7 +1,7 @@
 {
   "Metadata": {
-    "title": "CV Simple | Create a one-page resume",
-    "description": "Create and download a professional one-page resume in PDF and DOCX for free, without registration or uploading personal data to a server.",
+    "title": "Free Simple Resume Builder: PDF or Word | CV Simple",
+    "description": "Create a simple, professional one-page resume with editable templates. Customize your resume and download it free as PDF or Word (DOCX), with no sign-up.",
     "imageAlt": "CV Simple, a free and private one-page resume builder",
     "featureList": ["PDF and DOCX exports", "Customizable templates", "Automatic local saving", "No registration", "Spanish and English interface"]
   },
@@ -107,8 +107,8 @@
     "updatedAt": "Updated: {date}",
     "libraryLoadError": "Saved resumes could not be loaded.",
     "noStorage": "No data storage",
-    "heroTitle": "Create a resume that gets to the point.",
-    "heroDescription": "Design a professional one-page resume, customize it, and download it as PDF or DOCX. No account, no surprise paywall, and no uploading your personal data.",
+    "heroTitle": "Create your simple resume for free.",
+    "heroDescription": "A clear, one-page resume with your experience, education, and skills. Choose a template, customize it, and download your resume as PDF or Word (DOCX), with no sign-up.",
     "heroEyebrow": "Your resume, genuinely free",
     "heroPrimaryCta": "Create my resume",
     "heroSecondaryCta": "View templates",
@@ -135,7 +135,7 @@
     "dismissSuggestion": "Not applicable",
     "improvementSkillsLimit": "Your resume already has the maximum of 12 skills. Remove one before adding another.",
     "howEyebrow": "Simple from the beginning",
-    "howTitle": "From a blank page to a resume ready to send",
+    "howTitle": "How to make a simple resume in three steps",
     "howDescription": "You do not need to learn a design tool or discover a paywall when you finish.",
     "step1Title": "Add your information",
     "step1Description": "Include only the sections you need. The limits are designed to keep your resume clear and on one page.",

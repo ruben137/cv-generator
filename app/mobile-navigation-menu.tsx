@@ -71,7 +71,7 @@ export function MobileNavigationMenu({
   const labels = copy[resolvedLocale];
   const links: Array<{ id: NonNullable<MobileNavigationMenuProps["active"]>; label: string; href: string; icon?: ReactNode }> = [
     { id: "templates", label: labels.templates, href: resolvedLocale === "en" ? "/en/templates" : "/es/plantillas" },
-    { id: "tools", label: labels.tools, href: `/${resolvedLocale}/tools` },
+    { id: "tools", label: labels.tools, href: resolvedLocale === "en" ? "/en/tools" : "/es/herramientas" },
     { id: "guides", label: labels.guides, href: resolvedLocale === "en" ? "/en/guides" : "/es/guias", icon: <MenuBookRounded fontSize="small" /> },
     { id: "cvs", label: labels.cvs, href: "/mis-cvs", icon: <FolderOpenRounded fontSize="small" /> },
     { id: "applications", label: labels.applications, href: resolvedLocale === "en" ? "/en/applications" : "/es/mis-postulaciones", icon: <WorkOutlineRounded fontSize="small" /> },

@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
-import { headers } from "next/headers";
 import { getSiteUrl } from "./site-url";
 import "./globals.css";
 
@@ -19,8 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const t = await getTranslations("Metadata");
   const siteUrl = getSiteUrl();
-  const publicPath = (await headers()).get("x-cv-public-path");
-  const homePath = publicPath === "/es" || publicPath === "/en" ? publicPath : "";
+  const homePath = `/${locale}`;
   const canonicalUrl = `${siteUrl}${homePath}`;
   const title = t("title");
   const description = t("description");
@@ -45,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
       languages: {
         es: `${siteUrl}/es`,
         en: `${siteUrl}/en`,
-        "x-default": siteUrl,
+        "x-default": `${siteUrl}/es`,
       },
     },
     manifest: "/manifest.webmanifest",
@@ -87,8 +85,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const messages = await getMessages();
   const t = await getTranslations("Metadata");
   const siteUrl = getSiteUrl();
-  const publicPath = (await headers()).get("x-cv-public-path");
-  const homePath = publicPath === "/es" || publicPath === "/en" ? publicPath : "";
+  const homePath = `/${locale}`;
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
