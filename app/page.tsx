@@ -1885,7 +1885,7 @@ export default function Home() {
           <Typography variant="caption" color="text.secondary">{t("footerLicense")}</Typography>
         </Container>
       </Box>
-      <GuidedTour locale={locale} onPrepare={activateEditor} />
+      {/* <GuidedTour locale={locale} onPrepare={activateEditor} /> */}
       <Dialog open={jobMatchDialogOpen} onClose={() => setJobMatchDialogOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>{t("jobMatchAreaTitle")}</DialogTitle>
         <DialogContent>
